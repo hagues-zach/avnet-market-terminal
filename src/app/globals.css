@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas text-ink font-body;
+  }
+  /* Dense, terminal-grade scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-light rounded;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  /* Consistent keyboard-focus ring across all interactive elements */
+  a:focus-visible,
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid #41c363;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Avnet brand signature: green slash "/" prefix + ALL CAPS Oswald with left accent bar */
+  .slash-heading {
+    @apply font-display uppercase tracking-wide text-ink flex items-center gap-2;
+  }
+  .slash-heading::before {
+    content: "/";
+    @apply text-avnet-green font-display font-bold;
+  }
+  .accent-bar {
+    @apply border-l-[3px] border-avnet-green pl-3;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
