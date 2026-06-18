@@ -8,6 +8,7 @@ const LABELS: Record<DataSource, string> = {
   fred: "FRED",
   ecia: "ECIA",
   semi: "SEMI",
+  polymarket: "Polymarket",
   internal: "Internal",
   mock: "Mock",
 };

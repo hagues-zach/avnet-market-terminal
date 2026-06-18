@@ -9,6 +9,7 @@ export type DataSource =
   | "fred"
   | "ecia"
   | "semi"
+  | "polymarket"
   | "internal"
   | "mock";
 
@@ -86,4 +87,126 @@ export interface TamSummary {
   byRegion: { region: Region; usdM: UsdMillions; yoy: number }[];
   byEndMarket: { endMarket: EndMarket; usdM: UsdMillions; yoy: number }[];
   productTrend: { year: number; values: Partial<Record<ProductCategory, UsdMillions>> }[];
+}
+
+// ---- Market Overview (exec cockpit) ----
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  outlet: string;
+  tag: string;
+  date: string;
+}
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  summary: string;
+  outlet: string;
+  tag: string;
+  date: string;
+}
+
+export interface SegmentMomentum {
+  product: ProductCategory;
+  usdM: UsdMillions;
+  yoy: number;
+  series: number[]; // trailing trend for sparkline
+}
+
+export interface MarketChange {
+  label: string;
+  detail: string;
+  dir: 1 | -1;
+}
+
+export interface OverviewSummary {
+  tamUsdM: UsdMillions;
+  yoyGrowth: number;
+  forecastNextYearUsdM: UsdMillions;
+  somUsdM: UsdMillions;
+  somShareOfSam: number;
+  bookToBill: number;
+  bookToBillTrend: number[];
+  whatChanged: MarketChange[];
+  segments: SegmentMomentum[];
+  byRegion: { region: Region; usdM: UsdMillions }[];
+  news: NewsItem[];
+}
+
+// ---- Forecast & Scenario ----
+
+export type Scenario = "bull" | "base" | "bear";
+
+export interface ForecastPoint {
+  year: number;
+  actual?: UsdMillions;
+  base?: UsdMillions;
+  bull?: UsdMillions;
+  bear?: UsdMillions;
+  low?: UsdMillions; // confidence band (base)
+  high?: UsdMillions;
+}
+
+export interface ForecastSummary {
+  points: ForecastPoint[];
+  scenarios: Record<Scenario, { label: string; value2028: UsdMillions; cagr: number }>;
+  vintages: { vintage: string; proj2026: UsdMillions; isCurrent: boolean }[];
+  cagrBase: number;
+  base2026: UsdMillions;
+}
+
+// ---- Economic Signals ----
+
+export interface IpPoint {
+  date: string; // "YYYY-MM"
+  value: number; // index, 2017 = 100
+  recession: boolean;
+}
+
+export interface IndicatorRow {
+  key: string;
+  label: string;
+  value: string;
+  deltaPct: number;
+  series: number[];
+  source: DataSource;
+}
+
+export interface PolymarketOdds {
+  id: string;
+  question: string;
+  prob: number; // 0..1 implied probability
+  movePct: number; // change vs prior week (points)
+  volumeUsd: number;
+  category: string;
+  closes: string;
+}
+
+export interface SignalsSummary {
+  semiIpIndex: number;
+  semiIpDeltaPct: number;
+  ismPmi: number;
+  fedFundsRate: number;
+  usdIndex: number;
+  bookToBill: number;
+  ipTrend: IpPoint[];
+  indicators: IndicatorRow[];
+  polymarket: PolymarketOdds[];
+}
+
+// ---- Competitive & Channel ----
+
+export interface ChannelSummary {
+  channelSizeUsdM: UsdMillions;
+  channelYoY: number;
+  semisSharePct: number;
+  avnetChannelSharePct: number;
+  avnetRank: number;
+  top10SupplierSharePct: number;
+  distributors: { name: string; revenueUsdM: UsdMillions; isAvnet: boolean }[];
+  channelTrend: { year: number; usdM: UsdMillions; isForecast: boolean }[];
+  componentMix: { type: string; usdM: UsdMillions }[];
+  suppliers: { name: string; revenueUsdM: UsdMillions }[];
 }
