@@ -59,8 +59,8 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t border-line px-4 py-3">
-        <p className="text-2xs text-muted">WSTS Autumn 2025 · Internal demo</p>
-        <p className="text-2xs text-gray-medium">Mock data — not production</p>
+        <p className="text-2xs text-muted">Open data · Internal demo</p>
+        <p className="text-2xs text-gray-medium">Live public sources — not production</p>
       </div>
     </aside>
   );

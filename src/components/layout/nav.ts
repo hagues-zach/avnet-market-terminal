@@ -10,6 +10,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { HIDDEN_PATHS } from "@/lib/visibility";
+
 export interface NavItem {
   label: string;
   href: string;
@@ -17,9 +19,8 @@ export interface NavItem {
   built: boolean;
 }
 
-// Full Terminal IA. Only "TAM / SAM / SOM" ships in this first build; the rest are
-// shown as upcoming so the terminal reads complete.
-export const NAV: NavItem[] = [
+// Full Terminal IA. Pages listed in HIDDEN_PATHS are filtered out of the nav.
+const ALL_NAV: NavItem[] = [
   { label: "Market Overview", href: "/overview", icon: LayoutDashboard, built: true },
   { label: "TAM / SAM / SOM", href: "/tam", icon: Target, built: true },
   { label: "Forecast & Scenario", href: "/forecast", icon: TrendingUp, built: true },
@@ -29,3 +30,5 @@ export const NAV: NavItem[] = [
   { label: "Market Copilot", href: "/copilot", icon: Sparkles, built: true },
   { label: "Export Center", href: "/export", icon: FileDown, built: true },
 ];
+
+export const NAV: NavItem[] = ALL_NAV.filter((item) => !HIDDEN_PATHS.includes(item.href));

@@ -20,7 +20,7 @@ export default function LoginPage() {
     });
     if (res.ok) {
       // full reload so middleware re-evaluates with the new cookie
-      window.location.href = "/overview";
+      window.location.href = "/news";
     } else {
       setError(true);
       setLoading(false);
