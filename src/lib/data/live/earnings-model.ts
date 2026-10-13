@@ -11,7 +11,11 @@ export type Cohort =
   | "equipment"
   | "software"
   | "components"
-  | "ems";
+  | "ems"
+  | "hyperscaler"
+  | "systems"
+  | "auto"
+  | "industrial";
 
 export const COHORT_LABELS: Record<Cohort, string> = {
   distributor: "Distributors",
@@ -23,7 +27,16 @@ export const COHORT_LABELS: Record<Cohort, string> = {
   software: "Design software",
   components: "Interconnect & passives",
   ems: "Contract manufacturers",
+  hyperscaler: "Hyperscalers",
+  systems: "Devices & systems",
+  auto: "Automotive",
+  industrial: "Industrial OEMs",
 };
+
+// The last four groups are buyers of components, tracked as a read on demand
+// rather than as part of the semiconductor supply chain.
+export const DEMAND_COHORTS: Cohort[] = ["hyperscaler", "systems", "auto", "industrial"];
+export const isDemand = (c: Cohort) => DEMAND_COHORTS.includes(c);
 
 export const COHORTS = Object.keys(COHORT_LABELS) as Cohort[];
 
@@ -97,6 +110,24 @@ export const COMPANIES: Company[] = [
   { slug: "sanmina", name: "Sanmina", cik: 897723, cohort: "ems" },
   { slug: "plexus", name: "Plexus", cik: 785786, cohort: "ems" },
   { slug: "benchmark", name: "Benchmark Electronics", cik: 863436, cohort: "ems" },
+  { slug: "microsoft", name: "Microsoft", cik: 789019, cohort: "hyperscaler" },
+  { slug: "alphabet", name: "Alphabet", cik: 1652044, cohort: "hyperscaler" },
+  { slug: "amazon", name: "Amazon", cik: 1018724, cohort: "hyperscaler" },
+  { slug: "meta", name: "Meta", cik: 1326801, cohort: "hyperscaler" },
+  { slug: "oracle", name: "Oracle", cik: 1341439, cohort: "hyperscaler" },
+  { slug: "apple", name: "Apple", cik: 320193, cohort: "systems" },
+  { slug: "dell", name: "Dell", cik: 1571996, cohort: "systems" },
+  { slug: "hpe", name: "HPE", cik: 1645590, cohort: "systems" },
+  { slug: "cisco", name: "Cisco", cik: 858877, cohort: "systems" },
+  { slug: "super-micro", name: "Super Micro", cik: 1375365, cohort: "systems" },
+  { slug: "gm", name: "General Motors", cik: 1467858, cohort: "auto" },
+  { slug: "ford", name: "Ford", cik: 37996, cohort: "auto" },
+  { slug: "tesla", name: "Tesla", cik: 1318605, cohort: "auto" },
+  { slug: "honeywell", name: "Honeywell", cik: 773840, cohort: "industrial" },
+  { slug: "rockwell", name: "Rockwell Automation", cik: 1024478, cohort: "industrial" },
+  { slug: "emerson", name: "Emerson", cik: 32604, cohort: "industrial" },
+  { slug: "deere", name: "Deere", cik: 315189, cohort: "industrial" },
+  { slug: "caterpillar", name: "Caterpillar", cik: 18230, cohort: "industrial" },
 ];
 
 export const DEFAULT_COMPANY = "avnet";

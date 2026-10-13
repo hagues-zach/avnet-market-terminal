@@ -19,7 +19,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
     <div className="space-y-5 p-5">
       <PageHeader
         title="Quarterly Earnings"
-        subtitle={`One reporting framework across ${COMPANIES.length} distributors, chipmakers and suppliers, from SEC filings`}
+        subtitle={`One reporting framework across ${COMPANIES.length} distributors, chipmakers, suppliers and their customers, from SEC filings`}
       />
       <EarningsControls company={company} group={group} />
       <CompanyView earnings={earnings} />
