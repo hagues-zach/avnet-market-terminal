@@ -3,6 +3,7 @@ import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { COHORTS, COMPANIES, DEFAULT_COMPANY, type Cohort } from "@/lib/data/live/earnings-model";
 import { PageHeader } from "@/components/ui/page-header";
 import { CompanyView } from "@/components/earnings/company-view";
+import { EarningsCalendar, EarningsCalendarFallback } from "@/components/earnings/earnings-calendar";
 import { EarningsControls } from "@/components/earnings/earnings-controls";
 import { DASH } from "@/components/earnings/format";
 import { PeerTable, PeerTableFallback } from "@/components/earnings/peer-table";
@@ -22,6 +23,9 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
       />
       <EarningsControls company={company} group={group} />
       <CompanyView earnings={earnings} />
+      <Suspense fallback={<EarningsCalendarFallback />}>
+        <EarningsCalendar company={company} group={group} />
+      </Suspense>
       <Suspense fallback={<PeerTableFallback />}>
         <PeerTable company={company} group={group} />
       </Suspense>
