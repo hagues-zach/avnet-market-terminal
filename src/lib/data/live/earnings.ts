@@ -5,11 +5,11 @@ import {
   INSTANT_CONCEPTS,
   type Company,
   type CompanyEarnings,
-  type EarningsData,
   type Filing,
   type FlowMetric,
   type InstantMetric,
   type Metric,
+  type PeerRow,
   type Quarter,
 } from "./earnings-model";
 
@@ -22,7 +22,7 @@ const USER_AGENT = "MarketTerminal/0.1 (news reader)";
 const TIMEOUT_MS = 20_000;
 const QUARTERS_KEPT = 12;
 // SEC asks for no more than 10 requests/second; stay well under it.
-const BATCH = 4;
+const BATCH = 6;
 const DAY = 86_400_000;
 
 interface Fact {
@@ -141,16 +141,14 @@ function fiscalLabel(end: string, yearEnds: string[]): string {
   // The fiscal year this quarter belongs to: the first year end on or after it,
   // projected forward a year at a time when that year hasn't been reported yet.
   let fy = yearEnds.find((y) => y >= end && daysBetween(end, y) < 330);
-  let year = fy ? Number(fy.slice(0, 4)) : 0;
   if (!fy) {
     let t = ms(yearEnds[yearEnds.length - 1]);
-    year = Number(yearEnds[yearEnds.length - 1].slice(0, 4));
-    while (t < ms(end) - 20 * DAY) {
-      t += 365.25 * DAY;
-      year += 1;
-    }
+    while (t < ms(end) - 20 * DAY) t += 365.25 * DAY;
     fy = new Date(t).toISOString().slice(0, 10);
   }
+  // 52/53-week years can close in the first days of January and are still named
+  // for the year just ended, so name the year from a date shortly before the close.
+  const year = new Date(ms(fy) - 10 * DAY).getUTCFullYear();
   const q = 4 - Math.round(Math.max(0, daysBetween(end, fy)) / 91.3);
   return `FY${String(year).slice(2)} Q${Math.min(4, Math.max(1, q))}`;
 }
@@ -271,23 +269,27 @@ async function load(company: Company): Promise<CompanyEarnings> {
   return build(company, (await res.json()) as CompanyFacts);
 }
 
-// Failures throw, so they are never cached; the next request retries.
-const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-v2"], {
+// Failures throw, so they are never cached; the next request retries. Once a
+// result is cached, later requests are served from it while it refreshes.
+const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-v4"], {
   revalidate: REVALIDATE_SECONDS,
 });
 
-export async function getEarnings(): Promise<EarningsData> {
-  const companies: CompanyEarnings[] = [];
-  for (let i = 0; i < COMPANIES.length; i += BATCH) {
-    const batch = COMPANIES.slice(i, i + BATCH);
-    const settled = await Promise.allSettled(batch.map((c) => loadCached(c.slug)));
-    settled.forEach((s, j) => {
-      companies.push(
-        s.status === "fulfilled"
-          ? s.value
-          : { company: batch[j], quarters: [], latestFiling: null, error: s.reason instanceof Error ? s.reason.message : "Unavailable" },
-      );
-    });
+export async function getCompanyEarnings(slug: string): Promise<CompanyEarnings> {
+  const company = COMPANIES.find((c) => c.slug === slug) ?? COMPANIES[0];
+  try {
+    return await loadCached(company.slug);
+  } catch (e) {
+    return { company, quarters: [], latestFiling: null, error: e instanceof Error ? e.message : "Unavailable" };
   }
-  return { companies, fetchedAt: new Date().toISOString() };
+}
+
+/** Latest quarter for every company. Slow on a cold cache (one multi-MB document each). */
+export async function getPeerRows(): Promise<PeerRow[]> {
+  const rows: PeerRow[] = [];
+  for (let i = 0; i < COMPANIES.length; i += BATCH) {
+    const batch = await Promise.all(COMPANIES.slice(i, i + BATCH).map((c) => getCompanyEarnings(c.slug)));
+    for (const e of batch) rows.push({ company: e.company, latest: e.quarters[e.quarters.length - 1] ?? null });
+  }
+  return rows;
 }
