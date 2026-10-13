@@ -14,7 +14,7 @@ export function Topbar() {
       </div>
 
       <span className="font-display text-2xs uppercase tracking-widest text-muted">
-        Refreshed every 15 min
+        Refreshes automatically
       </span>
     </header>
   );

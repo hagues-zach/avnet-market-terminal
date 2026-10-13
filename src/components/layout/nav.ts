@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  DollarSign,
   FileDown,
   LayoutDashboard,
   Newspaper,
@@ -27,6 +28,7 @@ const ALL_NAV: NavItem[] = [
   { label: "Economic Signals", href: "/signals", icon: Activity, built: true },
   { label: "Competitive & Channel", href: "/competitive", icon: BarChart3, built: true },
   { label: "Market News", href: "/news", icon: Newspaper, built: true },
+  { label: "Quarterly Earnings", href: "/earnings", icon: DollarSign, built: true },
   { label: "Market Copilot", href: "/copilot", icon: Sparkles, built: true },
   { label: "Export Center", href: "/export", icon: FileDown, built: true },
 ];
