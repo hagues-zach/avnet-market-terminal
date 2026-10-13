@@ -43,7 +43,52 @@ function change(cur: number | undefined, prev: number | undefined, unit: "pts" |
   return { text, up, good: up === upIsGood };
 }
 
-function ScoreRows({ groups, latest, yearAgo, prior }: { groups: GroupSeries[]; latest: string; yearAgo: string; prior: string }) {
+/** Shared bar scales, so a bar means the same length in the supply-chain and customer blocks. */
+interface Scales {
+  growth: number;
+  margin: number;
+  days: number;
+}
+
+// Growth bars stop at +100%: one group growing several-fold would flatten every other bar.
+const GROWTH_CAP = 1;
+
+function scalesFor(groups: GroupSeries[], latest: string): Scales {
+  const points = groups.map((g) => at(g.points, latest));
+  const max = (pick: (p: GroupPoint) => number | undefined) => Math.max(0, ...points.map((p) => (p ? Math.abs(pick(p) ?? 0) : 0)));
+  return { growth: Math.min(GROWTH_CAP, max((p) => p.growth)) || 1, margin: max((p) => p.operatingMargin) || 1, days: max((p) => p.inventoryDays) || 1 };
+}
+
+/** A right-aligned value with an in-cell bar behind it. The number always carries the value; the bar is a visual aid. */
+function BarCell({ value, max, text, capped }: { value: number | undefined; max: number; text: string; capped?: boolean }) {
+  const width = value === undefined ? 0 : Math.min(1, Math.abs(value) / max) * 100;
+  const negative = (value ?? 0) < 0;
+  return (
+    <td className="px-3 py-1">
+      <div className="relative flex h-6 items-center justify-end">
+        {width > 0 && (
+          <span
+            aria-hidden
+            className={cn("absolute inset-y-0.5 left-0 rounded-sm", negative ? "bg-danger/15" : "bg-blue-dark/20", capped && "border-r-2 border-blue-dark")}
+            style={{ width: `${width}%` }}
+          />
+        )}
+        <span className="relative tabular text-ink">{text}</span>
+      </div>
+    </td>
+  );
+}
+
+/** A signed change, coloured by whether the direction is good news. The sign is always printed, so colour is not the only cue. */
+function ChangeCell({ value, text, upIsGood }: { value: number | undefined; text: string; upIsGood: boolean }) {
+  const flat = value === undefined || text.replace(/[^0-9]/g, "").replace(/0/g, "") === "";
+  const good = (value ?? 0) > 0 === upIsGood;
+  return (
+    <td className={cn("px-3 py-1.5 text-right tabular", flat ? "text-muted" : good ? "text-avnet-greenDark" : "text-danger")}>{text}</td>
+  );
+}
+
+function ScoreRows({ groups, latest, yearAgo, prior, scales }: { groups: GroupSeries[]; latest: string; yearAgo: string; prior: string; scales: Scales }) {
   return (
     <>
       {groups.map((g) => {
@@ -53,6 +98,9 @@ function ScoreRows({ groups, latest, yearAgo, prior }: { groups: GroupSeries[]; 
         const days = now?.inventoryDays !== undefined && lastYear?.inventoryDays !== undefined ? now.inventoryDays - lastYear.inventoryDays : undefined;
         const margin =
           now?.operatingMargin !== undefined && lastYear?.operatingMargin !== undefined ? now.operatingMargin - lastYear.operatingMargin : undefined;
+        // Momentum: is growth higher or lower than the quarter before?
+        const momentum = now?.growth !== undefined && before?.growth !== undefined ? now.growth - before.growth : undefined;
+        const Momentum = (momentum ?? 0) >= 0 ? ArrowUpRight : ArrowDownRight;
         return (
           <tr key={g.cohort} className="border-b border-line last:border-b-0 hover:bg-canvas">
             <th scope="row" className="px-4 py-1.5 text-left font-normal">
@@ -63,15 +111,27 @@ function ScoreRows({ groups, latest, yearAgo, prior }: { groups: GroupSeries[]; 
             <td className="px-3 py-1.5 text-right tabular text-muted">
               {now?.reporting ?? 0}/{g.companies}
             </td>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{growthText(now?.growth)}</td>
-            <td className="px-3 py-1.5 text-right tabular text-muted">{growthText(before?.growth)}</td>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{now?.growing === undefined ? DASH : `${Math.round(now.growing * 100)}%`}</td>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{format("pct", now?.operatingMargin)}</td>
+            <BarCell value={now?.growth} max={scales.growth} text={growthText(now?.growth)} capped={(now?.growth ?? 0) > GROWTH_CAP} />
             <td className="px-3 py-1.5 text-right tabular text-muted">
-              {margin === undefined ? DASH : `${margin >= 0 ? "+" : "−"}${(Math.abs(margin) * 100).toFixed(1)} pts`}
+              <span className="inline-flex items-center justify-end gap-1">
+                {growthText(before?.growth)}
+                {momentum !== undefined && (
+                  <Momentum
+                    className={cn("h-3.5 w-3.5", momentum >= 0 ? "text-avnet-greenDark" : "text-danger")}
+                    aria-label={momentum >= 0 ? "Growth accelerated since" : "Growth slowed since"}
+                  />
+                )}
+              </span>
             </td>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{format("days", now?.inventoryDays)}</td>
-            <td className="px-3 py-1.5 text-right tabular text-muted">{days === undefined ? DASH : `${days >= 0 ? "+" : "−"}${Math.round(Math.abs(days))}`}</td>
+            <BarCell value={now?.growing} max={1} text={now?.growing === undefined ? DASH : `${Math.round(now.growing * 100)}%`} />
+            <BarCell value={now?.operatingMargin} max={scales.margin} text={format("pct", now?.operatingMargin)} />
+            <ChangeCell
+              value={margin}
+              text={margin === undefined ? DASH : `${margin >= 0 ? "+" : "−"}${(Math.abs(margin) * 100).toFixed(1)} pts`}
+              upIsGood
+            />
+            <BarCell value={now?.inventoryDays} max={scales.days} text={format("days", now?.inventoryDays)} />
+            <ChangeCell value={days} text={days === undefined ? DASH : `${days >= 0 ? "+" : "−"}${Math.round(Math.abs(days))}`} upIsGood={false} />
           </tr>
         );
       })}
@@ -113,6 +173,7 @@ export async function CycleView() {
   }));
   const breadthRows: ChartRow[] = supply.map((p) => ({ label: p.label, growing: p.growing }));
   const capexRows: ChartRow[] = hyperscalerCapex.map((c) => ({ label: c.label, capex: c.total }));
+  const scales = scalesFor(groups, latest);
   const supplyCompanies = supplyGroups.reduce((n, g) => n + g.companies, 0);
 
   return (
@@ -203,7 +264,7 @@ export async function CycleView() {
         </div>
       </Card>
 
-      <Card title="Group scorecard" subtitle={`${latest} · growth is combined revenue; margin and inventory are the group median`} bodyClassName="p-0">
+      <Card title="Group scorecard" subtitle={`${latest} · growth is combined revenue; margin and inventory are the group median · growth bars stop at +100% · arrows show growth against the prior quarter`} bodyClassName="p-0">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-xs">
             <thead>
@@ -243,7 +304,7 @@ export async function CycleView() {
                   Supply chain
                 </th>
               </tr>
-              <ScoreRows groups={supplyGroups} latest={latest} yearAgo={yearAgo} prior={prior} />
+              <ScoreRows groups={supplyGroups} latest={latest} yearAgo={yearAgo} prior={prior} scales={scales} />
             </tbody>
             <tbody>
               <tr className="border-b border-line bg-canvas">
@@ -251,7 +312,7 @@ export async function CycleView() {
                   Customers
                 </th>
               </tr>
-              <ScoreRows groups={demandGroups} latest={latest} yearAgo={yearAgo} prior={prior} />
+              <ScoreRows groups={demandGroups} latest={latest} yearAgo={yearAgo} prior={prior} scales={scales} />
             </tbody>
           </table>
         </div>
