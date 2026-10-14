@@ -35,7 +35,20 @@ function Empty({ height }: { height: number }) {
 const hasData = (rows: ChartRow[], keys: string[]) => rows.some((r) => keys.some((k) => typeof r[k] === "number"));
 
 /** Up to three named series on one shared axis. */
-export function GroupLines({ rows, series, unit, height = 220 }: { rows: ChartRow[]; series: string[]; unit: Unit; height?: number }) {
+export function GroupLines({
+  rows,
+  series,
+  unit,
+  height = 220,
+  colors = SERIES_COLORS,
+}: {
+  rows: ChartRow[];
+  series: string[];
+  unit: Unit;
+  height?: number;
+  /** Override the default palette, e.g. to give a named company its own color. */
+  colors?: readonly string[];
+}) {
   if (!hasData(rows, series)) return <Empty height={height} />;
   const f = FORMAT[unit];
   return (
@@ -51,9 +64,9 @@ export function GroupLines({ rows, series, unit, height = 220 }: { rows: ChartRo
             key={s}
             type="monotone"
             dataKey={s}
-            stroke={SERIES_COLORS[i]}
+            stroke={colors[i]}
             strokeWidth={2}
-            dot={{ r: 2.5, strokeWidth: 0, fill: SERIES_COLORS[i] }}
+            dot={{ r: 2.5, strokeWidth: 0, fill: colors[i] }}
             activeDot={{ r: 4, stroke: "#FFFFFF", strokeWidth: 2 }}
             connectNulls
             isAnimationActive={false}

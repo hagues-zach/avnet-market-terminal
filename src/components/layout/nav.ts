@@ -27,7 +27,7 @@ const ALL_NAV: NavItem[] = [
   { label: "TAM / SAM / SOM", href: "/tam", icon: Target, built: true },
   { label: "Forecast & Scenario", href: "/forecast", icon: TrendingUp, built: true },
   { label: "Economic Signals", href: "/signals", icon: Activity, built: true },
-  { label: "Competitive & Channel", href: "/competitive", icon: BarChart3, built: true },
+  { label: "Avnet vs Arrow", href: "/competitive", icon: BarChart3, built: true },
   { label: "Market News", href: "/news", icon: Newspaper, built: true },
   { label: "Market Cycle", href: "/cycle", icon: Gauge, built: true },
   { label: "Quarterly Earnings", href: "/earnings", icon: DollarSign, built: true },

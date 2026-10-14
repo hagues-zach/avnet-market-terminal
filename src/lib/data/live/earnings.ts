@@ -25,7 +25,7 @@ const QUARTERS_KEPT = 12;
 const BATCH = 6;
 const DAY = 86_400_000;
 
-interface Fact {
+export interface Fact {
   start?: string;
   end: string;
   val: number;
@@ -73,7 +73,7 @@ interface QuarterValue {
  * since the 10-K carries the full year), so those quarters are backed out as
  * YTD(this quarter) − YTD(previous quarter) within the same fiscal year.
  */
-function quarterly(facts: Fact[]): Map<string, QuarterValue> {
+export function quarterly(facts: Fact[]): Map<string, QuarterValue> {
   const periods = latestByPeriod(facts.filter((f) => f.start));
   const out = new Map<string, QuarterValue>();
   for (const f of periods) {
@@ -153,7 +153,7 @@ function fiscalLabel(end: string, yearEnds: string[]): string {
   return `FY${String(year).slice(2)} Q${Math.min(4, Math.max(1, q))}`;
 }
 
-function calendarLabel(end: string): string {
+export function calendarLabel(end: string): string {
   const mid = new Date(ms(end) - 45 * DAY);
   return `CY${String(mid.getUTCFullYear()).slice(2)} Q${Math.floor(mid.getUTCMonth() / 3) + 1}`;
 }

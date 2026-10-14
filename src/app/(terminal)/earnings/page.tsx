@@ -7,6 +7,7 @@ import { EarningsCalendar, EarningsCalendarFallback } from "@/components/earning
 import { EarningsControls } from "@/components/earnings/earnings-controls";
 import { DASH } from "@/components/earnings/format";
 import { PeerTable, PeerTableFallback } from "@/components/earnings/peer-table";
+import { RevenueMix, RevenueMixFallback } from "@/components/earnings/revenue-mix";
 
 export default async function EarningsPage({ searchParams }: { searchParams: Promise<{ company?: string; group?: string }> }) {
   const params = await searchParams;
@@ -23,6 +24,10 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
       />
       <EarningsControls company={company} group={group} />
       <CompanyView earnings={earnings} />
+      {/* Keyed by company so the fallback shows again while a new company's filing loads. */}
+      <Suspense key={company} fallback={<RevenueMixFallback />}>
+        <RevenueMix company={company} />
+      </Suspense>
       <Suspense fallback={<EarningsCalendarFallback />}>
         <EarningsCalendar company={company} group={group} />
       </Suspense>
