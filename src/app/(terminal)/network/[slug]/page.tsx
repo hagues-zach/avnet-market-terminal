@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { COHORT_LABELS, COMPANIES, ROLE_SINGULAR, roleOf } from "@/lib/data/live/earnings-model";
 import { PageHeader } from "@/components/ui/page-header";
 import { RevenueMix, RevenueMixFallback } from "@/components/earnings/revenue-mix";
-import { ProfileComingNext, ProfileFallback, ProfileLineCard, ProfileNews, ProfileSummary } from "@/components/network/company-profile";
+import { ProfileComingNext, ProfileCommentary, ProfileFallback, ProfileLineCard, ProfileNews, ProfileSummary } from "@/components/network/company-profile";
 
 export default async function CompanyProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -22,6 +22,9 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
       <PageHeader title={company.name} subtitle={`${ROLE_SINGULAR[role]} · ${COHORT_LABELS[company.cohort]}`} />
       <Suspense fallback={<ProfileFallback title="At a glance" subtitle="Reading the company's filings from SEC EDGAR." />}>
         <ProfileSummary company={company} />
+      </Suspense>
+      <Suspense fallback={<ProfileFallback title="Management commentary" subtitle="Reading the latest earnings press release." />}>
+        <ProfileCommentary company={company} />
       </Suspense>
       <Suspense fallback={<RevenueMixFallback />}>
         <RevenueMix company={company.slug} />

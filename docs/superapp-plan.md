@@ -61,7 +61,7 @@ Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenari
 | Accounts and profiles | "The logged-in user's business" needs sign-in and a profile (role, region, suppliers, accounts). Today there is one shared password. | Not started |
 | Database | Nothing is stored. Line card snapshots, profiles, watchlists and saved briefs need it. | Decided: Supabase, **new project**, set up at step 2 (see below) |
 | Line card data | TTI, Future and Newark are readable. Avnet, Arrow, Mouser, DigiKey, Master, Richardson RFPD and the ECIA directory block automated reading and need importing. | Partly done |
-| Claude API | News synthesis, the digest and the tools call Claude. Running cost. | Not started |
+| Claude API | News synthesis and the commentary digest call Claude; the tools will too. Running cost. Needs a key in every environment. | In use |
 | Treg | Lead enrichment, paid per call. | Not started |
 | Anatomy skill | Open-source Claude Code skill for interactive 3D wireframes. Not installed yet. | Not started |
 | `SEC_USER_AGENT` | Required for revenue mix and segment history; must be set in any deployed environment. | Set locally only |
@@ -87,7 +87,12 @@ Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenari
   - [ ] Import Arrow, Mouser and DigiKey.
   - [ ] Move storage to a new Supabase project (not yet created).
   - [ ] Improve name matching (sub-brands, parent companies) once Avnet's list shows where it fails.
-- [ ] **Step 3. News "why it matters" and the supplier commentary digest.** Claude reads each story and each earnings press release (8-K exhibit) and writes the Avnet angle, guidance, and commentary on lead times, inventory and pricing.
+- [x] **Step 3. News "why it matters" and the supplier commentary digest.** Built on branch `news-synthesis-step-3`, using Claude (`claude-opus-5-5`) through the Anthropic SDK.
+  - Market News: one sentence per story on why it matters to an Avnet seller or field engineer, a relevance rating, and a relevance filter. One request per refresh for new stories only.
+  - Company profiles: "Management commentary", a digest of the latest earnings press release (the exhibit on the results 8-K) covering guidance, demand, inventory, lead times, pricing, the channel and end markets, plus points to raise in a conversation.
+  - Results are stored under `.cache/ai` (not committed) so nothing is analysed twice. Moves to the database with the line card store.
+  - Not yet personalised to the signed-in user; that needs accounts (step 6).
+  - Needs `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment; without it both features say AI is off.
 - [ ] **Step 4. QBR prep.** The first tool, because it exercises all three pillars: pick a supplier or customer and get a brief built from its profile, news, the cycle and talking points.
 - [ ] **Step 5. Anatomy explainer pilot.** Three part explainers (candidates: SiC MOSFET module, MLCC, a board-to-board connector), each with the sales angle and linked suppliers.
 - [ ] **Step 6. Accounts and personalisation.** Sign-in, profiles, and personalised news and briefs.
