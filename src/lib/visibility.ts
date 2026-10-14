@@ -5,7 +5,6 @@ export const HIDDEN_PATHS: string[] = [
   "/overview",
   "/tam",
   "/forecast",
-  "/signals",
   "/competitive",
   "/copilot",
   "/export",
