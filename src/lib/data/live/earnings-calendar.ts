@@ -148,3 +148,15 @@ export async function getEarningsCalendar(): Promise<EarningsCalendar> {
   const reported = events.filter((e) => e.status === "reported").sort((a, b) => b.date.localeCompare(a.date));
   return { events: [...upcoming, ...reported], failed, today };
 }
+
+/** The next expected release for one company, or null when it cannot be worked out. */
+export async function getNextRelease(slug: string): Promise<ReleaseEvent | null> {
+  const company = COMPANIES.find((c) => c.slug === slug);
+  if (!company) return null;
+  try {
+    const events = eventsFor(company, await releases(company), inEastern(new Date()).date);
+    return events.find((e) => e.status !== "reported") ?? null;
+  } catch {
+    return null;
+  }
+}

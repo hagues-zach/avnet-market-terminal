@@ -130,6 +130,48 @@ export const COMPANIES: Company[] = [
   { slug: "caterpillar", name: "Caterpillar", cik: 18230, cohort: "industrial" },
 ];
 
+/** How a company relates to Avnet. Drives the Network pillar's directory and profiles. */
+export type Role = "avnet" | "supplier" | "competitor" | "customer" | "ecosystem";
+
+export const ROLE_LABELS: Record<Role, string> = {
+  avnet: "Avnet",
+  supplier: "Suppliers",
+  competitor: "Competitors",
+  customer: "Customers",
+  ecosystem: "Ecosystem",
+};
+
+export const ROLE_SINGULAR: Record<Role, string> = {
+  avnet: "Avnet",
+  supplier: "Supplier",
+  competitor: "Competitor",
+  customer: "Customer",
+  ecosystem: "Ecosystem",
+};
+
+export const ROLES: Role[] = ["supplier", "competitor", "customer", "ecosystem"];
+
+// Component makers are suppliers; other distributors are competitors; buyers of
+// components (including contract manufacturers) are customers; equipment and
+// design-software companies sit upstream of the suppliers.
+const ROLE_OF_COHORT: Record<Cohort, Role> = {
+  distributor: "competitor",
+  manufacturer: "supplier",
+  platform: "supplier",
+  connectivity: "supplier",
+  memory: "supplier",
+  components: "supplier",
+  equipment: "ecosystem",
+  software: "ecosystem",
+  ems: "customer",
+  hyperscaler: "customer",
+  systems: "customer",
+  auto: "customer",
+  industrial: "customer",
+};
+
+export const roleOf = (c: Company): Role => (c.slug === "avnet" ? "avnet" : ROLE_OF_COHORT[c.cohort]);
+
 export const DEFAULT_COMPANY = "avnet";
 
 /** Reported line items. Flow = earned over the quarter; instant = balance at quarter end. */
