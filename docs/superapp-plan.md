@@ -47,6 +47,7 @@ The **company profile** is the hub. Most cross-pillar loops pass through it.
 | Knowledge | Economic Signals | `/signals` | Federal Reserve, BLS, IMF, Treasury, NY Fed, ECB |
 | Knowledge | Market Cycle | `/cycle` | Rolled up from SEC filings for 77 companies |
 | Network | Company Profiles | `/network`, `/network/[slug]` | Pulls together the sources below per company |
+| Network | Line Cards | `/line-cards` | Distributor manufacturer pages (3 collected) plus imported lists |
 | Network | Quarterly Earnings | `/earnings` | SEC XBRL; revenue mix; estimated earnings calendar |
 | Network | Avnet vs Arrow | `/competitive` | SEC XBRL plus segment and region history |
 | Tools | none yet | | |
@@ -59,7 +60,7 @@ Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenari
 |---|---|---|
 | Accounts and profiles | "The logged-in user's business" needs sign-in and a profile (role, region, suppliers, accounts). Today there is one shared password. | Not started |
 | Database | Nothing is stored. Line card snapshots, profiles, watchlists and saved briefs need it. | Decided: Supabase, **new project**, set up at step 2 (see below) |
-| Line card data | On distributors' public sites. Readability and terms of use not yet checked per site. | Not started |
+| Line card data | TTI, Future and Newark are readable. Avnet, Arrow, Mouser, DigiKey, Master, Richardson RFPD and the ECIA directory block automated reading and need importing. | Partly done |
 | Claude API | News synthesis, the digest and the tools call Claude. Running cost. | Not started |
 | Treg | Lead enrichment, paid per call. | Not started |
 | Anatomy skill | Open-source Claude Code skill for interactive 3D wireframes. Not installed yet. | Not started |
@@ -74,7 +75,18 @@ Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenari
 ## Build order
 
 - [x] **Step 1. Pillar navigation and company profiles.** Built on branch `superapp-pillars-step-1`. The nav is grouped into Knowledge, Network and Tools, with planned pages shown as "Soon". `/network` is a directory of all 77 companies by relationship to Avnet (supplier, competitor, customer, ecosystem); `/network/[slug]` is a profile with rule-based "at a glance" facts, a financial snapshot, revenue mix, matching news and the next earnings date. Not yet on profiles: line card presence, management commentary, QBR prep.
-- [ ] **Step 2. Line cards.** Set up Supabase. Collect line cards for Avnet, Arrow and a few others as dated snapshots. Overlap, additions and white-space views. Show line-card presence on profiles.
+- [ ] **Step 2. Line cards.** In progress on branch `line-cards-step-2`.
+  - [x] Snapshot storage, as local JSON files under `data/line-cards/<distributor>/<date>.json`. `src/lib/line-cards/store.ts` is the whole storage surface, so moving to Supabase means reimplementing that one file.
+  - [x] Collection for the three distributors whose sites can be read: TTI, Future Electronics, Newark (Farnell). First snapshots taken 2026-10-14 (UTC).
+  - [x] Import form (paste a list or CSV) for every other distributor.
+  - [x] `/line-cards`: coverage, overlap matrix, additions and removals, searchable supplier table. Line card presence on supplier profiles.
+  - [x] Franchise moves: distribution agreements announced in the last 12 months, read from news headlines (Google News search feed). Covers the distributors whose sites are blocked, and flags agreements that ended.
+  - [x] Supplier momentum: the 39 publicly reporting suppliers ranked by growth, with share sold through distribution, who carries them, and their latest announced agreement.
+  - [x] Sub-brands rolled up into supplier families; "only here" count per distributor.
+  - [ ] **Import Avnet's line card.** Until then there is no white-space view. Avnet, Arrow, Mouser and DigiKey block automated reading.
+  - [ ] Import Arrow, Mouser and DigiKey.
+  - [ ] Move storage to a new Supabase project (not yet created).
+  - [ ] Improve name matching (sub-brands, parent companies) once Avnet's list shows where it fails.
 - [ ] **Step 3. News "why it matters" and the supplier commentary digest.** Claude reads each story and each earnings press release (8-K exhibit) and writes the Avnet angle, guidance, and commentary on lead times, inventory and pricing.
 - [ ] **Step 4. QBR prep.** The first tool, because it exercises all three pillars: pick a supplier or customer and get a brief built from its profile, news, the cycle and talking points.
 - [ ] **Step 5. Anatomy explainer pilot.** Three part explainers (candidates: SiC MOSFET module, MLCC, a board-to-board connector), each with the sales angle and linked suppliers.
