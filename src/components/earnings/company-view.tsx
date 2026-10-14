@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, ExternalLink } from "lucide-react";
 import type { CompanyEarnings, Quarter } from "@/lib/data/live/earnings-model";
 import { AVNET } from "@/lib/colors";
@@ -133,6 +134,12 @@ export function CompanyView({ earnings }: { earnings: CompanyEarnings }) {
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1">
         <h2 className="font-display text-lg uppercase tracking-wide text-ink">
           {company.name} <span className="text-muted">· {latest.fiscalLabel}</span>
+          <Link
+            href={`/network/${company.slug}`}
+            className="ml-3 align-middle font-body text-xs normal-case tracking-normal text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark"
+          >
+            Company profile
+          </Link>
         </h2>
         <p className="text-xs text-muted">
           Quarter ended {longDate(latest.end)} · {latest.calendarLabel}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Wordmark } from "@/components/brand/wordmark";
-import { NAV } from "./nav";
+import { NAV, PILLARS, PILLAR_LABELS } from "./nav";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -14,47 +14,50 @@ export function Sidebar() {
       <div className="flex h-14 items-center border-b border-line px-4">
         <Wordmark />
       </div>
-      <div className="px-4 pb-2 pt-4">
-        <p className="font-display text-2xs uppercase tracking-widest text-muted">
-          Market Intelligence
-        </p>
-      </div>
-      <nav className="flex-1 space-y-0.5 px-2">
-        {NAV.map((item) => {
-          const active = pathname === item.href;
-          const Icon = item.icon;
-          if (!item.built) {
-            return (
-              <div
-                key={item.href}
-                className="flex cursor-not-allowed items-center justify-between rounded px-3 py-2 text-sm text-gray-medium"
-                title="Coming in a later phase"
-              >
-                <span className="flex items-center gap-2.5">
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </span>
-                <span className="font-display text-2xs uppercase tracking-wider text-gray-light">
-                  Soon
-                </span>
-              </div>
-            );
-          }
+      <nav className="flex-1 overflow-y-auto px-2 pb-2" aria-label="Main">
+        {PILLARS.map((pillar) => {
+          const items = NAV.filter((item) => item.pillar === pillar);
+          if (!items.length) return null;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2.5 rounded px-3 py-2 text-sm transition-colors duration-200 cursor-pointer",
-                active
-                  ? "bg-avnet-green/10 font-medium text-ink accent-bar border-l-[3px] border-avnet-green"
-                  : "text-ink/80 hover:bg-canvas",
-              )}
-              aria-current={active ? "page" : undefined}
-            >
-              <Icon className={cn("h-4 w-4", active && "text-avnet-greenDark")} />
-              {item.label}
-            </Link>
+            <div key={pillar}>
+              <p className="px-2 pb-1.5 pt-4 font-display text-2xs uppercase tracking-widest text-muted">{PILLAR_LABELS[pillar]}</p>
+              <div className="space-y-0.5">
+                {items.map((item) => {
+                  // A section stays highlighted on its sub-pages, e.g. /network/avnet.
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const Icon = item.icon;
+                  if (!item.built) {
+                    return (
+                      <div
+                        key={item.href}
+                        className="flex cursor-not-allowed items-center justify-between rounded px-3 py-2 text-sm text-gray-medium"
+                        title="Planned: see docs/superapp-plan.md"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </span>
+                        <span className="font-display text-2xs uppercase tracking-wider text-gray-light">Soon</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded px-3 py-2 text-sm transition-colors duration-200 cursor-pointer",
+                        active ? "bg-avnet-green/10 font-medium text-ink accent-bar border-l-[3px] border-avnet-green" : "text-ink/80 hover:bg-canvas",
+                      )}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon className={cn("h-4 w-4", active && "text-avnet-greenDark")} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
