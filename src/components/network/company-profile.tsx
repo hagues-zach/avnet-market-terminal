@@ -5,6 +5,7 @@ import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getNextRelease, TIMING_LABELS } from "@/lib/data/live/earnings-calendar";
 import { roleOf, type Company, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
 import { getRevenueMix, type RevenueMix } from "@/lib/data/live/revenue-mix";
+import { getCommentary, type Digest } from "@/lib/ai/commentary";
 import { getCarriers } from "@/lib/line-cards/analysis";
 import { AVNET } from "@/lib/colors";
 import { Card } from "@/components/ui/card";
@@ -268,6 +269,85 @@ export async function ProfileLineCard({ company }: { company: Company }) {
   );
 }
 
+const TOPICS: { key: keyof Omit<Digest, "headline" | "takeaways">; label: string }[] = [
+  { key: "guidance", label: "Guidance" },
+  { key: "demand", label: "Demand" },
+  { key: "inventory", label: "Inventory" },
+  { key: "leadTimes", label: "Lead times and supply" },
+  { key: "pricing", label: "Pricing" },
+  { key: "channel", label: "Distribution channel" },
+  { key: "endMarkets", label: "End markets" },
+];
+
+/** Server component: Claude's digest of the company's latest earnings press release. */
+export async function ProfileCommentary({ company }: { company: Company }) {
+  const c = await getCommentary(company.slug);
+  const covered = c.digest ? TOPICS.filter((t) => c.digest![t.key]) : [];
+  const silent = c.digest ? TOPICS.filter((t) => !c.digest![t.key]).map((t) => t.label.toLowerCase()) : [];
+  return (
+    <Card
+      title="Management commentary"
+      subtitle={c.filed ? `From the earnings press release filed ${longDate(c.filed)}` : "From the latest earnings press release"}
+      actions={
+        <span className="flex items-center gap-3">
+          {c.digest && (
+            <span className="rounded border border-line px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider text-muted" title="Written by Claude from the press release">
+              AI summary
+            </span>
+          )}
+          {c.releaseUrl && (
+            <a
+              href={c.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark"
+            >
+              Press release
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </span>
+      }
+    >
+      {!c.digest ? (
+        <p className="py-4 text-center text-sm text-muted">
+          {c.message}
+          {c.status === "off" && c.releaseWords ? ` The release was found (about ${c.releaseWords.toLocaleString("en-US")} words) and will be summarised once it is.` : ""}
+        </p>
+      ) : (
+        <>
+          <p className="text-sm font-medium text-ink">{c.digest.headline}</p>
+          {covered.length > 0 && (
+            <dl className="mt-3 grid gap-x-8 gap-y-3 md:grid-cols-2">
+              {covered.map((t) => (
+                <div key={t.key}>
+                  <dt className="font-display text-2xs uppercase tracking-widest text-muted">{t.label}</dt>
+                  <dd className="mt-0.5 text-sm text-ink">{c.digest![t.key]}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {c.digest.takeaways.length > 0 && (
+            <div className="mt-4 border-t border-line pt-3">
+              <h3 className="font-display text-2xs uppercase tracking-widest text-muted">To raise in a conversation</h3>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-ink marker:text-avnet-green">
+                {c.digest.takeaways.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="mt-4 text-2xs text-muted">
+            Written by Claude from the press release only, so it can miss or misread things; check the release before quoting it.
+            {silent.length > 0 && ` The release did not address: ${silent.join(", ")}.`} Prepared remarks and the question-and-answer
+            session on the earnings call are not included.
+          </p>
+        </>
+      )}
+    </Card>
+  );
+}
+
 /** What the profile will gain as later steps of the plan land. */
 export function ProfileComingNext({ company }: { company: Company }) {
   const role = roleOf(company);
@@ -282,9 +362,6 @@ export function ProfileComingNext({ company }: { company: Company }) {
             <span className="text-ink">Line card.</span> {lineCard}
           </li>
         )}
-        <li>
-          <span className="text-ink">Management commentary.</span> What {company.name} said about demand, lead times, inventory and pricing in its latest results.
-        </li>
         <li>
           <span className="text-ink">QBR prep.</span> A one-click brief built from this profile.
         </li>

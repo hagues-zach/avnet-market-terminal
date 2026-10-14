@@ -1,3 +1,4 @@
+import { getNewsAngles } from "@/lib/ai/news-angles";
 import { getLiveNews } from "@/lib/data/live/news";
 import { PageHeader } from "@/components/ui/page-header";
 import { NewsFeed } from "@/components/news/news-feed";
@@ -11,7 +12,8 @@ export default async function NewsPage() {
   return (
     <div className="space-y-5 p-5">
       <PageHeader title="Market News" subtitle="Live, source-linked coverage of the semiconductor market from open feeds" />
-      <NewsFeed data={data} />
+      {/* Not awaited: the feed shows straight away and the angles stream in behind it. */}
+      <NewsFeed data={data} anglesPromise={getNewsAngles(data.articles)} />
     </div>
   );
 }

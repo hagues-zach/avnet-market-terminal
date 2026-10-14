@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, Search, Star, X } from "lucide-react";
+import type { Angles, Relevance } from "@/lib/ai/news-angles";
 import { KIND_LABELS, type ArticleKind, type LiveArticle, type LiveNews } from "@/lib/data/live/shared";
 import { FACET_LABELS, type Facet } from "@/lib/data/live/tagging";
 import { Card } from "@/components/ui/card";
@@ -56,12 +57,30 @@ function Chip({
   );
 }
 
-export function NewsFeed({ data }: { data: LiveNews }) {
+type RelevanceFilter = "all" | "high" | "useful";
+
+const RELEVANCE_LABEL: Record<Relevance, string> = { high: "High relevance", medium: "Useful context", low: "Low relevance" };
+
+export function NewsFeed({ data, anglesPromise }: { data: LiveNews; anglesPromise: Promise<Angles> }) {
   const { articles, sources, fetchedAt } = data;
   const [selected, setSelected] = useState<Record<Facet, string[]>>(EMPTY);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<ArticleKind | "all">("all");
   const [watchlistLoaded, setWatchlistLoaded] = useState(false);
+  // The feed renders at once; Claude's angles arrive after and fill in.
+  const [angles, setAngles] = useState<Angles | null>(null);
+  const [relevance, setRelevance] = useState<RelevanceFilter>("all");
+
+  useEffect(() => {
+    let current = true;
+    anglesPromise.then(
+      (a) => current && setAngles(a),
+      () => current && setAngles({ byId: {}, status: "partial", message: "The analysis could not be loaded." }),
+    );
+    return () => {
+      current = false;
+    };
+  }, [anglesPromise]);
 
   // The supplier selection doubles as a watchlist and survives reloads.
   useEffect(() => {
@@ -112,13 +131,17 @@ export function NewsFeed({ data }: { data: LiveNews }) {
     const q = query.trim().toLowerCase();
     return articles.filter((a) => {
       if (kind !== "all" && a.kind !== kind) return false;
+      if (relevance !== "all") {
+        const r = angles?.byId[a.id]?.relevance;
+        if (r !== "high" && !(relevance === "useful" && r === "medium")) return false;
+      }
       for (const facet of Object.keys(selected) as Facet[]) {
         const want = selected[facet];
         if (want.length && !want.some((v) => a[facet].includes(v))) return false;
       }
       return !q || `${a.title} ${a.summary} ${a.outlet}`.toLowerCase().includes(q);
     });
-  }, [articles, selected, query, kind]);
+  }, [articles, selected, query, kind, relevance, angles]);
 
   const activeCount = Object.values(selected).reduce((n, v) => n + v.length, 0) + (query.trim() ? 1 : 0);
   const kindCounts = useMemo(() => {
@@ -126,6 +149,15 @@ export function NewsFeed({ data }: { data: LiveNews }) {
     for (const a of articles) c[a.kind] += 1;
     return c;
   }, [articles]);
+  const relevanceCounts = useMemo(() => {
+    const c: Record<Relevance, number> = { high: 0, medium: 0, low: 0 };
+    for (const a of articles) {
+      const r = angles?.byId[a.id]?.relevance;
+      if (r) c[r] += 1;
+    }
+    return c;
+  }, [articles, angles]);
+  const analysed = relevanceCounts.high + relevanceCounts.medium + relevanceCounts.low;
   const live = sources.filter((s) => s.ok);
   const down = sources.filter((s) => !s.ok);
 
@@ -164,6 +196,31 @@ export function NewsFeed({ data }: { data: LiveNews }) {
               Clear {activeCount}
             </button>
           )}
+        </div>
+
+        <div className="flex items-start gap-2">
+          <p className="w-20 shrink-0 pt-1 font-display text-2xs uppercase tracking-widest text-muted">Relevance</p>
+          <div className="flex flex-wrap items-center gap-1">
+            {angles === null ? (
+              <p className="pt-1 text-2xs text-muted" role="status">
+                Claude is reading the stories.
+              </p>
+            ) : analysed === 0 ? (
+              <p className="pt-1 text-2xs text-muted">{angles.message ?? "No stories have been analysed yet."}</p>
+            ) : (
+              <>
+                <Chip label="All" active={relevance === "all"} onClick={() => setRelevance("all")} />
+                <Chip label="High" count={relevanceCounts.high} active={relevance === "high"} onClick={() => setRelevance("high")} />
+                <Chip
+                  label="High and useful"
+                  count={relevanceCounts.high + relevanceCounts.medium}
+                  active={relevance === "useful"}
+                  onClick={() => setRelevance("useful")}
+                />
+                {angles.status !== "ok" && angles.message && <p className="pl-1 pt-0.5 text-2xs text-muted">{angles.message}</p>}
+              </>
+            )}
+          </div>
         </div>
 
         {FACETS.map((facet) => (
@@ -229,6 +286,12 @@ export function NewsFeed({ data }: { data: LiveNews }) {
                   <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-gray-medium group-hover:text-avnet-greenDark" />
                 </a>
                 {a.summary && <p className="mt-0.5 text-xs text-muted">{a.summary}</p>}
+                {angles?.byId[a.id] && (
+                  <p className="mt-1.5 border-l-2 border-avnet-green pl-2 text-xs text-ink">
+                    <span className="font-display text-2xs uppercase tracking-wider text-muted">Why it matters · {RELEVANCE_LABEL[angles.byId[a.id].relevance]} </span>
+                    <span className="block">{angles.byId[a.id].angle}</span>
+                  </p>
+                )}
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                   {a.kind !== "news" && (
                     <span className="rounded bg-canvas px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider text-ink">
@@ -258,7 +321,7 @@ export function NewsFeed({ data }: { data: LiveNews }) {
 
       <p className="px-1 text-2xs text-muted">
         Headlines and snippets from public RSS feeds and the GDELT open news index, filings from SEC EDGAR and notices from
-        the Federal Register; each item links to its source. Tags are rule-based. Refreshed <time dateTime={fetchedAt}>{fetchedAt.slice(0, 16).replace("T", " ")} UTC</time>, about every 15 minutes.
+        the Federal Register; each item links to its source. Tags are rule-based. "Why it matters" and the relevance rating are written by Claude from the headline and snippet only, for an Avnet seller or field engineer; they can be wrong. Refreshed <time dateTime={fetchedAt}>{fetchedAt.slice(0, 16).replace("T", " ")} UTC</time>, about every 15 minutes.
         {down.length > 0 && ` Not responding: ${down.map((s) => s.outlet).join(", ")}.`}
       </p>
     </>
