@@ -11,12 +11,14 @@ const xTick = { fontSize: 10, fill: AVNET.grayDark };
 const yTick = { fontSize: 11, fill: AVNET.grayMedium };
 const MARGIN = { top: 12, right: 12, left: 4, bottom: 0 };
 
-export type Unit = "pct" | "pctWhole" | "days" | "usd";
+export type Unit = "pct" | "pctWhole" | "days" | "usd" | "index" | "level";
 
 const FORMAT: Record<Unit, { axis: (v: number) => string; value: (v: number) => string }> = {
   pct: { axis: (v) => `${Math.round(v * 100)}%`, value: (v) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%` },
   pctWhole: { axis: (v) => `${Math.round(v * 100)}%`, value: (v) => `${Math.round(v * 100)}%` },
   days: { axis: (v) => `${Math.round(v)}d`, value: (v) => `${Math.round(v)} days` },
+  index: { axis: (v) => `${Math.round(v)}`, value: (v) => v.toFixed(1) },
+  level: { axis: (v) => `${Math.round(v)}%`, value: (v) => `${v.toFixed(1)}%` },
   usd: { axis: (v) => formatUsdMillions(v / 1e6), value: (v) => formatUsdMillions(v / 1e6, { precise: true }) },
 };
 
