@@ -5,6 +5,7 @@ import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getNextRelease, TIMING_LABELS } from "@/lib/data/live/earnings-calendar";
 import { roleOf, type Company, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
 import { getRevenueMix, type RevenueMix } from "@/lib/data/live/revenue-mix";
+import { getCarriers } from "@/lib/line-cards/analysis";
 import { AVNET } from "@/lib/colors";
 import { Card } from "@/components/ui/card";
 import { GrowthChart, RevenueChart } from "@/components/charts/earnings-charts";
@@ -224,15 +225,55 @@ export async function ProfileNews({ company }: { company: Company }) {
   );
 }
 
+/** Server component: which tracked distributors list this supplier. */
+export async function ProfileLineCard({ company }: { company: Company }) {
+  const { carriers, tracked, hasHome } = await getCarriers(company.name);
+  const onAvnet = carriers.some((c) => c.slug === "avnet");
+  return (
+    <Card
+      title="Line card presence"
+      subtitle={`Across the ${tracked} distributor line ${tracked === 1 ? "card" : "cards"} tracked so far`}
+      actions={
+        <Link href="/line-cards" className="inline-flex items-center gap-1 text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark">
+          Line Cards
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      }
+    >
+      {tracked === 0 ? (
+        <p className="py-4 text-center text-sm text-muted">No line cards have been collected yet.</p>
+      ) : carriers.length === 0 ? (
+        <p className="text-sm text-ink">
+          {company.name} is not listed by any tracked distributor. That can also mean it is listed under a different name.
+        </p>
+      ) : (
+        <ul className="space-y-1 text-sm text-ink">
+          {carriers.map((c) => (
+            <li key={c.slug} className="flex items-baseline justify-between gap-3">
+              <span className="font-medium">{c.name}</span>
+              <span className="text-xs text-muted">listed as of {longDate(c.date)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-3 border-t border-line pt-3 text-xs text-muted">
+        {hasHome
+          ? onAvnet
+            ? `${company.name} is on Avnet's line card.`
+            : `${company.name} is not on Avnet's imported line card.`
+          : "Avnet's own line card has not been imported yet, so this cannot say whether Avnet carries it."}{" "}
+        A listing on a distributor's site is not proof of a franchise agreement.
+      </p>
+    </Card>
+  );
+}
+
 /** What the profile will gain as later steps of the plan land. */
 export function ProfileComingNext({ company }: { company: Company }) {
   const role = roleOf(company);
+  // Suppliers get a live line card section instead; distributors' own cards are on the Line Cards page.
   const lineCard =
-    role === "supplier"
-      ? `Which distributors carry ${company.name}, and whether Avnet is one of them.`
-      : role === "competitor" || role === "avnet"
-        ? `${company.name}'s line card, with additions, removals and overlap with other distributors.`
-        : null;
+    role === "competitor" || role === "avnet" ? `${company.name}'s own line card on this profile, with additions, removals and overlap with other distributors.` : null;
   return (
     <Card title="Coming to this profile" subtitle="Planned in docs/superapp-plan.md">
       <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-gray-light">

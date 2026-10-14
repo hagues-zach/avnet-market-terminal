@@ -50,7 +50,7 @@ const ALL_NAV: NavItem[] = [
   { label: "Company Profiles", href: "/network", icon: Building2, built: true, pillar: "network" },
   { label: "Quarterly Earnings", href: "/earnings", icon: DollarSign, built: true, pillar: "network" },
   { label: "Avnet vs Arrow", href: "/competitive", icon: BarChart3, built: true, pillar: "network" },
-  { label: "Line Cards", href: "/line-cards", icon: LayoutGrid, built: false, pillar: "network" },
+  { label: "Line Cards", href: "/line-cards", icon: LayoutGrid, built: true, pillar: "network" },
   { label: "QBR Prep", href: "/tools/qbr", icon: ClipboardList, built: false, pillar: "tools" },
   { label: "Pitch Deck Builder", href: "/tools/deck", icon: Presentation, built: false, pillar: "tools" },
   { label: "Lead Finder", href: "/tools/leads", icon: UserSearch, built: false, pillar: "tools" },
