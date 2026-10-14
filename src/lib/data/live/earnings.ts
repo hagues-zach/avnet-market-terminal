@@ -284,12 +284,16 @@ export async function getCompanyEarnings(slug: string): Promise<CompanyEarnings>
   }
 }
 
+/** Full quarterly history for every company. Slow on a cold cache (one multi-MB document each). */
+export async function getAllEarnings(): Promise<CompanyEarnings[]> {
+  const all: CompanyEarnings[] = [];
+  for (let i = 0; i < COMPANIES.length; i += BATCH) {
+    all.push(...(await Promise.all(COMPANIES.slice(i, i + BATCH).map((c) => getCompanyEarnings(c.slug)))));
+  }
+  return all;
+}
+
 /** Latest quarter for every company. Slow on a cold cache (one multi-MB document each). */
 export async function getPeerRows(): Promise<PeerRow[]> {
-  const rows: PeerRow[] = [];
-  for (let i = 0; i < COMPANIES.length; i += BATCH) {
-    const batch = await Promise.all(COMPANIES.slice(i, i + BATCH).map((c) => getCompanyEarnings(c.slug)));
-    for (const e of batch) rows.push({ company: e.company, latest: e.quarters[e.quarters.length - 1] ?? null });
-  }
-  return rows;
+  return (await getAllEarnings()).map((e) => ({ company: e.company, latest: e.quarters[e.quarters.length - 1] ?? null }));
 }
