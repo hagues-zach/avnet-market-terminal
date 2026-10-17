@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Check, CheckCircle2, FileDown, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { ShellBanner } from "@/components/shell/shell-page";
+import { LEGACY } from "@/lib/shells/legacy";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +65,7 @@ export default function ExportPage() {
   return (
     <div className="space-y-5 p-5">
       <PageHeader title="Export Center" subtitle="Assemble the branded executive TAM deck from the live terminal" />
+      <ShellBanner {...LEGACY["/export"]} />
 
       {/* summary / export bar */}
       <Card>

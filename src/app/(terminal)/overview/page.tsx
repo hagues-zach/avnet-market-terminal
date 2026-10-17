@@ -1,6 +1,8 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { dataProvider } from "@/lib/data/provider";
 import { PageHeader } from "@/components/ui/page-header";
+import { ShellBanner } from "@/components/shell/shell-page";
+import { LEGACY } from "@/lib/shells/legacy";
 import { Card } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Sparkline } from "@/components/charts/sparkline";
@@ -18,6 +20,7 @@ export default function OverviewPage() {
   return (
     <div className="space-y-5 p-5">
       <PageHeader title="Market Overview" subtitle="Semiconductor market snapshot — WSTS Autumn 2025" />
+      <ShellBanner {...LEGACY["/overview"]} />
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">

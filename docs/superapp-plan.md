@@ -2,7 +2,9 @@
 
 Living plan for turning the Market Intelligence Terminal into a superapp for Avnet. Update the status boxes as work lands.
 
-Last updated: 2026-10-13
+Last updated: 2026-10-17
+
+> The page-by-page build plan, including design passes and data hookups, is in `docs/superapp-build-plan.md`. Product requirements are in the PRD ("AMI Superapp", Oct 15 2026).
 
 ## Who it is for
 

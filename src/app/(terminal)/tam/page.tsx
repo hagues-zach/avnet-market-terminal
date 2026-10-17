@@ -1,5 +1,7 @@
 import { dataProvider } from "@/lib/data/provider";
 import { PageHeader } from "@/components/ui/page-header";
+import { ShellBanner } from "@/components/shell/shell-page";
+import { LEGACY } from "@/lib/shells/legacy";
 import { Card } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { TamTrend } from "@/components/charts/tam-trend";
@@ -29,6 +31,7 @@ export default function TamPage() {
         title="TAM / SAM / SOM"
         subtitle="World semiconductor market · distribution-served · Avnet share — WSTS Autumn 2025"
       />
+      <ShellBanner {...LEGACY["/tam"]} />
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
