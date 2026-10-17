@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Send, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { ShellBanner } from "@/components/shell/shell-page";
+import { LEGACY } from "@/lib/shells/legacy";
 import { Card } from "@/components/ui/card";
 import { SourceChip } from "@/components/ui/source-chip";
 import { cn } from "@/lib/utils";
@@ -76,7 +78,8 @@ export default function CopilotPage() {
 
   return (
     <div className="flex h-full flex-col p-5">
-      <PageHeader title="Market Copilot" subtitle="Ask the market data — grounded in what's on the terminal, with source attribution" />
+      <PageHeader title="Ask the Terminal" subtitle="Ask the market data — grounded in what's on the terminal, with source attribution" />
+      <ShellBanner {...LEGACY["/copilot"]} />
 
       <Card className="mt-5 flex min-h-0 flex-1 flex-col" bodyClassName="flex min-h-0 flex-1 flex-col gap-4">
         {/* messages */}

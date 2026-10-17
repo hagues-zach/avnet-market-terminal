@@ -1,0 +1,137 @@
+# Avnet Superapp build plan
+
+The working plan for turning the PRD into the finished app, one step at a time. It sits under the strategy in `docs/superapp-plan.md` and the product requirements in the PRD ("AMI Superapp", Google Doc, Oct 15 2026).
+
+Last updated: 2026-10-17
+
+## How the PRD maps onto the app
+
+The PRD's three pillars are **data** pillars (open, licensed, Avnet internal). The app's navigation is organised by **what people do**. Both are kept:
+
+| Navigation group | Pages | PRD modules |
+|---|---|---|
+| Start Here | Start Here | 8.3 onboarding, persona 4 summary |
+| Knowledge | Market News, Market Overview, Market Cycle, Economic Signals, Learning Center | 1, 6, 8.1 |
+| Network | Company Profiles, Quarterly Earnings, Avnet vs Arrow, Line Cards | 3 (competitive context), persona 1 |
+| Avnet performance | Performance Tracker, Market Share, TAM / SAM / SOM, Supply Chain, Design Pipeline, Customers & End Markets | 2, 3, 4, 5, 7, 8 |
+| Tools | QBR Prep, Pitch Deck Builder, Lead Finder, Scenario Modeler, Code Mapping, Ask the Terminal, Export Center | 6 (code mapping), personas 1–5 |
+| Setup | Data Hookups | 10.3, 8.1 data source guides |
+
+Every number carries its data pillar: badges and the Data Hookups page say whether it is open, licensed, internal or derived, and whether it is live, mock or planned.
+
+## Conventions already in place
+
+- **Shell pages** are described as data in `src/lib/shells/specs.ts` and drawn by `src/components/shell/shell-page.tsx`. A design pass replaces a page's sections with bespoke components; the spec records what each section must answer.
+- **Mock data** for anything Avnet-specific or licensed lives in `src/lib/shells/mock-*.ts` and the older `src/lib/data/mock/*`. It is synthetic. Supplier, customer and prospect names are withheld.
+- **Hookup markers.** Every mock section shows a dashed yellow "Mock data. Hook up: …" bar that expands to the tables, fields and the file to replace. Mock pages carry a small yellow ring in the sidebar.
+- **One register.** `src/lib/hookups.ts` lists every source with its status. Changing a status to `live` clears the markers everywhere it is used.
+
+## Design toolchain
+
+From the global toolkit. Each design step below names which of these it uses.
+
+| Tool | Used for |
+|---|---|
+| awesome-design-md | Starting `DESIGN.md` from the closest real brand system |
+| Taste skill (`design-taste-frontend`) | Design direction and anti-template review before each page |
+| UI UX Pro Max | Type scale, spacing, density, chart and table rules, UX checks |
+| Google Stitch | High-fidelity mockups of each page, from the shell spec |
+| Image-to-Code | Building a page to match its approved mockup |
+| 21st.dev Magic | Production components (tables, filters, command menu). **Needs its API key re-authorised first.** |
+| Nano Banana 2 | Illustrations for the Learning Center, empty states and onboarding (about $0.04 per image) |
+| web-design-guidelines | Audit after each page is built |
+| Playwright CLI | Screenshots, click-throughs and regression checks |
+
+Brand inputs already on disk: `~/avnet-repos/cellular-module-iot/assets/avnet-brand-guidelines.md` (palette, type, data-viz rule) and the PDFs in `~/avnet-repos/tam/brand/`.
+
+## Phase 0. Shells (done)
+
+- [x] Every PRD module and tool has a page in the navigation, grouped as above.
+- [x] Ten new shell pages, five older mock pages unhidden with banners, Learning Center, Data Hookups.
+- [x] Mock data for Avnet-specific figures, with a hookup marker on every mock section.
+
+## Phase 1. Design foundation
+
+Do these in order; every page pass in phase 2 depends on them.
+
+| Step | Goal | Tools | Done when |
+|---|---|---|---|
+| 1.1 Brand to `DESIGN.md` | One design document from the Avnet guidelines, started from the closest brand in awesome-design-md | awesome-design-md, Avnet brand files | `DESIGN.md` in the project root, reviewed by you |
+| 1.2 Direction | Decide density, tone and the look of a data-dense enterprise tool; decide dark mode yes or no | Taste skill, UI UX Pro Max | A short direction note added to `DESIGN.md` with three reference screens |
+| 1.3 Tokens | Type scale, spacing, radii, elevation, chart palette and status colours as tokens; validate chart colours | UI UX Pro Max, dataviz validator | `tailwind.config.ts` tokens updated; palette passes the validator |
+| 1.4 Design system in Stitch | Import `DESIGN.md` so every mockup starts on-brand | Stitch (`create_design_system_from_design_md`) | Stitch design system created |
+| 1.5 Component kit | App shell (sidebar, top bar, page header), KPI tile, data table, chart card, filter bar, hookup marker, empty, loading and error states | Stitch, 21st.dev Magic, Image-to-Code | Components in `src/components/ui` with a gallery page |
+| 1.6 Apply and baseline | Swap the shared shell and components in; audit; take baseline screenshots of every page | web-design-guidelines, Playwright | Audit clean; screenshots saved for regression |
+
+## Phase 2. Page design passes
+
+One step per page. Each uses the same recipe:
+
+1. **Brief.** Start from the page's shell spec: who it is for, the questions it answers, its sections and data. Taste skill review of the brief.
+2. **Mockup.** Stitch mockup on the design system; two variants for key pages.
+3. **Review.** You pick or redirect.
+4. **Build.** Image-to-Code against the approved mockup, replacing the shell sections. Hookup markers stay on anything still mock.
+5. **Check.** web-design-guidelines audit, Playwright screenshots at desktop and laptop widths, keyboard and contrast check.
+
+Order, by how often sellers and leaders will open the page:
+
+- [ ] 2.1 Start Here, including the persona switch
+- [ ] 2.2 Company Profile
+- [ ] 2.3 QBR Prep
+- [ ] 2.4 Market Share
+- [ ] 2.5 TAM / SAM / SOM
+- [ ] 2.6 Performance Tracker
+- [ ] 2.7 Line Cards
+- [ ] 2.8 Market News
+- [ ] 2.9 Market Cycle
+- [ ] 2.10 Avnet vs Arrow
+- [ ] 2.11 Quarterly Earnings
+- [ ] 2.12 Supply Chain
+- [ ] 2.13 Design Pipeline
+- [ ] 2.14 Customers & End Markets
+- [ ] 2.15 Economic Signals
+- [ ] 2.16 Code Mapping
+- [ ] 2.17 Learning Center, with Nano Banana illustrations
+- [ ] 2.18 Data Hookups
+- [ ] 2.19 Scenario Modeler
+- [ ] 2.20 Ask the Terminal
+- [ ] 2.21 Pitch Deck Builder and Export Center (merge)
+- [ ] 2.22 Lead Finder
+
+## Phase 3. Make the tools work
+
+Functional builds that do not need internal data.
+
+- [ ] 3.1 QBR Prep: assemble the brief from live public data (profile, commentary, news, line cards, cycle) and have Claude write talking points with sources. Avnet account numbers stay mock.
+- [ ] 3.2 Ask the Terminal: Claude with tools over the app's live data, answering with sources.
+- [ ] 3.3 Pitch Deck Builder: export chosen views as Avnet-branded slides from the Avnet template.
+- [ ] 3.4 Scenario Modeler: real what-if maths over the market data (growth and share targets).
+- [ ] 3.5 Code Mapping: AI-suggested mappings with accept, edit and reject, and a change history.
+- [ ] 3.6 Lead Finder: search and ranking from public signals; Treg enrichment on request.
+
+## Phase 4. Foundations
+
+- [ ] 4.1 Database. New Supabase project (not the read-only production one). Move line card snapshots, AI results, briefs and mappings off local files.
+- [ ] 4.2 Accounts and personas. Sign-in, a profile per user (role, region, suppliers, accounts) driving Start Here and personalised news.
+- [ ] 4.3 Deployment. Environment variables (`SEC_USER_AGENT`, `ANTHROPIC_API_KEY`, database), password gate replaced by sign-in.
+
+## Phase 5. Hook up real data
+
+With the Avnet data team, following the PRD roadmap. Each step turns markers off on the pages listed in Data Hookups.
+
+- [ ] 5.1 Decide the connection: query Databricks gold tables directly, or sync them into the app's database (PRD open question 10).
+- [ ] 5.2 Avnet fiscal calendar and exchange rates.
+- [ ] 5.3 Billings, bookings and backlog → Performance Tracker, Start Here, QBR Prep.
+- [ ] 5.4 Material master and the code map → Code Mapping, Market Share.
+- [ ] 5.5 WSTS, Gartner and the IP&E forecast → Market Overview, TAM / SAM / SOM, Market Share.
+- [ ] 5.6 Design registrations → Design Pipeline, QBR Prep.
+- [ ] 5.7 Customer master → Customers & End Markets, Lead Finder.
+- [ ] 5.8 Lead times and purchasing → Supply Chain.
+- [ ] 5.9 Earnings call transcripts → commentary and sentiment.
+
+## Decisions needed from you
+
+1. **Design tools.** Confirm the toolchain above, and whether to re-authorise 21st.dev Magic or build components by hand.
+2. **Dark mode.** Worth designing for now, or light only?
+3. **Where internal data lives.** Can Avnet billings be stored in the app's own database, or must the app query Databricks in place?
+4. **Navigation.** Is "Avnet performance" the right fourth group, and should Start Here be the home page for everyone?

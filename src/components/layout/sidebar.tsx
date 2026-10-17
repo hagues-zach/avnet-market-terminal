@@ -20,7 +20,11 @@ export function Sidebar() {
           if (!items.length) return null;
           return (
             <div key={pillar}>
-              <p className="px-2 pb-1.5 pt-4 font-display text-2xs uppercase tracking-widest text-muted">{PILLAR_LABELS[pillar]}</p>
+              {PILLAR_LABELS[pillar] ? (
+                <p className="px-2 pb-1.5 pt-4 font-display text-2xs uppercase tracking-widest text-muted">{PILLAR_LABELS[pillar]}</p>
+              ) : (
+                <div className="pt-3" />
+              )}
               <div className="space-y-0.5">
                 {items.map((item) => {
                   // A section stays highlighted on its sub-pages, e.g. /network/avnet.
@@ -52,7 +56,10 @@ export function Sidebar() {
                       aria-current={active ? "page" : undefined}
                     >
                       <Icon className={cn("h-4 w-4", active && "text-avnet-greenDark")} />
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {item.mock && (
+                        <span className="h-1.5 w-1.5 rounded-full border border-accent-yellow" title="Shows mock data until its data is hooked up" aria-label="mock data" />
+                      )}
                     </Link>
                   );
                 })}

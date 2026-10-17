@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { dataProvider } from "@/lib/data/provider";
 import { PageHeader } from "@/components/ui/page-header";
+import { ShellBanner } from "@/components/shell/shell-page";
+import { LEGACY } from "@/lib/shells/legacy";
 import { Card } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { FanChart } from "@/components/charts/fan-chart";
@@ -24,7 +26,8 @@ export default function ForecastPage() {
 
   return (
     <div className="space-y-5 p-5">
-      <PageHeader title="Forecast & Scenario" subtitle="WSTS forecast with confidence band, scenarios & vintage revisions" />
+      <PageHeader title="Scenario Modeler" subtitle="WSTS forecast with confidence band, scenarios & vintage revisions" />
+      <ShellBanner {...LEGACY["/forecast"]} />
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
