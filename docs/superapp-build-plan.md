@@ -2,7 +2,7 @@
 
 The working plan for turning the PRD into the finished app, one step at a time. It sits under the strategy in `docs/superapp-plan.md` and the product requirements in the PRD ("AMI Superapp", Google Doc, Oct 15 2026).
 
-Last updated: 2026-10-17
+Last updated: 2026-10-20
 
 ## How the PRD maps onto the app
 
@@ -119,7 +119,7 @@ Functional builds that do not need internal data.
 
 With the Avnet data team, following the PRD roadmap. Each step turns markers off on the pages listed in Data Hookups.
 
-- [ ] 5.1 Decide the connection: query Databricks gold tables directly, or sync them into the app's database (PRD open question 10).
+- [x] 5.1 Decide the connection: query Databricks gold tables in place; no copy into the app's database (PRD open question 10, decided 2026-10-20).
 - [ ] 5.2 Avnet fiscal calendar and exchange rates.
 - [ ] 5.3 Billings, bookings and backlog → Performance Tracker, Start Here, QBR Prep.
 - [ ] 5.4 Material master and the code map → Code Mapping, Market Share.
@@ -129,9 +129,9 @@ With the Avnet data team, following the PRD roadmap. Each step turns markers off
 - [ ] 5.8 Lead times and purchasing → Supply Chain.
 - [ ] 5.9 Earnings call transcripts → commentary and sentiment.
 
-## Decisions needed from you
+## Decisions (answered 2026-10-20)
 
-1. **Design tools.** Confirm the toolchain above, and whether to re-authorise 21st.dev Magic or build components by hand.
-2. **Dark mode.** Worth designing for now, or light only?
-3. **Where internal data lives.** Can Avnet billings be stored in the app's own database, or must the app query Databricks in place?
-4. **Navigation.** Is "Avnet performance" the right fourth group, and should Start Here be the home page for everyone?
+1. **Design tools.** The full toolchain above. 21st.dev Magic stays off, and components are built by hand.
+2. **Dark mode.** Light only for now. Every colour is a semantic token, so a dark theme can be added later without a rework.
+3. **Where internal data lives.** Query Databricks in place. Billings never leave Databricks; the app caches only short-lived aggregates. This answers 5.1.
+4. **Navigation.** Keep "Avnet performance" as a nav group and Start Here as everyone's home page.
