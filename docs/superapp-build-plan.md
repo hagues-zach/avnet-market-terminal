@@ -54,6 +54,8 @@ Brand inputs already on disk: `~/avnet-repos/cellular-module-iot/assets/avnet-br
 
 Do these in order; every page pass in phase 2 depends on them.
 
+Progress: 1.1 done (`DESIGN.md`). 1.2 done, pending your review (direction note and three Stitch reference screens in `docs/design/reference/`). 1.4 started: Stitch project `18036872963696779556` exists with a generated design system; the formal `DESIGN.md` import is still to do.
+
 | Step | Goal | Tools | Done when |
 |---|---|---|---|
 | 1.1 Brand to `DESIGN.md` | One design document from the Avnet guidelines, started from the closest brand in awesome-design-md | awesome-design-md, Avnet brand files | `DESIGN.md` in the project root, reviewed by you |

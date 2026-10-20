@@ -497,7 +497,60 @@ Picked up in steps 1.3, 1.5 and 1.6:
 
 ## Direction (step 1.2)
 
-Light only for now, with tokens ready for a dark theme later (decided 2026-10-20). The direction note and three reference screens get added here in step 1.2.
+**Reading this as:** an internal analysis tool for Avnet sellers, product managers and leaders, with a calm, exact, briefing-first look, built on Carbon's flat geometry and Avnet's brand. It is a working tool, not a marketing site and not a trading terminal.
+
+### The three dials
+
+| Dial | Setting | What it means here |
+|---|---|---|
+| Layout variance | 3 of 10 | A predictable 12-column grid. The same page rhythm everywhere, so people learn it once. Asymmetry comes only from content weight (8/4, 7/5 splits), never from decoration. |
+| Motion | 2 of 10 | Hover and focus states, 150 ms colour and opacity transitions, skeleton loading. No entrance animations, no scroll effects, nothing moves on its own. Respect `prefers-reduced-motion`. |
+| Density | 7 of 10 | A lot on the page, held together by hairlines and type, not by boxes inside boxes. 32px table rows and controls. One card level only: no cards inside cards. |
+
+### Tone
+
+- **Lead with the answer.** Every page opens with the one thing that changed or matters, then the evidence. Start Here is a briefing, not a wall of charts.
+- **Calm.** Colour appears only where it means something: Avnet in green, Arrow in dark blue, deltas in positive and negative, mock data in yellow. Everything else is black, white and grey.
+- **Exact.** Every number has units, a period, a source and an as-of date. Mock is labelled as mock.
+- **Engineered, not decorated.** No gradients, glows, glass, illustrations in data views, or decorative icons.
+
+### Light only
+
+Light mode only for now, decided 2026-10-20. Components use semantic tokens only, so a dark theme is a token remap later, not a rework.
+
+### Built on Carbon's ideas, not Carbon's package
+
+We borrow Carbon's geometry and density but do not install `@carbon/react`. Avnet's brand would replace most of Carbon's tokens, its type and its colour, which defeats the purpose of using the official package. The app keeps Tailwind and the components it already has, rebuilt to this document in step 1.5.
+
+### Where we deliberately differ from generic "taste" advice
+
+- **Pure black (#000000) text** stays, because Black is a primary brand colour.
+- **Inter** stays for body text until Aperçu Avnet is licensed for the web.
+- **Lucide icons** stay because the project already uses them.
+- **No em-dashes in UI copy.** Use a full stop, a comma or a colon instead. This adds to the voice rules above.
+
+### Reference screens
+
+Mockups made in Google Stitch from this document: project "Avnet Market Intelligence - Direction" (`18036872963696779556`), screens saved in `docs/design/reference/`. **All figures, companies' facts and sources in these images are invented by the generator** (for example distributor start dates and a de-listing on the Company Profile). They show the look, not the content.
+
+1. **Start Here**: `docs/design/reference/01-start-here.png`. The briefing page: one highlight message, five KPIs, the mock marker, what changed, persona shortcuts, and the billings chart.
+2. **Company Profile**: `docs/design/reference/02-company-profile.png`. A detail page mixing narrative and data: header with actions and tabs, KPIs with sources, a stacked chart with no green (not Avnet), management commentary with word-plus-arrow tone chips, and a distribution table.
+3. **Market Share**: `docs/design/reference/03-market-share.png`. The densest type of page: filter bar, KPIs, Avnet green and Arrow blue lines labelled at the line end, a white-space list with trackless bars, and a sortable table with a density switch.
+
+**Keep from the references:** square controls, hairline-only tables, the KPI tile layout (label, figure, delta, source), the dashed mock marker under the section it describes, the green slash before the page title, the green fill only for Avnet, the Arrow blue, line labels at the end of the line, the tone chips with words and arrows, and the compact/comfortable switch.
+
+**Correct when building (the references drift from this document):**
+
+- Card and section titles are sentence case in Oswald Regular, not all caps. All caps is for the page title and `label` text only.
+- The highlight bar is angled and bleeds off the edge, per the brand. The references draw it as a flat full-width banner.
+- The mock marker's link and label use black text, not amber (amber fails contrast). Drop the "Configure data source" link until that flow exists.
+- Status chips use the documented set: neutral for facts ("Franchised", "SEC filer"), `positive` or `negative` text only for direction. No blue "Medium" chips. Confidence chips are words on neutral.
+- KPI deltas never wrap. Shorten them ("+40 bps") or widen the tile.
+- One KPI figure size per row (24px `figure`). Market Share used a larger, bolder size.
+- The sidebar comes from the app's `nav.ts`, not from the mockups, which change it from screen to screen.
+- Charts fill their card height; no tall empty areas (the Company Profile chart).
+- Light series (Light Grey "Rest of distribution", Light Blue, Yellow) are at least 2.5px lines or solid fills.
+- Delete repeated words in feed items ("Reason:", "Source:"). Show the source as a caption and the date on the right.
 
 ## Open questions for the Avnet brand team
 
