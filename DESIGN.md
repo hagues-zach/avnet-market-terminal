@@ -30,13 +30,12 @@ colors:
   # Data visualization. See the chart rules below.
   viz-avnet: "#41C363"
   viz-avnet-2: "#138036"      # Avnet's second series only (prior year, plan, forecast).
-  viz-1: "#7DCEF1"            # Light Blue
-  viz-2: "#FDB813"            # Yellow
-  viz-3: "#4273B8"            # Dark Blue
-  viz-4: "#E88320"            # Orange
-  viz-5: "#5F6369"            # Dark Gray
-  viz-other: "#D2D2D2"        # Light Gray. "All other", benchmarks, remainder.
-  viz-arrow: "#4273B8"        # Arrow Electronics is always Dark Blue.
+  viz-arrow: "#4273B8"        # Slot 1. Dark Blue. Arrow Electronics on every page.
+  viz-2: "#E88320"            # Slot 2. Orange.
+  viz-3: "#53B8E1"            # Slot 3. Light Blue, darkened for charts (brand #7DCEF1).
+  viz-4: "#E7A300"            # Slot 4. Yellow, darkened for charts (brand #FDB813).
+  viz-other: "#D2D2D2"        # Light Gray. "All other" and remainder fills.
+  viz-benchmark: "#919191"    # Medium Gray. "All other" or benchmark as a line.
 
 typography:
   page-title:
@@ -324,28 +323,48 @@ The brand's rule is absolute: **Avnet Green always represents Avnet and never re
 
 ### Series order
 
-1. **Avnet**: `viz-avnet` #41C363. If Avnet needs a second series (prior year, plan, forecast), use `viz-avnet-2` #138036, or green with a dashed line or a lighter fill.
-2. **Everyone else**, in this order. Secondary colours come first, per the brand:
-   - `viz-1` Light Blue #7DCEF1
-   - `viz-2` Yellow #FDB813
-   - `viz-3` Dark Blue #4273B8
-   - `viz-4` Orange #E88320
-   - `viz-5` Dark Gray #5F6369
-3. **All other, remainder, benchmark**: `viz-other` Light Gray #D2D2D2.
+Validated with the dataviz palette validator (OKLab ΔE, Machado 2009 colour-blind simulation, white surface) on 2026-10-20.
 
-Dark Green is kept out of the non-Avnet order, because it reads as Avnet. **Arrow Electronics is always Dark Blue** (`viz-arrow`), on every page, so the main rival is recognisable at a glance.
+1. **Avnet**: `viz-avnet` #41C363. If Avnet needs a second series (prior year, plan, forecast), use `viz-avnet-2` #138036 (ΔE 20 from Avnet Green, so the two stay distinct), or green with a dashed line.
+2. **Everyone else**, in this fixed order. Never cycle back to the start:
+   - `viz-arrow` Dark Blue #4273B8. **Arrow Electronics is always this colour**, on every page. When Arrow is in a chart, other companies start at Orange; when it isn't, Dark Blue is the first non-Avnet series.
+   - `viz-2` Orange #E88320
+   - `viz-3` Light Blue, chart step #53B8E1
+   - `viz-4` Yellow, chart step #E7A300
+3. **All other, remainder**: `viz-other` Light Gray #D2D2D2 as a fill; `viz-benchmark` Medium Gray #919191 as a line. Grey means "not one identity", so it never needs to pass the identity checks.
+
+That is Avnet plus four. A fifth company folds into "All other", or the chart becomes a ranked bar chart or a table.
+
+**What the validator found**
+
+| Check | Result |
+|---|---|
+| Lightness band (OKLCH L 0.43–0.77) | Pass with the chart steps. Brand Light Blue (L 0.81) and Yellow (L 0.83) fail: too light to read as series on white. |
+| Chroma floor (C ≥ 0.10) | Pass. Dark Gray #5F6369 (C 0.01) fails, so it's not a series colour; it stays for axis text and UI. |
+| Colour-blind separation, neighbours | Pass. Worst pair ΔE 22.4 (target 8). |
+| Normal-vision separation, neighbours | Pass. Worst pair ΔE 26.0 (floor 15). |
+| Contrast with white | Below 3:1 for Avnet Green (2.3), Orange (2.7), Light Blue (2.3) and Yellow (2.2). This is allowed only with relief, so every chart **must** have direct labels or a table view. |
+
+**Why the order changed from the brand guide.** The brand lists secondary colours (Light Blue, Yellow) first. Started from that order, the palette fails the lightness check, and putting Dark Blue first gives the widest gap between neighbours. The brand hexes for Light Blue and Yellow are darkened at the same hue only inside charts. This needs brand sign-off (see Open questions).
+
+**Charts where every pair can touch** (scatter, bubble, small multiples): at most three series, `viz-avnet`, `viz-arrow`, `viz-3` (worst ΔE 17.1). Avnet Green against Orange or Yellow falls below 6 for red-green colour blindness, so those never share a scatter. More series need facets.
+
+**Severity** (risk, heat): Light Gray → Yellow → Orange → Negative red, always with a word label. It never starts at Avnet Green.
+
+In code: `VIZ`, `chartSeriesColor`, `entityColor`, `ALL_PAIRS_ORDER`, `RISK_COLOR` and the shared chart chrome `CHART` in `src/lib/colors.ts`. Tailwind exposes the same values as `viz-*`.
 
 ### Chart rules
 
-- **Six series at most**, plus "All other". Beyond six, switch to a ranked bar chart or a table.
+- **Avnet plus four series at most**, plus "All other". Beyond that, switch to a ranked bar chart or a table.
 - **Label lines directly** at their end where there is room. Use a legend only when direct labels collide.
 - **Gridlines**: horizontal only, `hairline-soft`, solid (not dashed). No vertical gridlines.
 - **Axes**: `hairline` axis line, 11px Inter ticks in `ink-muted`, no tick marks. Numbers abbreviated ($1.2B, 34%).
 - **Tooltips**: white, 1px `hairline` border, `rounded.sm`, overlay shadow. Series name, value with units, period. Tabular figures.
-- **Light-coloured series** (Light Blue and Yellow are 1.7:1 on white) must be filled areas or bars at least 8px wide, or lines at least 2.5px. Never use them for thin lines or text. Their labels are drawn in `ink`, not in the series colour.
+- **Light-coloured series** (Light Blue, Yellow, the greys) are filled areas, bars at least 8px wide, or lines at least 2.5px (`CHART.lineWidthLight`). Never thin lines, never text. Labels, values and legends are drawn in `ink` or `ink-muted`, never in the series colour.
 - **Ordered severity** (risk, heat) uses a single-hue ramp or yellow → orange → red. It never starts at Avnet Green.
 - **Every chart card shows its source and as-of date** in the footer.
-- Validate the palette for colour-blind separation with the dataviz validator in step 1.3.
+- **One y-axis.** Never a dual-axis chart; two measures on different scales are two charts.
+- **Bars for one series are one colour.** Don't colour nominal bars by index or value; length already shows the value.
 
 ## Typography
 
@@ -487,12 +506,13 @@ Avnet's voice is **a confident and collaborative guide**: resourceful, straightf
 
 Picked up in steps 1.3, 1.5 and 1.6:
 
-1. `src/lib/colors.ts` `RISK_COLOR.low` is Avnet Green, which breaks the chart rule. Use a neutral or light-grey start for the ramp.
-2. `src/lib/colors.ts` `SERIES_ORDER` includes Dark Green and puts Medium Gray third. Reorder it to the series order above and make Arrow always Dark Blue.
+1. ~~`RISK_COLOR.low` is Avnet Green.~~ Done in step 1.3: the ramp starts at Light Gray.
+2. ~~`SERIES_ORDER` includes Dark Green and Medium Gray, and cycles.~~ Done in step 1.3: the validated order, no cycling, `entityColor` keeps Arrow Dark Blue.
 3. The `source-chip` and `data-hookup` yellow text (1.7:1) becomes black text with a yellow border or tint.
 4. `.slash-heading::before { content: "/" }` becomes a drawn slash mark.
 5. `shadow-card` goes, and `rounded-card` goes from 8px to 2px.
-6. Charts hard-code `#E3E5E8`, `#EEF0F2` and a 6px tooltip radius. Move these to shared chart tokens and use solid gridlines.
+6. Charts hard-code `#E3E5E8`, `#EEF0F2` and a 6px tooltip radius. The shared `CHART` tokens exist (step 1.3); each chart moves to them, with solid gridlines, in its phase 2 pass.
+8. `endmarket-bars.tsx` colours one series of bars by index. Make it one colour in its phase 2 pass.
 7. The top bar is 56px; it becomes 48px.
 
 ## Direction (step 1.2)
@@ -558,6 +578,8 @@ Mockups made in Google Stitch from this document: project "Avnet Market Intellig
 2. Is #D7263D acceptable as the error and negative colour? The palette has no red.
 3. Can we get a web licence for Aperçu Avnet? Until then, Inter stands in.
 4. Is the logo at the top left of the sidebar acceptable for application chrome?
+5. Can charts use darker steps of Light Blue (#53B8E1) and Yellow (#E7A300)? The brand hexes are too light to tell series apart on white.
+6. Can charts lead with Dark Blue and Orange (tertiary) ahead of the secondary colours, for colour-blind separation?
 
 ## Iteration guide
 

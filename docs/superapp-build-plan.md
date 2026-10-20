@@ -54,7 +54,7 @@ Brand inputs already on disk: `~/avnet-repos/cellular-module-iot/assets/avnet-br
 
 Do these in order; every page pass in phase 2 depends on them.
 
-Progress: 1.1 done (`DESIGN.md`). 1.2 done, pending your review (direction note and three Stitch reference screens in `docs/design/reference/`). 1.4 started: Stitch project `18036872963696779556` exists with a generated design system; the formal `DESIGN.md` import is still to do.
+Progress: 1.1 done (`DESIGN.md`). 1.2 done, pending your review (direction note and three Stitch reference screens in `docs/design/reference/`). 1.3 done: semantic tokens in `tailwind.config.ts` (existing classes unchanged), validated chart palette and shared chart tokens in `src/lib/colors.ts`. 1.4 started: Stitch project `18036872963696779556` exists with a generated design system; the formal `DESIGN.md` import is still to do.
 
 | Step | Goal | Tools | Done when |
 |---|---|---|---|
