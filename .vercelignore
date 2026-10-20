@@ -1,0 +1,5 @@
+# Local-only files that must not be uploaded to Vercel.
+.env.local
+.env*.local
+.cache
+.claude
