@@ -87,7 +87,7 @@ Order, by how often sellers and leaders will open the page:
 - [x] 2.8 Market News (briefing layout: Claude's top stories beside topics this week, with Avnet's mock billings per topic, then the filtered feed; links into Company Profile and QBR Prep; brief and mockups in `docs/design/pages/`)
 - [x] 2.9 Market Cycle (readout layout: the call in words, the supply chain as five stages with Avnet and Arrow inside distribution, growth by quarter beside Avnet's mock order book, inventory and end demand, then the group scorecard; brief and mockups in `docs/design/pages/`)
 - [x] 2.10 Avnet vs Arrow (the verdict, a full-width scorecard, each side's strengths with rule-written talking points, both managements' commentary, franchise moves and components against components, trends folded; all live; brief and mockups in `docs/design/pages/`)
-- [ ] 2.11 Quarterly Earnings
+- [x] 2.11 Quarterly Earnings (season first: who has filed, the calendar for all companies and who just reported; then one company with its trend, management commentary and its group with a median; all live; brief and mockups in `docs/design/pages/`)
 - [ ] 2.12 Supply Chain
 - [ ] 2.13 Design Pipeline
 - [ ] 2.14 Customers & End Markets
