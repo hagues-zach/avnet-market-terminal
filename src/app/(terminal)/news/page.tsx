@@ -10,7 +10,7 @@ export default async function NewsPage() {
   const data = await getLiveNews();
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Market News" subtitle="Live, source-linked coverage of the semiconductor market from open feeds" />
       {/* Not awaited: the feed shows straight away and the angles stream in behind it. */}
       <NewsFeed data={data} anglesPromise={getNewsAngles(data.articles)} />

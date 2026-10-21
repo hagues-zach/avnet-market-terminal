@@ -45,7 +45,7 @@ export default function DataHookupsPage() {
   const counts = (s: HookupStatus) => HOOKUPS.filter((h) => h.status === s).length;
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Data Hookups" subtitle="Every data source the app needs, where it is used, and what is still mock" />
       <div className="grid grid-cols-3 gap-3">
         {(["live", "mock", "planned"] as const).map((s) => (

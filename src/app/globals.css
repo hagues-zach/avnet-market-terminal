@@ -4,6 +4,7 @@
 
 @layer base {
   html {
+    touch-action: manipulation;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -34,16 +35,10 @@
 }
 
 @layer components {
-  /* Avnet brand signature: green slash "/" prefix + ALL CAPS Oswald with left accent bar */
-  .slash-heading {
+  /* ALL CAPS Oswald heading for the older Card. No slash prefix: the current brand
+     kit no longer uses the slash mark. */
+  .caps-heading {
     @apply font-display uppercase tracking-wide text-ink flex items-center gap-2;
-  }
-  .slash-heading::before {
-    content: "/";
-    @apply text-avnet-green font-display font-bold;
-  }
-  .accent-bar {
-    @apply border-l-[3px] border-avnet-green pl-3;
   }
   .tabular {
     font-variant-numeric: tabular-nums;

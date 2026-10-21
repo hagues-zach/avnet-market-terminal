@@ -208,7 +208,7 @@ export function ShellBanner({ purpose, prd, personas, hookups }: { purpose: stri
 /** Draws a shell page from its spec. Server component. */
 export function ShellPage({ spec, children }: { spec: ShellSpec; children?: React.ReactNode }) {
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title={spec.title} subtitle={spec.subtitle} />
       <ShellBanner purpose={spec.purpose} prd={spec.prd} personas={spec.personas} hookups={spec.sections.flatMap((s) => s.hookups)} />
       {children}

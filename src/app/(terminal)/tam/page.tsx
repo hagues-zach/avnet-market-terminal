@@ -26,7 +26,7 @@ export default function TamPage() {
   const endMarketData = t.byEndMarket.map((e) => ({ name: ENDMARKET_LABEL[e.endMarket], value: e.usdM }));
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader
         title="TAM / SAM / SOM"
         subtitle="World semiconductor market · distribution-served · Avnet share — WSTS Autumn 2025"

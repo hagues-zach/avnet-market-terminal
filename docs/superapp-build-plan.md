@@ -2,7 +2,7 @@
 
 The working plan for turning the PRD into the finished app, one step at a time. It sits under the strategy in `docs/superapp-plan.md` and the product requirements in the PRD ("AMI Superapp", Google Doc, Oct 15 2026).
 
-Last updated: 2026-10-17
+Last updated: 2026-10-20
 
 ## How the PRD maps onto the app
 
@@ -53,6 +53,8 @@ Brand inputs already on disk: `~/avnet-repos/cellular-module-iot/assets/avnet-br
 ## Phase 1. Design foundation
 
 Do these in order; every page pass in phase 2 depends on them.
+
+Progress: 1.1 done (`DESIGN.md`). 1.2 done, pending your review (direction note and three Stitch reference screens in `docs/design/reference/`). 1.3 done: semantic tokens in `tailwind.config.ts` (existing classes unchanged), validated chart palette and shared chart tokens in `src/lib/colors.ts`. 1.4 done: Stitch design system "Avnet Market Intelligence v2" (`assets/12368506614593897195`, without the slash mark) in project `18036872963696779556`, created from `docs/design/stitch-design.md` (built by `node scripts/stitch-design-md.mjs`), tested with an Avnet vs Arrow screen. 1.5 done: component kit in `src/components/ui` and a new shell in `src/components/layout/app-*.tsx`, shown at `/design-kit` (screenshots in `docs/design/kit/`); old components stay until 1.6. 1.6 done: every page runs on the new shell (sidebar drawer below 1024px, skip link); `Card`, `PageHeader`, `KpiCard`, `SourceChip` and `DataHookup` keep their props but draw the new design; web-design-guidelines audit fixes applied; baseline screenshots of all 26 pages at 1440px and 1280px in `docs/design/baseline/` (rebuild with `scripts/baseline-screenshots.js`). Phase 1 is complete; chart-level fixes are listed in DESIGN.md for the phase 2 page passes.
 
 | Step | Goal | Tools | Done when |
 |---|---|---|---|
@@ -119,7 +121,7 @@ Functional builds that do not need internal data.
 
 With the Avnet data team, following the PRD roadmap. Each step turns markers off on the pages listed in Data Hookups.
 
-- [ ] 5.1 Decide the connection: query Databricks gold tables directly, or sync them into the app's database (PRD open question 10).
+- [x] 5.1 Decide the connection: query Databricks gold tables in place; no copy into the app's database (PRD open question 10, decided 2026-10-20).
 - [ ] 5.2 Avnet fiscal calendar and exchange rates.
 - [ ] 5.3 Billings, bookings and backlog → Performance Tracker, Start Here, QBR Prep.
 - [ ] 5.4 Material master and the code map → Code Mapping, Market Share.
@@ -129,9 +131,9 @@ With the Avnet data team, following the PRD roadmap. Each step turns markers off
 - [ ] 5.8 Lead times and purchasing → Supply Chain.
 - [ ] 5.9 Earnings call transcripts → commentary and sentiment.
 
-## Decisions needed from you
+## Decisions (answered 2026-10-20)
 
-1. **Design tools.** Confirm the toolchain above, and whether to re-authorise 21st.dev Magic or build components by hand.
-2. **Dark mode.** Worth designing for now, or light only?
-3. **Where internal data lives.** Can Avnet billings be stored in the app's own database, or must the app query Databricks in place?
-4. **Navigation.** Is "Avnet performance" the right fourth group, and should Start Here be the home page for everyone?
+1. **Design tools.** The full toolchain above. 21st.dev Magic stays off, and components are built by hand.
+2. **Dark mode.** Light only for now. Every colour is a semantic token, so a dark theme can be added later without a rework.
+3. **Where internal data lives.** Query Databricks in place. Billings never leave Databricks; the app caches only short-lived aggregates. This answers 5.1.
+4. **Navigation.** Keep "Avnet performance" as a nav group and Start Here as everyone's home page.

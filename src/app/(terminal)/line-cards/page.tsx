@@ -34,7 +34,7 @@ export default async function LineCardsPage() {
   const whitespace = hasHome ? suppliers.filter((s) => !s.carriedBy.includes(HOME_DISTRIBUTOR)).length : null;
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Line Cards" subtitle="Who is signing which suppliers, which suppliers have momentum, and who carries them" />
 
       {!hasHome && (

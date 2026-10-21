@@ -99,7 +99,7 @@ export default async function NetworkPage({ searchParams }: { searchParams: Prom
   const count = (r: Role) => COMPANIES.filter((c) => roleOf(c) === r).length;
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Company Profiles" subtitle="The suppliers, competitors and customers around Avnet. Open a company for its profile." />
       <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Relationship to Avnet">
         <Link href="/network" scroll={false} aria-current={role === "all" ? "true" : undefined} className={cn(chip, role === "all" ? "bg-ink text-white" : "text-muted hover:bg-canvas")}>

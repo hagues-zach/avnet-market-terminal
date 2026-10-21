@@ -18,7 +18,7 @@ export default function OverviewPage() {
   const regionData = o.byRegion.map((r) => ({ name: REGION_LABEL[r.region], value: r.usdM }));
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Market Overview" subtitle="Semiconductor market snapshot — WSTS Autumn 2025" />
       <ShellBanner {...LEGACY["/overview"]} />
 

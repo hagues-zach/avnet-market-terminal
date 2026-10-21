@@ -3,3 +3,5 @@
 .env*.local
 .cache
 .claude
+.next-kit
+docs/design/baseline
