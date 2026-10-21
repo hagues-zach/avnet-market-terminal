@@ -466,7 +466,7 @@ The `components:` front matter holds the token-level specs (colours, type, size)
 - **Buttons.** Primary: green with a black label. One per view. Secondary: white with a 1px black border. Ghost: text only. Destructive: a `negative` border and text, filled only on confirm.
 - **Source chip.** A pill naming the source: Live (green dot), Mock (yellow dashed border, black text), or Planned (grey). The current yellow-text variant (1.7:1) is fixed in step 1.5.
 - **Hookup marker.** Keep the dashed yellow treatment. Move to black text on the 6% yellow tint so it passes contrast.
-- **Empty, loading and error states.** Loading uses skeleton blocks shaped like the final layout, on `surface-sunken`, never a lone spinner. Empty states give one line saying why it's empty and one action. Errors say what failed, name the source, and offer a retry.
+- **Empty, loading and error states.** Loading uses skeleton blocks shaped like the final layout, on `hairline`, never a lone spinner. Empty states give one line saying why it's empty and one action. Errors say what failed, name the source, and offer a retry.
 
 ## Voice in the interface
 

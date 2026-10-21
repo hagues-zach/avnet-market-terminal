@@ -77,6 +77,7 @@ export const CHART = {
   grid: "#EEF0F2", // hairline-soft, horizontal only, solid
   axis: "#E3E5E8", // hairline
   tick: "#6B7075", // ink-muted
+  label: "#000000", // ink: direct labels and values, never the series colour
   tickFontSize: 11,
   tooltip: {
     fontSize: 12,

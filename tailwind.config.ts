@@ -103,6 +103,9 @@ const config: Config = {
         "filter-bar": "2.75rem",
         topbar: "3rem",
       },
+      minHeight: {
+        "filter-bar": "2.75rem",
+      },
       width: {
         sidebar: "15rem",
         "sidebar-collapsed": "3.5rem",
