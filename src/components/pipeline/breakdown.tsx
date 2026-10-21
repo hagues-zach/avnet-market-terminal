@@ -54,12 +54,14 @@ function RowFunnel({ row }: { row: PipelineRow }) {
 export function PipelineBreakdown({
   views,
   growth,
+  initialView = "supplier",
 }: {
   views: Record<View, PipelineRow[]>;
   /** Live customer revenue growth on a year ago, by end market name; undefined where no customer group matches. */
   growth: Record<string, number | undefined>;
+  initialView?: View;
 }) {
-  const [view, setView] = useState<View>("supplier");
+  const [view, setView] = useState<View>(initialView);
   const [open, setOpen] = useState<string | null>(null);
   const rows = [...views[view]].sort((a, b) => (a.name === "All others" ? 1 : b.name === "All others" ? -1 : b.pipeline - a.pipeline));
   // Pipeline share against billings share: above 1, the group's pipeline is heavier than its billings today.

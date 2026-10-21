@@ -3,13 +3,15 @@ import { cn } from "@/lib/utils";
 
 /**
  * A change, never colour alone: arrow + sign + value. Up is good by default;
- * pass `invert` when down is good (inventory days, lead times, costs).
+ * pass `invert` when down is good (inventory days, lead times, costs), or
+ * `neutral` when neither direction is plainly good (ink, no colour).
  */
 export function Delta({
   value,
   display,
   period,
   invert = false,
+  neutral = false,
   className,
 }: {
   /** Signed change. Its sign sets the arrow and the colour. */
@@ -19,6 +21,7 @@ export function Delta({
   /** Comparison period, e.g. "QoQ", "YoY". */
   period?: string;
   invert?: boolean;
+  neutral?: boolean;
   className?: string;
 }) {
   const flat = value === 0;
@@ -32,7 +35,7 @@ export function Delta({
     <span
       className={cn(
         "inline-flex items-center gap-0.5 whitespace-nowrap font-body text-caption tabular-nums",
-        flat ? "text-ink-muted" : good ? "text-positive" : "text-negative",
+        flat ? "text-ink-muted" : neutral ? "text-ink" : good ? "text-positive" : "text-negative",
         className,
       )}
     >
