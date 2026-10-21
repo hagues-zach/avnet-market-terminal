@@ -587,3 +587,10 @@ Mockups made in Google Stitch from this document: project "Avnet Market Intellig
 2. A new colour need goes through the brand palette first, in order: primary, then secondary, then tertiary, data viz only.
 3. Run `npx @google/design.md lint DESIGN.md` after edits.
 4. When the tokens change, update `tailwind.config.ts` and `src/lib/colors.ts` in the same change.
+5. When this document changes, refresh Stitch: run `node scripts/stitch-design-md.mjs` (it writes `docs/design/stitch-design.md`, this file minus the repo-only sections), then update the Stitch design system with that file's content.
+
+### Stitch
+
+- Project "Avnet Market Intelligence - Direction" (`18036872963696779556`). Design system **"Avnet Market Intelligence"** (`assets/4378956131163205347`), created from `docs/design/stitch-design.md` on 2026-10-20. Pass it as `designSystem` on every `generate_screen_from_text` call. Ignore "Precision Intelligence Core", which Stitch generated for the first reference screen.
+- Test screen: `docs/design/reference/04-avnet-vs-arrow-ds-test.png`, from a five-line prompt with no styling. It got the brand right (Avnet green, Arrow `#4273B8`, square controls, hairlines, Oswald, the slash mark) and invented every number.
+- Stitch still drifts on these, so repeat them in each prompt: card titles in sentence case; one primary button, labels on one line; no emoji or icons in banners; bars without background tracks; no version labels; mock marker in black text; real or clearly mock numbers only.
