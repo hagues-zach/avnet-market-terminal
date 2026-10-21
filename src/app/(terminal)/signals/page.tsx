@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageBody } from "@/components/layout/page-body";
+import { PageTitle } from "@/components/ui/page-title";
 import { SignalsFallback, SignalsView } from "@/components/signals/signals-view";
 
 // Rendered per request; each source is cached for six hours.
@@ -7,11 +8,11 @@ export const dynamic = "force-dynamic";
 
 export default function SignalsPage() {
   return (
-    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
-      <PageHeader title="Economic Signals" subtitle="Production, prices, input costs, rates and currency around the semiconductor supply chain" />
+    <PageBody>
+      <PageTitle title="Economic Signals" subtitle="The economy around electronics: demand, costs, financing and currency, from public data" />
       <Suspense fallback={<SignalsFallback />}>
         <SignalsView />
       </Suspense>
-    </div>
+    </PageBody>
   );
 }

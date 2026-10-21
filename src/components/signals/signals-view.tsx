@@ -1,24 +1,21 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import {
-  getSignals,
-  GROUP_LABELS,
-  GROUP_ORDER,
-  monthChange,
-  yearChange,
-  type Signal,
-  type SignalChange,
-} from "@/lib/data/live/signals";
-import { AVNET } from "@/lib/colors";
-import { Card } from "@/components/ui/card";
-import { GroupLines, type ChartRow } from "@/components/charts/cycle-charts";
-import { Sparkline } from "@/components/charts/sparkline";
+import Link from "next/link";
+import { ArrowDown, ArrowRight, ArrowUp } from "lucide-react";
+import { getSignals, GROUP_LABELS, GROUP_ORDER, monthChange, yearChange, type Signal, type SignalChange } from "@/lib/data/live/signals";
+import { COST_KEYS, DEMAND_KEYS, DOLLAR_KEYS, readsOf, sentence, SHORT, type Changes, type Way } from "@/lib/signals/read";
+import { VIZ } from "@/lib/colors";
+import { DataChip } from "@/components/ui/chip";
+import { Panel, SourceLine } from "@/components/ui/panel";
+import { ErrorState, LoadingBlock } from "@/components/ui/states";
+import { SignalLines, type Row } from "./charts";
+import { IndicatorTabs, type Change, type IndicatorGroup } from "./indicators";
 import { cn } from "@/lib/utils";
 
-const DASH = "—";
+// Economic Signals: the read in words, four read tiles, production and
+// utilisation, then every indicator by group. All live, from five public sources.
 
 function value(s: Signal): string {
   const v = s.points[s.points.length - 1]?.value;
-  if (v === undefined) return DASH;
+  if (v === undefined) return "n/a";
   switch (s.unit) {
     case "percent":
       return `${v.toFixed(2)}%`;
@@ -33,16 +30,15 @@ function value(s: Signal): string {
   }
 }
 
-function changeText(c: SignalChange | undefined): string {
-  if (!c) return DASH;
-  const sign = c.value >= 0 ? "+" : "−";
-  return c.inPoints ? `${sign}${Math.abs(c.value).toFixed(2)} pts` : `${sign}${(Math.abs(c.value) * 100).toFixed(1)}%`;
-}
-
-/** Green or red only where a direction is clearly good or bad for the supply chain; otherwise neutral. */
-function tone(s: Signal, c: SignalChange | undefined): string {
-  if (!c || s.upIsGood === null || Math.abs(c.value) < (c.inPoints ? 0.005 : 0.0005)) return "text-muted";
-  return c.value > 0 === s.upIsGood ? "text-avnet-greenDark" : "text-danger";
+/** A change for display: signed, with green or red only where a rise is clearly good or bad. */
+function change(s: Signal, c: SignalChange | undefined): Change | undefined {
+  if (!c) return undefined;
+  const flat = Math.abs(c.value) < (c.inPoints ? 0.005 : 0.0005);
+  const text = c.inPoints
+    ? `${c.value >= 0 ? "+" : "−"}${Math.abs(c.value).toFixed(2)} pts`
+    : `${c.value >= 0 ? "+" : "−"}${(Math.abs(c.value) * 100).toFixed(1)}%`;
+  const tone = s.upIsGood === null ? "neutral" : c.value > 0 === s.upIsGood ? "good" : "bad";
+  return { text, sign: flat ? 0 : c.value > 0 ? 1 : -1, tone };
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -52,25 +48,70 @@ function when(date: string): string {
   return d ? `${MONTHS[Number(m) - 1]} ${Number(d)}, ${y}` : `${MONTHS[Number(m) - 1]} ${y}`;
 }
 const shortMonth = (date: string) => `${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(2, 4)}`;
+// Shorter names where the tiles are narrow (1280px).
+const TILE: Record<string, string> = {
+  "ip-semis": "Chip production",
+  "ip-electronics": "Electronics",
+  "ust-10y": "10-year",
+  "fed-funds": "Fed funds",
+};
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-function Tile({ signal, label, period }: { signal: Signal | undefined; label: string; period: "month" | "year" }) {
-  const c = signal ? (period === "year" ? yearChange(signal) : monthChange(signal)) : undefined;
-  const Arrow = (c?.value ?? 0) >= 0 ? ArrowUpRight : ArrowDownRight;
-  const last = signal?.points[signal.points.length - 1];
+const WAY_ARROW: Record<Way, typeof ArrowUp> = { up: ArrowUp, down: ArrowDown, flat: ArrowRight };
+
+function ChangeText({ c }: { c?: Change }) {
+  if (!c) return <span className="text-ink-muted">n/a</span>;
   return (
-    <div className="rounded-card border border-line bg-surface px-4 py-3 shadow-card">
-      <span className="font-display text-2xs uppercase tracking-wider text-muted">{label}</span>
-      <div className="mt-1.5 font-display text-2xl tabular text-ink">{signal ? value(signal) : DASH}</div>
-      <div className="mt-1 text-xs text-muted">
-        {signal && c && (
-          <span className={cn("mr-1 inline-flex items-center gap-0.5 tabular", tone(signal, c))}>
-            <Arrow className="h-3.5 w-3.5" />
-            {changeText(c).slice(1)}
-          </span>
-        )}
-        {last ? `${period === "year" ? "YoY" : "1 mo"} · ${when(last.date)}` : "Unavailable"}
-      </div>
-    </div>
+    <span
+      className={cn(
+        "whitespace-nowrap tabular-nums",
+        c.sign === 0 ? "text-ink-muted" : c.tone === "good" ? "text-positive" : c.tone === "bad" ? "text-negative" : "text-ink",
+      )}
+    >
+      {c.text}
+    </span>
+  );
+}
+
+/** One read: the verdict word with an arrow in ink, then the series behind it. */
+function ReadTile({
+  label,
+  verdict,
+  way,
+  items,
+  source,
+}: {
+  label: string;
+  verdict?: string;
+  way?: Way;
+  items: { key: string; name: string; latest?: string; change?: Change }[];
+  source: string;
+}) {
+  const Arrow = way ? WAY_ARROW[way] : ArrowRight;
+  return (
+    <section aria-label={label} className="flex min-w-0 flex-col rounded-sm border border-hairline bg-surface px-4 py-3">
+      <h3 className="font-display text-label uppercase text-ink-muted">{label}</h3>
+      {verdict ? (
+        <p className="mt-1 inline-flex items-center gap-1 font-display text-figure text-ink">
+          {verdict}
+          <Arrow className="h-5 w-5" strokeWidth={1.5} aria-hidden />
+        </p>
+      ) : (
+        <p className="mt-1 font-display text-figure text-ink-muted">Not available</p>
+      )}
+      <ul className="mt-2 flex-1 space-y-1 text-body-sm">
+        {items.map((it) => (
+          <li key={it.key} className="flex items-baseline justify-between gap-3">
+            <span className="truncate text-ink-muted">{it.name}</span>
+            <span className="flex items-baseline gap-2">
+              {it.latest && <span className="tabular-nums text-ink">{it.latest}</span>}
+              <ChangeText c={it.change} />
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 border-t border-hairline pt-2 text-caption text-ink-muted">Source: {source}. Change on a year ago.</p>
+    </section>
   );
 }
 
@@ -81,117 +122,164 @@ export async function SignalsView() {
 
   if (!signals.length) {
     return (
-      <Card>
-        <p className="py-10 text-center text-sm text-muted">None of the public data sources could be reached right now.</p>
-      </Card>
+      <Panel title="Economic signals">
+        <ErrorState
+          title="None of the public data sources could be reached"
+          source="Federal Reserve, Bureau of Labor Statistics, IMF, US Treasury, New York Fed, European Central Bank"
+          detail="Try again in a few minutes."
+          retryHref="/signals"
+        />
+      </Panel>
     );
   }
 
-  // Production series rebased to a common start so growth compares on one axis.
+  const changes: Changes = Object.fromEntries(signals.map((s) => [s.key, yearChange(s)?.value]));
+  const reads = readsOf(changes);
+  const lead = sentence(changes, reads);
+  const yearOf = (key: string) => {
+    const s = by(key);
+    return s ? change(s, yearChange(s)) : undefined;
+  };
+  const costItems = COST_KEYS.filter((k) => changes[k] !== undefined)
+    .sort((a, b) => Math.abs(changes[b]!) - Math.abs(changes[a]!))
+    .slice(0, 4)
+    .map((k) => ({ key: k, name: cap(SHORT[k]), change: yearOf(k) }));
+
+  // Production series rebased to their first month so growth compares on one axis.
   const production = [
-    { signal: by("ip-semis"), name: "Semiconductors and components" },
-    { signal: by("ip-electronics"), name: "Computer and electronic products" },
-    { signal: by("ip-total"), name: "All industry" },
-  ].filter((p): p is { signal: Signal; name: string } => Boolean(p.signal));
-  const months = production[0]?.signal.points.map((p) => p.date) ?? [];
-  const productionRows: ChartRow[] = months.map((date) => {
-    const row: ChartRow = { label: shortMonth(date) };
-    for (const { signal, name } of production) {
-      const base = signal.points.find((p) => p.date === months[0])?.value;
-      const now = signal.points.find((p) => p.date === date)?.value;
-      if (base && now !== undefined) row[name] = (now / base) * 100;
+    { key: "ip-semis", name: "Semiconductors", color: VIZ.arrow },
+    { key: "ip-electronics", name: "Electronics", color: VIZ.orange },
+    { key: "ip-total", name: "All industry", color: VIZ.blueLight, light: true },
+  ].filter((p) => by(p.key));
+  const months = by(production[0]?.key ?? "")?.points.map((p) => p.date) ?? [];
+  const productionRows: Row[] = months.map((date) => {
+    const row: Row = { label: shortMonth(date) };
+    for (const p of production) {
+      const pts = by(p.key)!.points;
+      const base = pts.find((x) => x.date === months[0])?.value;
+      const now = pts.find((x) => x.date === date)?.value;
+      if (base && now !== undefined) row[p.key] = (now / base) * 100;
     }
     return row;
   });
   const util = by("util-semis");
-  const utilRows: ChartRow[] = (util?.points ?? []).map((p) => ({ label: shortMonth(p.date), "Capacity utilization": p.value }));
+  const utilRows: Row[] = (util?.points ?? []).map((p) => ({ label: shortMonth(p.date), util: p.value }));
+
+  const groups: IndicatorGroup[] = GROUP_ORDER.map((g) => ({
+    id: g,
+    label: GROUP_LABELS[g],
+    rows: signals
+      .filter((s) => s.group === g)
+      .map((s) => {
+        const last = s.points[s.points.length - 1];
+        return {
+          key: s.key,
+          label: s.label,
+          detail: s.detail,
+          latest: value(s),
+          month: change(s, monthChange(s)),
+          year: change(s, yearChange(s)),
+          spark: s.points.map((p) => p.value),
+          asOf: last ? when(last.date) : "n/a",
+          source: s.source,
+        };
+      }),
+  })).filter((g) => g.rows.length);
+
+  const tenYear = by("ust-10y");
+  const funds = by("fed-funds");
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
-        <Tile signal={by("ip-semis")} label="Semiconductor production" period="year" />
-        <Tile signal={util} label="Capacity utilization" period="year" />
-        <Tile signal={by("PCU334413334413")} label="Semiconductor prices" period="year" />
-        <Tile signal={by("imf-PCOPP")} label="Copper, $ per tonne" period="year" />
-        <Tile signal={by("ust-10y")} label="10-year Treasury" period="month" />
-        <Tile signal={by("fed-funds")} label="Federal funds rate" period="year" />
+      <section aria-labelledby="signals-lead">
+        <h2 id="signals-lead" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-pretty text-xl leading-snug text-ink">
+          <span>{lead || "The public data sources haven't returned enough to read yet."}</span>
+          <DataChip status="live" />
+        </h2>
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ReadTile
+          label="Demand"
+          verdict={reads.demand?.verdict}
+          way={reads.demand?.way}
+          items={DEMAND_KEYS.map((k) => ({ key: k, name: TILE[k] ?? SHORT[k], change: yearOf(k) }))}
+          source="Federal Reserve G.17"
+        />
+        <ReadTile label="Costs" verdict={reads.costs?.verdict} way={reads.costs?.way} items={costItems} source="BLS producer prices, IMF metals" />
+        <ReadTile
+          label="Financing"
+          verdict={reads.financing?.verdict}
+          way={reads.financing?.way}
+          items={[
+            { key: "ust-10y", name: TILE["ust-10y"], latest: tenYear ? value(tenYear) : undefined, change: yearOf("ust-10y") },
+            { key: "fed-funds", name: TILE["fed-funds"], latest: funds ? value(funds) : undefined, change: yearOf("fed-funds") },
+          ]}
+          source="US Treasury, New York Fed"
+        />
+        <ReadTile
+          label="Dollar"
+          verdict={reads.dollar?.verdict}
+          way={reads.dollar?.way}
+          items={DOLLAR_KEYS.map((k) => ({ key: k, name: `${SHORT[k]} per dollar`, change: yearOf(k) }))}
+          source="European Central Bank"
+        />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card title="US production" subtitle={months.length ? `Rebased to 100 at ${when(months[0])} · Federal Reserve G.17` : "Federal Reserve G.17"}>
-          <GroupLines rows={productionRows} series={production.map((p) => p.name)} unit="index" />
-        </Card>
-        <Card title="Capacity utilization" subtitle="Semiconductors and electronic components, percent of capacity · Federal Reserve G.17">
-          <GroupLines rows={utilRows} series={["Capacity utilization"]} unit="level" />
-        </Card>
+      <div className="grid items-start gap-4 xl:grid-cols-2 [&>*]:min-w-0">
+        <Panel
+          title="US production"
+          subtitle={months.length ? `Industrial production, each series rebased to 100 at ${when(months[0])}` : undefined}
+          footer={
+            <SourceLine source="Federal Reserve G.17, seasonally adjusted" asOf={months.length ? when(months[months.length - 1]) : undefined} />
+          }
+        >
+          <SignalLines rows={productionRows} series={production} format="index" />
+        </Panel>
+        <Panel
+          title="Capacity utilization"
+          subtitle="Semiconductors and electronic components, percent of capacity"
+          footer={
+            <>
+              <SourceLine source="Federal Reserve G.17" asOf={util?.points.length ? when(util.points[util.points.length - 1].date) : undefined} />
+              <Link href="/supply-chain" className="ml-auto text-ink underline-offset-2 hover:underline">
+                Supply read on Supply Chain
+              </Link>
+            </>
+          }
+        >
+          <SignalLines rows={utilRows} series={[{ key: "util", name: "Utilization", color: VIZ.arrow }]} format="percent" />
+        </Panel>
       </div>
 
-      {GROUP_ORDER.map((group) => {
-        const rows = signals.filter((s) => s.group === group);
-        if (!rows.length) return null;
-        return (
-          <Card key={group} title={GROUP_LABELS[group]} bodyClassName="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-xs">
-                <thead>
-                  <tr className="border-b border-line text-right font-display text-2xs uppercase tracking-wider text-muted">
-                    <th scope="col" className="px-4 py-2 text-left font-normal">
-                      Indicator
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      Latest
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      1 month
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      1 year
-                    </th>
-                    <th scope="col" className="px-3 py-2 text-left font-normal">
-                      Trend
-                    </th>
-                    <th scope="col" className="px-3 py-2 text-left font-normal">
-                      As of · source
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((s) => {
-                    const m = monthChange(s);
-                    const y = yearChange(s);
-                    const last = s.points[s.points.length - 1];
-                    return (
-                      <tr key={s.key} className="border-b border-line last:border-b-0 hover:bg-canvas">
-                        <th scope="row" className="px-4 py-1.5 text-left font-normal">
-                          <span className="font-medium text-ink">{s.label}</span>
-                          <span className="block text-2xs text-muted">{s.detail}</span>
-                        </th>
-                        <td className="px-3 py-1.5 text-right tabular text-ink">{value(s)}</td>
-                        <td className={cn("px-3 py-1.5 text-right tabular", tone(s, m))}>{changeText(m)}</td>
-                        <td className={cn("px-3 py-1.5 text-right tabular", tone(s, y))}>{changeText(y)}</td>
-                        <td className="px-3 py-1.5">
-                          <Sparkline data={s.points.map((p) => p.value)} color={AVNET.blueDark} width={120} height={24} />
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-1.5 text-left text-muted">
-                          {last ? when(last.date) : DASH} · {s.source}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        );
-      })}
+      <Panel title="All indicators" subtitle="Latest value and change on a month and a year ago, by group" bodyClassName="p-0">
+        <IndicatorTabs groups={groups} />
+      </Panel>
 
-      <p className="px-1 text-2xs text-muted">
-        All series are public and read without an API key: Federal Reserve G.17 (production and utilization), Bureau of Labor
-        Statistics (producer prices and employment), IMF Primary Commodity Prices (metals, monthly averages), US Treasury and the
-        Federal Reserve Bank of New York (rates), and European Central Bank reference rates. Monthly series show the last three
-        years and daily series about the last year. Changes for rates and utilization are in percentage points; everything else
-        is a percent change. Green and red are used only where a rise is clearly good or bad for the supply chain. Recent months
-        are preliminary and get revised. Checked about every 6 hours.
+      <nav aria-label="Related pages" className="flex flex-wrap items-center gap-x-6 gap-y-2 text-body-sm">
+        <span className="font-display text-label uppercase text-ink-muted">Related</span>
+        <Link href="/cycle" className="text-ink underline-offset-2 hover:underline">
+          Market Cycle
+        </Link>
+        <Link href="/supply-chain" className="text-ink underline-offset-2 hover:underline">
+          Supply Chain
+        </Link>
+        <Link href="/customers" className="text-ink underline-offset-2 hover:underline">
+          Customers &amp; End Markets
+        </Link>
+        <Link href="/news" className="text-ink underline-offset-2 hover:underline">
+          Market News
+        </Link>
+      </nav>
+
+      <p className="text-caption text-ink-muted">
+        All series are public and read without an API key: Federal Reserve G.17 (production and utilization), Bureau of Labor Statistics (producer
+        prices and employment), IMF primary commodity prices (metals, monthly averages), US Treasury and the Federal Reserve Bank of New York (rates),
+        and European Central Bank reference rates (currency). The reads compare each series with a year ago. Demand grows when two or more production
+        series are up more than 2% and none is down that much. Costs rise when more than half of the producer prices and metals are up more than 2%.
+        Financing is tighter when the 10-year yield is up more than 0.25 points. The dollar is stronger when the four currencies average more than 2%
+        more per dollar. Green and red are used only where a rise is clearly good or bad for the supply chain. Recent months are preliminary and get
+        revised. Checked about every six hours.
         {failed.length > 0 && ` Not responding: ${failed.join(", ")}.`}
       </p>
     </>
@@ -200,12 +288,17 @@ export async function SignalsView() {
 
 export function SignalsFallback() {
   return (
-    <Card title="Reading public data" subtitle="Federal Reserve, Bureau of Labor Statistics, IMF, Treasury and ECB.">
-      <div className="space-y-2" role="status" aria-label="Loading economic signals">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="h-4 animate-pulse rounded bg-canvas" />
+    <>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {["Demand", "Costs", "Financing", "Dollar"].map((t) => (
+          <Panel key={t} title={t}>
+            <LoadingBlock label={`Loading ${t.toLowerCase()}…`} lines={3} />
+          </Panel>
         ))}
       </div>
-    </Card>
+      <Panel title="Reading public data">
+        <LoadingBlock label="Loading economic signals…" lines={8} />
+      </Panel>
+    </>
   );
 }
