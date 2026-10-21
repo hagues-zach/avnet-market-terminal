@@ -1,72 +1,176 @@
-"use client";
-
-import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, ExternalLink } from "lucide-react";
-import type { CompanyEarnings, Quarter } from "@/lib/data/live/earnings-model";
-import { AVNET } from "@/lib/colors";
-import { Card } from "@/components/ui/card";
-import { CashFlowChart, GrowthChart, MarginChart, RevenueChart, WorkingCapitalChart } from "@/components/charts/earnings-charts";
-import { cn } from "@/lib/utils";
+import { ChevronRight, ExternalLink } from "lucide-react";
+import { getCommentary } from "@/lib/ai/commentary";
+import type { CompanyEarnings } from "@/lib/data/live/earnings-model";
+import { yearAgo } from "@/lib/earnings/season";
+import { KpiTile } from "@/components/ui/kpi-tile";
+import { Panel, SourceLine } from "@/components/ui/panel";
+import { ErrorState, LoadingBlock } from "@/components/ui/states";
+import { TrendChart } from "./trend-chart";
 import { format, longDate, type Row } from "./format";
 
-const DAY = 86_400_000;
+const pts = (v: number) => `${Math.abs(v * 100).toFixed(1)} pts`;
+const link = "text-ink underline-offset-2 hover:underline";
 
-/** The quarter ending about a year before `q`, if it is in the series. */
-function yearAgo(quarters: Quarter[], q: Quarter): Quarter | undefined {
-  const target = Date.parse(q.end) - 364 * DAY;
-  return quarters.find((p) => Math.abs(Date.parse(p.end) - target) <= 20 * DAY);
+/** One sentence on the quarter: revenue, its change on a year ago, and operating margin. */
+function headline(e: CompanyEarnings): string {
+  const q = e.quarters[e.quarters.length - 1];
+  const v = q.values;
+  const parts = [`${e.company.name} ${q.fiscalLabel}: revenue ${format("usd", v.revenue)}`];
+  if (v.revenueYoY !== undefined) parts[0] += `, ${v.revenueYoY >= 0 ? "up" : "down"} ${(Math.abs(v.revenueYoY) * 100).toFixed(1)}% on a year ago`;
+  if (v.operatingMargin !== undefined) parts.push(`operating margin ${format("pct", v.operatingMargin)}`);
+  return `${parts.join("; ")}.`;
 }
 
-interface Delta {
-  text: string;
-  up: boolean;
-  good: boolean;
-}
+/** The selected company's latest quarter: the sentence, the KPIs and the trend. */
+export function CompanyResults({ earnings }: { earnings: CompanyEarnings }) {
+  const { company, quarters, latestFiling } = earnings;
+  const latest = quarters[quarters.length - 1];
+  if (!latest) {
+    return (
+      <Panel>
+        <ErrorState title={`${company.name}'s filings could not be loaded right now`} source="SEC EDGAR" detail={earnings.error} />
+      </Panel>
+    );
+  }
+  const v = latest.values;
+  const p = yearAgo(quarters, latest)?.values ?? {};
+  const change = (cur?: number, prev?: number) => (cur === undefined || prev === undefined ? undefined : cur - prev);
+  const rel = (cur?: number, prev?: number) => (cur === undefined || !prev ? undefined : cur / prev - 1);
 
-function Tile({ label, value, delta, note }: { label: string; value: string; delta?: Delta; note?: string }) {
-  const Arrow = delta?.up ? ArrowUpRight : ArrowDownRight;
+  const grossChange = change(v.grossMargin, p.grossMargin);
+  const opChange = change(v.operatingMargin, p.operatingMargin);
+  const growthChange = change(v.revenueYoY, p.revenueYoY);
+  const epsChange = change(v.epsDiluted, p.epsDiluted);
+  const fcfChange = change(v.freeCashFlow, p.freeCashFlow);
+  const revChange = rel(v.revenue, p.revenue);
+
   return (
-    <div className="rounded-card border border-line bg-surface px-4 py-3 shadow-card">
-      <span className="font-display text-2xs uppercase tracking-wider text-muted">{label}</span>
-      <div className="mt-1.5 font-display text-2xl tabular text-ink">{value}</div>
-      {delta ? (
-        <div className={cn("mt-1 inline-flex items-center gap-0.5 text-xs tabular", delta.good ? "text-avnet-greenDark" : "text-danger")}>
-          <Arrow className="h-3.5 w-3.5" />
-          {delta.text}
-          <span className="ml-1 text-muted">YoY</span>
-        </div>
-      ) : (
-        <div className="mt-1 text-xs text-muted">{note ?? "No year-ago comparison"}</div>
-      )}
-    </div>
+    <>
+      <div className="space-y-0.5">
+        <h3 className="text-pretty text-lg leading-snug text-ink">{headline(earnings)}</h3>
+        <p className="text-caption text-ink-muted">
+          Quarter ended {longDate(latest.end)}, calendar {latest.calendarLabel}.
+          {latestFiling && (
+            <>
+              {" "}
+              <a href={latestFiling.url} target="_blank" rel="noopener noreferrer" className={`${link} inline-flex items-center gap-1`}>
+                {latestFiling.form} filed {longDate(latestFiling.filed)}
+                <ExternalLink className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                <span className="sr-only"> (opens SEC EDGAR)</span>
+              </a>
+            </>
+          )}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <KpiTile label="Revenue" value={format("usd", v.revenue)} delta={revChange !== undefined ? { value: revChange, period: "YoY" } : undefined} />
+        <KpiTile
+          label="Revenue growth"
+          value={format("growth", v.revenueYoY)}
+          delta={growthChange !== undefined ? { value: growthChange, display: pts(growthChange), period: "YoY" } : undefined}
+        />
+        <KpiTile
+          label="Gross margin"
+          value={format("pct", v.grossMargin)}
+          delta={grossChange !== undefined ? { value: grossChange, display: pts(grossChange), period: "YoY" } : undefined}
+        />
+        <KpiTile
+          label="Operating margin"
+          value={format("pct", v.operatingMargin)}
+          delta={opChange !== undefined ? { value: opChange, display: pts(opChange), period: "YoY" } : undefined}
+        />
+        <KpiTile
+          label="Diluted EPS"
+          value={format("eps", v.epsDiluted)}
+          note={latest.backedOut.includes("epsDiluted") ? "derived" : undefined}
+          delta={epsChange !== undefined ? { value: epsChange, display: format("eps", Math.abs(epsChange)), period: "YoY" } : undefined}
+        />
+        <KpiTile
+          label="Free cash flow"
+          value={format("usd", v.freeCashFlow)}
+          delta={fcfChange !== undefined ? { value: fcfChange, display: format("usd", Math.abs(fcfChange)), period: "YoY" } : undefined}
+        />
+      </div>
+    </>
   );
 }
 
-/** Year-over-year change for a tile. `mode` picks how the change is expressed. */
-function delta(
-  cur: number | undefined,
-  prev: number | undefined,
-  mode: "relative" | "points" | "days" | "usd" | "eps",
-  upIsGood = true,
-): Delta | undefined {
-  if (cur === undefined || prev === undefined) return undefined;
-  const diff = cur - prev;
-  const up = diff >= 0;
-  const magnitude = Math.abs(diff);
-  let text: string;
-  if (mode === "relative") {
-    if (prev === 0) return undefined;
-    text = `${((magnitude / Math.abs(prev)) * 100).toFixed(1)}%`;
-  } else if (mode === "points") {
-    text = `${(magnitude * 100).toFixed(1)} pts`;
-  } else if (mode === "days") {
-    text = `${Math.round(magnitude)} days`;
-  } else {
-    // Absolute change: a percentage misleads when the base is small or changes sign.
-    text = format(mode, magnitude);
-  }
-  return { text, up, good: up === upIsGood };
+export function TrendPanel({ earnings }: { earnings: CompanyEarnings }) {
+  const quarters = earnings.quarters.slice(-12);
+  return (
+    <Panel
+      className="xl:col-span-8"
+      title="Trend"
+      subtitle={`${earnings.company.name}, last ${quarters.length} fiscal quarters`}
+      footer={<SourceLine source="SEC filings, GAAP as reported" asOf={quarters.at(-1)?.fiscalLabel} />}
+    >
+      <TrendChart quarters={quarters} isAvnet={earnings.company.slug === "avnet"} />
+    </Panel>
+  );
 }
+
+/* ---------- What management said ---------- */
+
+const TOPICS = [
+  ["guidance", "Guidance"],
+  ["demand", "Demand"],
+  ["inventory", "Inventory"],
+  ["leadTimes", "Lead times"],
+  ["pricing", "Pricing"],
+  ["channel", "Channel"],
+] as const;
+
+/** Server component: Claude's digest of the company's latest earnings release. */
+export async function ManagementPanel({ company }: { company: string }) {
+  const c = await getCommentary(company);
+  return (
+    <Panel
+      className="xl:col-span-4"
+      title="What management said"
+      subtitle="Written by Claude from the latest earnings release; check the release before quoting it"
+      footer={
+        c.releaseUrl ? (
+          <a href={c.releaseUrl} target="_blank" rel="noopener noreferrer" className={`${link} inline-flex items-center gap-1`}>
+            Read the release{c.filed ? `, filed ${longDate(c.filed)}` : ""}
+            <ExternalLink className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            <span className="sr-only"> (opens SEC EDGAR)</span>
+          </a>
+        ) : undefined
+      }
+      bodyClassName="space-y-2.5"
+    >
+      {c.status !== "ok" || !c.digest ? (
+        <p className="text-body-sm text-ink-muted">{c.message ?? "The latest earnings release could not be read."}</p>
+      ) : (
+        <>
+          <p className="text-base leading-snug text-ink">{c.digest.headline}</p>
+          <dl className="space-y-1.5">
+            {TOPICS.map(([key, name]) => (
+              // Clipped to three lines to sit beside the chart; the full text is in the tooltip and read in full by screen readers.
+              <div key={key} className="line-clamp-3 text-body-sm">
+                <dt className="inline font-semibold text-ink">{name}: </dt>
+                <dd className="inline text-ink" title={c.digest![key] ?? undefined}>
+                  {c.digest![key] ?? <span className="text-ink-muted">Not covered in the release.</span>}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
+    </Panel>
+  );
+}
+
+export function ManagementFallback() {
+  return (
+    <Panel className="xl:col-span-4" title="What management said">
+      <LoadingBlock label="Reading the earnings release…" lines={6} />
+    </Panel>
+  );
+}
+
+/* ---------- Quarterly detail (folded) ---------- */
 
 const DETAIL: { group: string; rows: Row[] }[] = [
   {
@@ -108,138 +212,69 @@ const DETAIL: { group: string; rows: Row[] }[] = [
   },
 ];
 
-export function CompanyView({ earnings }: { earnings: CompanyEarnings }) {
-  const { company, quarters, latestFiling } = earnings;
-  const latest = quarters[quarters.length - 1];
+const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
 
-  if (!latest) {
-    return (
-      <Card>
-        <p className="py-10 text-center text-sm text-muted">
-          {company.name}&apos;s filings could not be loaded from SEC EDGAR right now{earnings.error ? ` (${earnings.error})` : ""}.
-        </p>
-      </Card>
-    );
-  }
-
-  const prior = yearAgo(quarters, latest);
-  // Avnet Green only ever represents Avnet.
-  const color = company.slug === "avnet" ? AVNET.green : AVNET.blueDark;
-  const detailQuarters = quarters.slice(-8);
-  const v = latest.values;
-  const p = prior?.values ?? {};
-
+export function QuarterlyDetail({ earnings }: { earnings: CompanyEarnings }) {
+  const quarters = earnings.quarters.slice(-8);
+  if (!quarters.length) return null;
   return (
-    <>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1">
-        <h2 className="font-display text-lg uppercase tracking-wide text-ink">
-          {company.name} <span className="text-muted">· {latest.fiscalLabel}</span>
-          <Link
-            href={`/network/${company.slug}`}
-            className="ml-3 align-middle font-body text-xs normal-case tracking-normal text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark"
-          >
-            Company profile
-          </Link>
-        </h2>
-        <p className="text-xs text-muted">
-          Quarter ended {longDate(latest.end)} · {latest.calendarLabel}
-          {latestFiling && (
-            <>
-              {" · "}
-              <a
-                href={latestFiling.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark"
-              >
-                {latestFiling.form} filed {longDate(latestFiling.filed)}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </>
-          )}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
-        <Tile label="Revenue" value={format("usd", v.revenue)} delta={delta(v.revenue, p.revenue, "relative")} />
-        <Tile label="Gross margin" value={format("pct", v.grossMargin)} delta={delta(v.grossMargin, p.grossMargin, "points")} />
-        <Tile label="Operating margin" value={format("pct", v.operatingMargin)} delta={delta(v.operatingMargin, p.operatingMargin, "points")} />
-        <Tile label="Diluted EPS" value={format("eps", v.epsDiluted)} delta={delta(v.epsDiluted, p.epsDiluted, "eps")} />
-        <Tile
-          label="Inventory days"
-          value={format("days", v.inventoryDays)}
-          delta={delta(v.inventoryDays, p.inventoryDays, "days", false)}
-          note={v.inventoryDays === undefined ? "Not reported" : undefined}
-        />
-        <Tile label="Free cash flow" value={format("usd", v.freeCashFlow)} delta={delta(v.freeCashFlow, p.freeCashFlow, "usd")} />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card title="Revenue" subtitle="By fiscal quarter">
-          <RevenueChart quarters={quarters} color={color} />
-        </Card>
-        <Card title="Revenue growth" subtitle="Year over year, by fiscal quarter">
-          <GrowthChart quarters={quarters} color={color} />
-        </Card>
-        <Card title="Margins" subtitle="Share of revenue">
-          <MarginChart quarters={quarters} />
-        </Card>
-        <Card title="Working capital" subtitle="Days of inventory, receivables and payables">
-          <WorkingCapitalChart quarters={quarters} />
-        </Card>
-        <Card title="Cash flow" subtitle="Operating and free cash flow by quarter" className="xl:col-span-2">
-          <CashFlowChart quarters={quarters} />
-        </Card>
-      </div>
-
-      <Card
-        title="Quarterly detail"
-        subtitle={`${company.name} · last ${detailQuarters.length} quarters · same line items for every company`}
-        bodyClassName="p-0"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-xs">
-            <thead>
-              <tr className="border-b border-line text-right font-display text-2xs uppercase tracking-wider text-muted">
-                <th scope="col" className="px-4 py-2 text-left font-normal">
-                  Line item
+    <details className="group rounded-sm border border-hairline bg-surface">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-90" strokeWidth={1.5} aria-hidden />
+        <span className="font-display text-card-title text-ink">Quarterly detail, last {quarters.length} quarters</span>
+        <span className="ml-auto truncate pl-3 text-caption text-ink-muted">
+          The same {DETAIL.reduce((n, s) => n + s.rows.length, 0)} line items for every company
+        </span>
+      </summary>
+      <div className="overflow-x-auto border-t border-hairline">
+        <table className="w-full min-w-[760px] border-collapse font-body text-table">
+          <caption className="sr-only">
+            {earnings.company.name}, every line item for the last {quarters.length} quarters
+          </caption>
+          <thead className="bg-surface-sunken">
+            <tr className="border-b border-hairline">
+              <th scope="col" className={`${TH} text-left`}>
+                Line item
+              </th>
+              {quarters.map((q) => (
+                <th key={q.end} scope="col" className={`${TH} text-right`} title={`Quarter ended ${longDate(q.end)}`}>
+                  {q.fiscalLabel}
                 </th>
-                {detailQuarters.map((q) => (
-                  <th key={q.end} scope="col" className="px-3 py-2 font-normal" title={`Quarter ended ${longDate(q.end)}`}>
-                    {q.fiscalLabel}
-                  </th>
-                ))}
+              ))}
+            </tr>
+          </thead>
+          {DETAIL.map((section) => (
+            <tbody key={section.group}>
+              <tr className="border-b border-hairline">
+                <th
+                  scope="colgroup"
+                  colSpan={quarters.length + 1}
+                  className="px-3 pb-1 pt-3 text-left font-display text-card-title font-normal text-ink"
+                >
+                  {section.group}
+                </th>
               </tr>
-            </thead>
-            {DETAIL.map((section) => (
-              <tbody key={section.group}>
-                <tr className="border-b border-line bg-canvas">
-                  <th
-                    scope="colgroup"
-                    colSpan={detailQuarters.length + 1}
-                    className="px-4 py-1.5 text-left font-display text-2xs uppercase tracking-widest text-muted"
-                  >
-                    {section.group}
+              {section.rows.map((row) => (
+                <tr key={row.metric} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
+                  <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
+                    {row.label}
                   </th>
+                  {quarters.map((q) => (
+                    <td key={q.end} className="px-3 py-1.5 text-right tabular-nums text-ink">
+                      {format(row.kind, q.values[row.metric])}
+                      {row.metric === "epsDiluted" && q.backedOut.includes("epsDiluted") && (
+                        <sup className="text-ink-muted" title="Derived from year-to-date totals; approximate">
+                          †
+                        </sup>
+                      )}
+                    </td>
+                  ))}
                 </tr>
-                {section.rows.map((row) => (
-                  <tr key={row.metric} className="border-b border-line last:border-b-0">
-                    <th scope="row" className="px-4 py-1.5 text-left font-normal text-ink">
-                      {row.label}
-                    </th>
-                    {detailQuarters.map((q) => (
-                      <td key={q.end} className="px-3 py-1.5 text-right tabular text-ink">
-                        {format(row.kind, q.values[row.metric])}
-                        {row.metric === "epsDiluted" && q.backedOut.includes("epsDiluted") && <sup className="text-muted">†</sup>}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            ))}
-          </table>
-        </div>
-      </Card>
-    </>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+    </details>
   );
 }
