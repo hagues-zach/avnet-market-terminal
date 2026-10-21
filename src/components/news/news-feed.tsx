@@ -1,329 +1,422 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Search, Star, X } from "lucide-react";
-import type { Angles, Relevance } from "@/lib/ai/news-angles";
-import { KIND_LABELS, type ArticleKind, type LiveArticle, type LiveNews } from "@/lib/data/live/shared";
-import { FACET_LABELS, type Facet } from "@/lib/data/live/tagging";
-import { Card } from "@/components/ui/card";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, SlidersHorizontal, Star } from "lucide-react";
+import type { Angles } from "@/lib/ai/news-angles";
+import { KIND_LABELS, type ArticleKind, type LiveArticle } from "@/lib/data/live/shared";
+import { FACET_LABELS } from "@/lib/data/live/tagging";
+import { DAY_GROUPS, dayGroup, profiledCompanies, type DayGroup } from "@/lib/news/briefing";
+import { Chip } from "@/components/ui/chip";
+import { FilterChip, FilterSelect } from "@/components/ui/filter-bar";
+import { Panel } from "@/components/ui/panel";
+import { EmptyState } from "@/components/ui/states";
+import { Byline, CompanyLinks, entityRule, Headline, QbrAction, RelevanceChip } from "./story-parts";
 import { cn } from "@/lib/utils";
 
-const FACETS: Facet[] = ["segments", "endMarkets", "regions"];
-const KINDS: ArticleKind[] = ["news", "filing", "regulatory"];
-const WATCHLIST_KEY = "terminal.news.supplierWatchlist";
-const EMPTY: Record<Facet, string[]> = { segments: [], suppliers: [], endMarkets: [], regions: [] };
+export type FeedFacet = "segments" | "endMarkets" | "regions";
+export const FEED_FACETS: FeedFacet[] = ["segments", "endMarkets", "regions"];
+export type RelevanceFilter = "all" | "useful" | "high";
 
-function countBy(articles: LiveArticle[], facet: Facet): [string, number][] {
+export interface Filters {
+  query: string;
+  kind: ArticleKind | "all";
+  relevance: RelevanceFilter;
+  facets: Record<FeedFacet, string[]>;
+  watchOnly: boolean;
+}
+
+export const NO_FILTERS: Filters = {
+  query: "",
+  kind: "all",
+  relevance: "all",
+  facets: { segments: [], endMarkets: [], regions: [] },
+  watchOnly: false,
+};
+
+const PAGE = 25;
+const KINDS: ArticleKind[] = ["news", "filing", "regulatory"];
+const RELEVANCE_LABEL: Record<RelevanceFilter, string> = {
+  all: "All",
+  useful: "High and useful",
+  high: "High only",
+};
+
+function countBy(articles: LiveArticle[], facet: FeedFacet | "suppliers"): [string, number][] {
   const counts = new Map<string, number>();
   for (const a of articles) for (const v of a[facet]) counts.set(v, (counts.get(v) ?? 0) + 1);
   return Array.from(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-// Relative to the server fetch time (not the browser clock) so SSR and hydration agree.
-function ago(publishedAt: string, fetchedAt: string): string {
-  const mins = Math.max(0, Math.round((Date.parse(fetchedAt) - Date.parse(publishedAt)) / 60_000));
-  if (mins < 60) return `${mins}m ago`;
-  if (mins < 60 * 24) return `${Math.round(mins / 60)}h ago`;
-  return `${Math.round(mins / (60 * 24))}d ago`;
+export function matches(a: LiveArticle, f: Filters, angles: Angles | null, watchlist: string[]): boolean {
+  if (f.kind !== "all" && a.kind !== f.kind) return false;
+  if (f.relevance !== "all") {
+    const r = angles?.byId[a.id]?.relevance;
+    if (r !== "high" && !(f.relevance === "useful" && r === "medium")) return false;
+  }
+  for (const facet of FEED_FACETS) {
+    const want = f.facets[facet];
+    if (want.length && !want.some((v) => a[facet].includes(v))) return false;
+  }
+  if (f.watchOnly && !watchlist.some((s) => a.suppliers.includes(s))) return false;
+  const q = f.query.trim().toLowerCase();
+  return !q || `${a.title} ${a.summary} ${a.outlet}`.toLowerCase().includes(q);
 }
 
-function Chip({
-  label,
-  count,
-  active,
-  onClick,
-  icon,
+/** The full feed: one filter bar, removable filter chips, stories grouped by day. */
+export function AllNews({
+  articles,
+  fetchedAt,
+  angles,
+  filters,
+  setFilters,
+  watchlist,
+  toggleWatch,
 }: {
-  label: string;
-  count?: number;
-  active: boolean;
-  onClick: () => void;
-  icon?: React.ReactNode;
+  articles: LiveArticle[];
+  fetchedAt: string;
+  angles: Angles | null;
+  filters: Filters;
+  setFilters: (update: (f: Filters) => Filters) => void;
+  watchlist: string[];
+  toggleWatch: (supplier: string) => void;
 }) {
+  const [shown, setShown] = useState(PAGE);
+  // A new filter starts the list from the top again.
+  useEffect(() => setShown(PAGE), [filters]);
+
+  const visible = useMemo(() => articles.filter((a) => matches(a, filters, angles, watchlist)), [articles, filters, angles, watchlist]);
+  const groups = useMemo(() => {
+    const by = new Map<DayGroup, LiveArticle[]>();
+    for (const a of visible.slice(0, shown)) {
+      const g = dayGroup(a.publishedAt, fetchedAt);
+      by.set(g, [...(by.get(g) ?? []), a]);
+    }
+    return DAY_GROUPS.filter((g) => by.has(g)).map((g) => ({
+      group: g,
+      items: by.get(g)!,
+    }));
+  }, [visible, shown, fetchedAt]);
+
+  const kindCounts = useMemo(() => {
+    const c: Record<ArticleKind, number> = {
+      news: 0,
+      filing: 0,
+      regulatory: 0,
+    };
+    for (const a of articles) c[a.kind] += 1;
+    return c;
+  }, [articles]);
+
+  const toggleFacet = (facet: FeedFacet, value: string) =>
+    setFilters((f) => ({
+      ...f,
+      facets: {
+        ...f.facets,
+        [facet]: f.facets[facet].includes(value) ? f.facets[facet].filter((v) => v !== value) : [...f.facets[facet], value],
+      },
+    }));
+
+  const rated = angles !== null && Object.keys(angles.byId).length > 0;
+  const chips: { key: string; label: string; remove: () => void }[] = [
+    ...(filters.query.trim()
+      ? [
+          {
+            key: "q",
+            label: `Search: ${filters.query.trim()}`,
+            remove: () => setFilters((f) => ({ ...f, query: "" })),
+          },
+        ]
+      : []),
+    ...(filters.relevance !== "all"
+      ? [
+          {
+            key: "rel",
+            label: `Relevance: ${RELEVANCE_LABEL[filters.relevance]}`,
+            remove: () => setFilters((f) => ({ ...f, relevance: "all" as const })),
+          },
+        ]
+      : []),
+    ...FEED_FACETS.flatMap((facet) =>
+      filters.facets[facet].map((v) => ({
+        key: `${facet}-${v}`,
+        label: `${FACET_LABELS[facet]}: ${v}`,
+        remove: () => toggleFacet(facet, v),
+      })),
+    ),
+    ...(filters.watchOnly
+      ? [
+          {
+            key: "watch",
+            label: "Watchlist only",
+            remove: () => setFilters((f) => ({ ...f, watchOnly: false })),
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "inline-flex items-center gap-1 rounded px-2 py-1 font-display text-2xs uppercase tracking-wider transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-avnet-green/40",
-        active ? "bg-ink text-white" : "text-muted hover:bg-canvas",
+    <Panel title="All news" subtitle={`${visible.length} of ${articles.length} stories from the last two weeks`} bodyClassName="space-y-3">
+      <div role="group" aria-label="Filter the feed" className="flex flex-wrap items-center gap-2">
+        <label className="relative min-w-[10rem] flex-1">
+          <span className="sr-only">Search headlines</span>
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" strokeWidth={1.5} aria-hidden />
+          <input
+            type="search"
+            value={filters.query}
+            onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
+            name="q"
+            autoComplete="off"
+            placeholder="Search headlines…"
+            className="h-control w-full border border-hairline bg-surface-sunken pl-8 pr-2 text-body-sm text-ink placeholder:text-ink-muted"
+          />
+        </label>
+
+        <div role="group" aria-label="Story type" className="inline-flex border border-hairline">
+          {(["all", ...KINDS] as const).map((k, i) => {
+            const active = filters.kind === k;
+            return (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setFilters((f) => ({ ...f, kind: k }))}
+                className={cn(
+                  "h-control cursor-pointer whitespace-nowrap px-2.5 text-body-sm transition-colors",
+                  i > 0 && "border-l border-hairline",
+                  active ? "bg-surface-sunken font-semibold text-ink" : "bg-surface text-ink-muted hover:text-ink",
+                )}
+              >
+                {k === "all" ? "All" : KIND_LABELS[k]} <span className="tabular-nums">{k === "all" ? articles.length : kindCounts[k]}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <span title={rated ? undefined : "No ratings from Claude yet"}>
+          <FilterSelect
+            label="Relevance"
+            value={filters.relevance}
+            onChange={(v) => setFilters((f) => ({ ...f, relevance: v as RelevanceFilter }))}
+            disabled={!rated}
+            options={(Object.keys(RELEVANCE_LABEL) as RelevanceFilter[]).map((value) => ({ value, label: RELEVANCE_LABEL[value] }))}
+          />
+        </span>
+
+        <FiltersMenu articles={articles} filters={filters} toggleFacet={toggleFacet} watchlist={watchlist} toggleWatch={toggleWatch} />
+
+        <button
+          type="button"
+          aria-pressed={filters.watchOnly}
+          disabled={!watchlist.length}
+          title={watchlist.length ? `Only stories naming ${watchlist.join(", ")}` : "Star suppliers under Filters to build a watchlist"}
+          onClick={() => setFilters((f) => ({ ...f, watchOnly: !f.watchOnly }))}
+          className={cn(
+            "inline-flex h-control cursor-pointer items-center gap-1.5 border px-3 text-body-sm transition-colors disabled:cursor-not-allowed disabled:text-ink-muted",
+            filters.watchOnly ? "border-ink bg-surface-sunken font-semibold text-ink" : "border-hairline bg-surface text-ink hover:bg-surface-sunken",
+          )}
+        >
+          <Star className={cn("h-4 w-4", filters.watchOnly && "fill-ink")} strokeWidth={1.5} aria-hidden />
+          Watchlist
+          {watchlist.length > 0 && <span className="tabular-nums text-ink-muted">{watchlist.length}</span>}
+        </button>
+      </div>
+
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((c) => (
+            <FilterChip key={c.key} label={c.label} onRemove={c.remove} />
+          ))}
+          <button
+            type="button"
+            onClick={() => setFilters(() => NO_FILTERS)}
+            className="cursor-pointer text-caption text-ink underline underline-offset-2 hover:text-ink-muted"
+          >
+            Clear all
+          </button>
+        </div>
       )}
-    >
-      {icon}
-      {label}
-      {count !== undefined && <span className={cn("tabular-nums", active ? "text-white/70" : "text-gray-medium")}>{count}</span>}
-    </button>
+
+      {visible.length === 0 ? (
+        <EmptyState
+          title={articles.length ? "No stories match these filters" : "No stories could be loaded from the open feeds right now"}
+          action={
+            articles.length ? (
+              <button type="button" onClick={() => setFilters(() => NO_FILTERS)} className="text-body-sm text-ink underline underline-offset-2">
+                Clear all filters
+              </button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="space-y-4">
+          {groups.map(({ group, items }) => (
+            <section key={group} aria-label={group}>
+              <h3 className="border-b border-hairline pb-1 font-display text-card-title text-ink-muted">{group}</h3>
+              <ul className="divide-y divide-hairline">
+                {items.map((a) => (
+                  <FeedRow key={a.id} article={a} angles={angles} fetchedAt={fetchedAt} />
+                ))}
+              </ul>
+            </section>
+          ))}
+          {visible.length > shown && (
+            <button
+              type="button"
+              onClick={() => setShown((s) => s + PAGE)}
+              className="h-control w-full cursor-pointer border border-hairline text-body-sm text-ink transition-colors hover:bg-surface-sunken"
+            >
+              Show {Math.min(PAGE, visible.length - shown)} more of {visible.length - shown}
+            </button>
+          )}
+        </div>
+      )}
+    </Panel>
   );
 }
 
-type RelevanceFilter = "all" | "high" | "useful";
+function FeedRow({ article: a, angles, fetchedAt }: { article: LiveArticle; angles: Angles | null; fetchedAt: string }) {
+  const angle = angles?.byId[a.id];
+  const companies = profiledCompanies(a);
+  return (
+    <li className="group py-3">
+      <div className={entityRule(a)}>
+        <div className="flex items-start gap-3">
+          <p className="min-w-0 flex-1 text-body-sm font-medium">
+            <Headline article={a} />
+          </p>
+          <Byline article={a} fetchedAt={fetchedAt} className="pt-px" />
+        </div>
+        {a.summary && <p className="mt-0.5 line-clamp-1 text-caption text-ink-muted">{a.summary}</p>}
+        {angle && <p className="mt-1.5 border-l border-ink pl-2 text-caption text-ink">{angle.angle}</p>}
+        {(angle || a.kind !== "news" || a.segments.length > 0 || companies.length > 0) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <RelevanceChip angle={angle} />
+            {a.kind !== "news" && <Chip>{a.kind === "filing" ? "Filing" : "Regulatory"}</Chip>}
+            {a.segments[0] && <span className="text-caption text-ink-muted">{a.segments[0]}</span>}
+            <CompanyLinks companies={companies} />
+            {/* Shown on hover and keyboard focus; always on touch screens. */}
+            <span className="ml-auto opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
+              <QbrAction article={a} companies={companies} />
+            </span>
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
 
-const RELEVANCE_LABEL: Record<Relevance, string> = { high: "High relevance", medium: "Useful context", low: "Low relevance" };
-
-export function NewsFeed({ data, anglesPromise }: { data: LiveNews; anglesPromise: Promise<Angles> }) {
-  const { articles, sources, fetchedAt } = data;
-  const [selected, setSelected] = useState<Record<Facet, string[]>>(EMPTY);
-  const [query, setQuery] = useState("");
-  const [kind, setKind] = useState<ArticleKind | "all">("all");
-  const [watchlistLoaded, setWatchlistLoaded] = useState(false);
-  // The feed renders at once; Claude's angles arrive after and fill in.
-  const [angles, setAngles] = useState<Angles | null>(null);
-  const [relevance, setRelevance] = useState<RelevanceFilter>("all");
-
-  useEffect(() => {
-    let current = true;
-    anglesPromise.then(
-      (a) => current && setAngles(a),
-      () => current && setAngles({ byId: {}, status: "partial", message: "The analysis could not be loaded." }),
-    );
-    return () => {
-      current = false;
-    };
-  }, [anglesPromise]);
-
-  // The supplier selection doubles as a watchlist and survives reloads.
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(WATCHLIST_KEY) ?? "[]");
-      if (Array.isArray(saved) && saved.length) {
-        setSelected((s) => ({ ...s, suppliers: saved.filter((v): v is string => typeof v === "string") }));
-      }
-    } catch {
-      // unreadable storage — start with an empty watchlist
-    }
-    setWatchlistLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!watchlistLoaded) return;
-    try {
-      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(selected.suppliers));
-    } catch {
-      // storage unavailable — watchlist lasts for this visit only
-    }
-  }, [selected.suppliers, watchlistLoaded]);
-
-  const toggle = (facet: Facet, value: string) =>
-    setSelected((s) => ({
-      ...s,
-      [facet]: s[facet].includes(value) ? s[facet].filter((v) => v !== value) : [...s[facet], value],
-    }));
-
+/** Segment, end market and region filters, and the supplier watchlist, folded into one menu. */
+function FiltersMenu({
+  articles,
+  filters,
+  toggleFacet,
+  watchlist,
+  toggleWatch,
+}: {
+  articles: LiveArticle[];
+  filters: Filters;
+  toggleFacet: (facet: FeedFacet, value: string) => void;
+  watchlist: string[];
+  toggleWatch: (supplier: string) => void;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null);
   const options = useMemo(
     () => ({
       segments: countBy(articles, "segments"),
       endMarkets: countBy(articles, "endMarkets"),
       regions: countBy(articles, "regions"),
-      suppliers: countBy(articles, "suppliers"),
     }),
     [articles],
   );
+  // Watched suppliers stay listed on a day with no coverage.
+  const suppliers = useMemo(() => {
+    const listed = countBy(articles, "suppliers");
+    const names = new Set(listed.map(([s]) => s));
+    return [...listed, ...watchlist.filter((s) => !names.has(s)).map((s): [string, number] => [s, 0])];
+  }, [articles, watchlist]);
+  const active = FEED_FACETS.reduce((n, f) => n + filters.facets[f].length, 0);
 
-  // Watched suppliers stay visible even on a day with no coverage.
-  const supplierOptions = useMemo(() => {
-    const listed = new Set(options.suppliers.map(([name]) => name));
-    const quiet = selected.suppliers.filter((s) => !listed.has(s)).map((s): [string, number] => [s, 0]);
-    return [...options.suppliers, ...quiet];
-  }, [options.suppliers, selected.suppliers]);
-
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return articles.filter((a) => {
-      if (kind !== "all" && a.kind !== kind) return false;
-      if (relevance !== "all") {
-        const r = angles?.byId[a.id]?.relevance;
-        if (r !== "high" && !(relevance === "useful" && r === "medium")) return false;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const close = (e: Event) => {
+      if (!el.open) return;
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !el.contains(e.target as Node)) {
+        el.open = false;
+        if (e instanceof KeyboardEvent) el.querySelector("summary")?.focus();
       }
-      for (const facet of Object.keys(selected) as Facet[]) {
-        const want = selected[facet];
-        if (want.length && !want.some((v) => a[facet].includes(v))) return false;
-      }
-      return !q || `${a.title} ${a.summary} ${a.outlet}`.toLowerCase().includes(q);
-    });
-  }, [articles, selected, query, kind, relevance, angles]);
-
-  const activeCount = Object.values(selected).reduce((n, v) => n + v.length, 0) + (query.trim() ? 1 : 0);
-  const kindCounts = useMemo(() => {
-    const c: Record<ArticleKind, number> = { news: 0, filing: 0, regulatory: 0 };
-    for (const a of articles) c[a.kind] += 1;
-    return c;
-  }, [articles]);
-  const relevanceCounts = useMemo(() => {
-    const c: Record<Relevance, number> = { high: 0, medium: 0, low: 0 };
-    for (const a of articles) {
-      const r = angles?.byId[a.id]?.relevance;
-      if (r) c[r] += 1;
-    }
-    return c;
-  }, [articles, angles]);
-  const analysed = relevanceCounts.high + relevanceCounts.medium + relevanceCounts.low;
-  const live = sources.filter((s) => s.ok);
-  const down = sources.filter((s) => !s.ok);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, []);
 
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Lane">
-        <Chip label="All" count={articles.length} active={kind === "all"} onClick={() => setKind("all")} />
-        {KINDS.map((k) => (
-          <Chip key={k} label={KIND_LABELS[k]} count={kindCounts[k]} active={kind === k} onClick={() => setKind(k)} />
-        ))}
-      </div>
-
-      <Card bodyClassName="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="relative min-w-0 flex-1">
-            <span className="sr-only">Search headlines</span>
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-medium" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search headlines"
-              className="w-full rounded border border-line bg-surface py-1.5 pl-8 pr-2 text-sm text-ink placeholder:text-gray-medium focus:border-avnet-green focus:outline-none focus:ring-2 focus:ring-avnet-green/30"
-            />
-          </label>
-          {activeCount > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelected(EMPTY);
-                setQuery("");
-              }}
-              className="inline-flex items-center gap-1 rounded border border-line px-2 py-1.5 font-display text-2xs uppercase tracking-wider text-muted transition-colors duration-200 hover:bg-canvas cursor-pointer"
-            >
-              <X className="h-3 w-3" />
-              Clear {activeCount}
-            </button>
-          )}
+    <details ref={ref} className="relative">
+      <summary className="inline-flex h-control cursor-pointer list-none items-center gap-1.5 border border-hairline bg-surface px-3 text-body-sm text-ink hover:bg-surface-sunken [&::-webkit-details-marker]:hidden">
+        <SlidersHorizontal className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+        Filters
+        {active > 0 && <span className="tabular-nums text-ink-muted">{active}</span>}
+      </summary>
+      <div className="absolute right-0 z-20 mt-1 max-h-[70vh] w-[min(36rem,90vw)] overflow-y-auto overscroll-contain rounded-sm border border-hairline bg-surface p-4 shadow-overlay">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {FEED_FACETS.map((facet) => (
+            <fieldset key={facet}>
+              <legend className="mb-1 font-display text-card-title text-ink">{FACET_LABELS[facet]}</legend>
+              <ul className="space-y-0.5">
+                {options[facet].map(([value, count]) => (
+                  <li key={value}>
+                    <label className="flex cursor-pointer items-center gap-2 py-0.5 text-body-sm text-ink">
+                      <input
+                        type="checkbox"
+                        checked={filters.facets[facet].includes(value)}
+                        onChange={() => toggleFacet(facet, value)}
+                        className="h-3.5 w-3.5 accent-ink"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{value}</span>
+                      <span className="tabular-nums text-caption text-ink-muted">{count}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+          ))}
         </div>
-
-        <div className="flex items-start gap-2">
-          <p className="w-20 shrink-0 pt-1 font-display text-2xs uppercase tracking-widest text-muted">Relevance</p>
-          <div className="flex flex-wrap items-center gap-1">
-            {angles === null ? (
-              <p className="pt-1 text-2xs text-muted" role="status">
-                Claude is reading the stories.
-              </p>
-            ) : analysed === 0 ? (
-              <p className="pt-1 text-2xs text-muted">{angles.message ?? "No stories have been analysed yet."}</p>
-            ) : (
-              <>
-                <Chip label="All" active={relevance === "all"} onClick={() => setRelevance("all")} />
-                <Chip label="High" count={relevanceCounts.high} active={relevance === "high"} onClick={() => setRelevance("high")} />
-                <Chip
-                  label="High and useful"
-                  count={relevanceCounts.high + relevanceCounts.medium}
-                  active={relevance === "useful"}
-                  onClick={() => setRelevance("useful")}
-                />
-                {angles.status !== "ok" && angles.message && <p className="pl-1 pt-0.5 text-2xs text-muted">{angles.message}</p>}
-              </>
-            )}
-          </div>
-        </div>
-
-        {FACETS.map((facet) => (
-          <div key={facet} className="flex items-start gap-2">
-            <p className="w-20 shrink-0 pt-1 font-display text-2xs uppercase tracking-widest text-muted">{FACET_LABELS[facet]}</p>
-            <div className="flex flex-wrap gap-1">
-              {options[facet].map(([value, count]) => (
-                <Chip key={value} label={value} count={count} active={selected[facet].includes(value)} onClick={() => toggle(facet, value)} />
-              ))}
-            </div>
-          </div>
-        ))}
-
-        <div className="flex items-start gap-2 border-t border-line pt-3">
-          <p className="w-20 shrink-0 pt-1 font-display text-2xs uppercase tracking-widest text-muted">Watchlist</p>
-          <div className="flex flex-wrap gap-1">
-            {supplierOptions.length === 0 && <p className="pt-1 text-2xs text-muted">No suppliers named in the current feed.</p>}
-            {supplierOptions.map(([value, count]) => {
-              const active = selected.suppliers.includes(value);
-              return (
-                <Chip
-                  key={value}
-                  label={value}
-                  count={count}
-                  active={active}
-                  onClick={() => toggle("suppliers", value)}
-                  icon={<Star className={cn("h-3 w-3", active && "fill-accent-yellow text-accent-yellow")} />}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </Card>
-
-      <Card
-        title="Latest"
-        subtitle={`${visible.length} of ${articles.length} stories`}
-        actions={
-          <span
-            className="inline-flex items-center gap-1 rounded border border-line px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider text-muted"
-            title={`Open feeds: ${live.map((s) => s.outlet).join(", ")}`}
-          >
-            <span className="h-1 w-1 rounded-full bg-avnet-green" />
-            Live · {live.length}/{sources.length} sources
-          </span>
-        }
-      >
-        {visible.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">
-            {articles.length === 0 ? "No stories could be loaded from the open feeds right now." : "No stories match these filters."}
-          </p>
-        ) : (
-          <ul className="divide-y divide-line">
-            {visible.map((a) => (
-              <li key={a.id} className="py-3 first:pt-0 last:pb-0">
-                <a
-                  href={a.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-start gap-1.5 text-sm font-medium text-ink hover:text-avnet-greenDark focus:outline-none focus-visible:underline"
-                >
-                  <span>{a.title}</span>
-                  <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-gray-medium group-hover:text-avnet-greenDark" />
-                </a>
-                {a.summary && <p className="mt-0.5 text-xs text-muted">{a.summary}</p>}
-                {angles?.byId[a.id] && (
-                  <p className="mt-1.5 border-l-2 border-avnet-green pl-2 text-xs text-ink">
-                    <span className="font-display text-2xs uppercase tracking-wider text-muted">Why it matters · {RELEVANCE_LABEL[angles.byId[a.id].relevance]} </span>
-                    <span className="block">{angles.byId[a.id].angle}</span>
-                  </p>
-                )}
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  {a.kind !== "news" && (
-                    <span className="rounded bg-canvas px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider text-ink">
-                      {a.kind === "filing" ? "Filing" : "Regulatory"}
-                    </span>
-                  )}
-                  <span className="text-2xs text-gray-medium">
-                    {a.outlet} · <time dateTime={a.publishedAt}>{ago(a.publishedAt, fetchedAt)}</time>
-                  </span>
-                  {[...a.suppliers, ...a.segments, ...a.endMarkets, ...a.regions].map((tag, i) => (
-                    <span
-                      key={`${tag}-${i}`}
+        <fieldset className="mt-4 border-t border-hairline pt-3">
+          <legend className="sr-only">Watchlist</legend>
+          <p className="font-display text-card-title text-ink">Watchlist</p>
+          <p className="mb-2 text-caption text-ink-muted">Star the suppliers you follow. Kept in this browser.</p>
+          {suppliers.length === 0 ? (
+            <p className="text-caption text-ink-muted">No suppliers named in the current feed.</p>
+          ) : (
+            <ul className="flex flex-wrap gap-1.5">
+              {suppliers.map(([s, count]) => {
+                const on = watchlist.includes(s);
+                return (
+                  <li key={s}>
+                    <button
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleWatch(s)}
                       className={cn(
-                        "rounded border px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider",
-                        i < a.suppliers.length ? "border-ink/30 text-ink" : "border-line text-muted",
+                        "inline-flex h-6 cursor-pointer items-center gap-1 border px-2 text-micro transition-colors",
+                        on ? "border-ink bg-surface-sunken text-ink" : "border-hairline text-ink hover:bg-surface-sunken",
                       )}
                     >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <p className="px-1 text-2xs text-muted">
-        Headlines and snippets from public RSS feeds and the GDELT open news index, filings from SEC EDGAR and notices from
-        the Federal Register; each item links to its source. Tags are rule-based. "Why it matters" and the relevance rating are written by Claude from the headline and snippet only, for an Avnet seller or field engineer; they can be wrong. Refreshed <time dateTime={fetchedAt}>{fetchedAt.slice(0, 16).replace("T", " ")} UTC</time>, about every 15 minutes.
-        {down.length > 0 && ` Not responding: ${down.map((s) => s.outlet).join(", ")}.`}
-      </p>
-    </>
+                      <Star className={cn("h-3 w-3", on && "fill-ink")} strokeWidth={1.5} aria-hidden />
+                      {s}
+                      <span className="tabular-nums text-ink-muted">{count}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </fieldset>
+      </div>
+    </details>
   );
 }

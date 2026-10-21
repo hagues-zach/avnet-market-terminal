@@ -25,6 +25,7 @@
   /* Consistent keyboard-focus ring across all interactive elements */
   a:focus-visible,
   button:focus-visible,
+  summary:focus-visible,
   select:focus-visible,
   input:focus-visible,
   [tabindex]:focus-visible {

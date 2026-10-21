@@ -29,7 +29,7 @@ export function HookupMarker({ ids }: { ids: string[] }) {
                 {PILLAR_NAMES[h.pillar]}, refreshed {h.refresh.toLowerCase()}
               </span>
             </p>
-            <ul className="mt-1 space-y-0.5 font-mono text-micro">
+            <ul className="mt-1 space-y-0.5 break-all font-mono text-micro">
               {h.sources.map((s) => (
                 <li key={s}>{s}</li>
               ))}

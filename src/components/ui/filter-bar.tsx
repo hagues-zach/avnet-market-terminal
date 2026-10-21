@@ -26,19 +26,22 @@ export function FilterSelect({
   value,
   options,
   onChange,
+  disabled,
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange?: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
-    <label className="relative inline-flex h-control items-center border border-hairline bg-surface text-body-sm">
+    <label className={cn("relative inline-flex h-control items-center border border-hairline bg-surface text-body-sm", disabled && "opacity-60")}>
       <span className="pl-2.5 text-ink-muted">{label}:</span>
       <select
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
-        className="h-full cursor-pointer appearance-none bg-transparent pl-1.5 pr-8 font-medium text-ink focus-visible:outline-offset-0"
+        disabled={disabled}
+        className="h-full cursor-pointer disabled:cursor-not-allowed appearance-none bg-transparent pl-1.5 pr-8 font-medium text-ink focus-visible:outline-offset-0"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
