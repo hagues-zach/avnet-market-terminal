@@ -9,13 +9,6 @@ export const LEGACY: Record<string, { title: string; purpose: string; prd: strin
     personas: ["executives", "strategy"],
     hookups: ["wsts", "gartner-forecast"],
   },
-  "/forecast": {
-    title: "Scenario Modeler",
-    purpose: "What-if on market growth rates and share targets.",
-    prd: "PRD persona 3 tools and phase 4",
-    personas: ["strategy"],
-    hookups: ["wsts", "gartner-forecast", "tam-sam-som"],
-  },
   "/copilot": {
     title: "Ask the Terminal",
     purpose: "Natural-language questions answered from the app's data, with sources. Will use Claude over the live and hooked-up data.",

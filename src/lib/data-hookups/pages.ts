@@ -66,7 +66,12 @@ export const PAGE_HOOKUPS: PageHookups[] = [
   },
   { href: "/tools/deck", title: "Pitch Deck Builder", ids: ["account-data"], files: [], from: { spec: "DECK_SPEC" } },
   { href: "/tools/leads", title: "Lead Finder", ids: ["customer-master", "account-data"], files: [], from: { spec: "LEADS_SPEC" } },
-  { href: "/forecast", title: "Scenario Modeler", ids: ["wsts", "gartner-forecast", "tam-sam-som"], files: [], from: { legacy: "/forecast" } },
+  {
+    href: "/forecast",
+    title: "Scenario Modeler",
+    ids: ["billings", "wsts", "gartner-forecast", "ipe-forecast", "code-map"],
+    files: ["src/components/scenario/modeler.tsx"],
+  },
   { href: "/tools/mapping", title: "Code Mapping", ids: ["code-map", "material-master"], files: ["src/app/(terminal)/tools/mapping/page.tsx"] },
   { href: "/copilot", title: "Ask the Terminal", ids: ["billings", "wsts", "tam-sam-som"], files: [], from: { legacy: "/copilot" } },
   { href: "/export", title: "Export Center", ids: ["tam-sam-som", "billings"], files: [], from: { legacy: "/export" } },
