@@ -1,100 +1,168 @@
+import { Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { PlayCircle } from "lucide-react";
 import { HOOKUPS, PILLAR_NAMES } from "@/lib/hookups";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
+import { GLOSSARY, METHODS, PRIMERS } from "@/lib/learn/content";
+import { PageBody } from "@/components/layout/page-body";
+import { DataChip } from "@/components/ui/chip";
+import { PageTitle } from "@/components/ui/page-title";
+import { Panel } from "@/components/ui/panel";
+import { GlossarySearch, RolePaths } from "@/components/learn/interactive";
+import { MakerLine, MakerLineFallback } from "@/components/learn/makers";
+import { cn } from "@/lib/utils";
 
-// Learning Center (PRD section 8.1). Glossary and methodology are written content,
-// not data; the source guides are generated from the data hookup register.
+// Learning Center (PRD section 8.1): paths by role, technology primers that end
+// with who makes the part (live), the glossary, the methods and the sources.
 
-const GLOSSARY: { term: string; definition: string }[] = [
-  { term: "TAM (total addressable market)", definition: "All revenue in a market segment worldwide, whoever sells it. From WSTS, Gartner or the IP&E forecast." },
-  { term: "SAM (serviceable available market)", definition: "The part of TAM Avnet could serve: the regions it operates in, the product lines it carries, and the share sold through distribution." },
-  { term: "SOM (serviceable obtainable market)", definition: "What Avnet actually wins: its billings in the segment." },
-  { term: "Market share", definition: "SOM divided by TAM for the same segment and period, joined through the code map." },
-  { term: "Book-to-bill", definition: "Orders booked divided by sales billed in the same period. Above 1 means orders are arriving faster than they ship." },
-  { term: "Backlog", definition: "Orders taken but not yet shipped." },
-  { term: "Lead time", definition: "Weeks from order to delivery for a part. Rising lead times usually mean supply is tightening." },
-  { term: "Design registration (DRMS)", definition: "A record that Avnet helped a customer design a supplier's part into a product. Approved registrations protect future sales." },
-  { term: "DRMS status 04", definition: "Design-approved. Billings carrying this status count as design-approved revenue." },
-  { term: "Line card", definition: "The list of suppliers a distributor is authorised to sell." },
-  { term: "Franchise agreement", definition: "A supplier's authorisation for a distributor to sell its parts, usually with support and pricing terms." },
-  { term: "IP&E", definition: "Interconnect, passive and electromechanical components: connectors, capacitors, resistors, relays, switches." },
-  { term: "WSTS categories", definition: "World Semiconductor Trade Statistics product groups: discretes, optoelectronics, sensors, and integrated circuits (analog, micro, logic, memory)." },
-  { term: "PCC codes", definition: "Avnet's three-level product classification used in APAC Farnell, mapped to external categories in the code map." },
-  { term: "Inventory days", definition: "Inventory at quarter end against one quarter of cost of sales, expressed in days." },
-  { term: "Cash conversion cycle", definition: "Inventory days plus receivable days minus payable days." },
-  { term: "Fiscal and calendar quarter", definition: "Companies report on their own fiscal calendars. The app lines them up on calendar quarters for comparison." },
-  { term: "Results 8-K (Item 2.02)", definition: "The SEC filing a company makes when it reports results; the press release is attached as Exhibit 99.1." },
-];
+export const dynamic = "force-dynamic";
 
-const METHODS: { title: string; body: string }[] = [
-  { title: "Market share", body: "Market share = Avnet billings in a segment ÷ the segment's market size, for the same period. Segments are joined through the code map, so each figure carries the confidence of its mapping." },
-  { title: "TAM / SAM / SOM", body: "SAM = TAM × geographic coverage × product line coverage × channel share. SOM = Avnet billings where the technology maps to the segment. From PRD section 7." },
-  { title: "Fourth quarters from annual reports", body: "Companies report the fourth quarter only inside the full year, so it is the annual figure minus the first nine months. EPS derived this way is approximate." },
-  { title: "Cycle label", body: "Expansion or contraction is the sign of combined supply-chain revenue growth; accelerating or slowing is whether it rose from the quarter before." },
-  { title: "Earnings dates", body: "Estimated from when each company filed its results for the same quarter a year earlier, moved forward 364 days." },
-  { title: "AI summaries", body: "News angles and management commentary are written by Claude from the source text only. They can be wrong; each links to its source." },
-];
-
-const VIDEOS = ["Getting around the app", "Reading a company profile", "Market share and the code map", "Preparing a QBR", "TAM / SAM / SOM"];
+const link = "text-ink underline-offset-2 hover:underline";
+const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
 
 export default function LearnPage() {
   return (
-    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
-      <PageHeader title="Learning Center" subtitle="The terms, the methods, and where every number comes from" />
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card title="Glossary" className="xl:row-span-2">
-          <dl className="space-y-2.5">
-            {GLOSSARY.map((g) => (
-              <div key={g.term}>
-                <dt className="text-sm font-medium text-ink">{g.term}</dt>
-                <dd className="text-xs text-muted">{g.definition}</dd>
+    <PageBody>
+      <PageTitle title="Learning Center" subtitle="Paths through the app by role, primers on the parts you sell, and how every number is made" />
+
+      <p className="text-pretty text-xl leading-snug text-ink">
+        New here? Pick your role for a path through the app, or start with a part family below.
+      </p>
+
+      <section id="paths" className="scroll-mt-16">
+        <Panel title="Learning paths" subtitle="Five pages to open first, in order" bodyClassName="p-0">
+          <RolePaths />
+        </Panel>
+      </section>
+
+      <section id="primers" aria-labelledby="primers-title" className="scroll-mt-16 space-y-3">
+        <div>
+          <h2 id="primers-title" className="font-display text-section-title text-ink">
+            Technology primers
+          </h2>
+          <p className="mt-0.5 text-caption text-ink-muted">
+            What the part is, where it&apos;s used, what to ask the customer, and who makes it. Revenue growth is live from SEC filings
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {PRIMERS.map((p) => (
+            <article key={p.slug} className="flex flex-col rounded-sm border border-hairline bg-surface">
+              <Link href={`/learn/${p.slug}`} className="block border-b border-hairline bg-canvas" tabIndex={-1} aria-hidden>
+                <Image
+                  src={`/learn/${p.slug}.jpg`}
+                  alt=""
+                  width={960}
+                  height={717}
+                  sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+                  className="aspect-video w-full object-cover"
+                />
+              </Link>
+              <div className="flex flex-1 flex-col px-4 py-3">
+                <h3 className="font-display text-card-title text-ink">
+                  <Link href={`/learn/${p.slug}`} className={link}>
+                    {p.name}
+                  </Link>
+                </h3>
+                <p className="mt-1 text-body-sm text-ink-muted">{p.summary}</p>
+                <p className="mt-3 font-display text-label uppercase text-ink-muted">Who makes it</p>
+                <div className="mt-1 flex-1">
+                  <Suspense fallback={<MakerLineFallback slugs={p.makers} />}>
+                    <MakerLine slugs={p.makers} />
+                  </Suspense>
+                </div>
+                <Link href={`/learn/${p.slug}`} className={cn(link, "mt-3 text-body-sm")}>
+                  Read the primer<span className="sr-only">: {p.name}</span>
+                </Link>
               </div>
-            ))}
-          </dl>
-        </Card>
-        <Card title="How numbers are calculated">
-          <dl className="space-y-2.5">
-            {METHODS.map((m) => (
-              <div key={m.title}>
-                <dt className="text-sm font-medium text-ink">{m.title}</dt>
-                <dd className="text-xs text-muted">{m.body}</dd>
-              </div>
-            ))}
-          </dl>
-        </Card>
-        <Card title="Walkthroughs" subtitle="Two to three minutes each · not recorded yet">
-          <ul className="space-y-1.5">
-            {VIDEOS.map((v) => (
-              <li key={v} className="flex items-center gap-2 text-sm text-muted">
-                <PlayCircle className="h-4 w-4" aria-hidden />
-                {v}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-      <Card title="Data source guides" subtitle="What each source is, how often it refreshes, and whether it is connected">
-        <div className="grid gap-x-8 gap-y-3 md:grid-cols-2">
-          {HOOKUPS.map((h) => (
-            <div key={h.id}>
-              <p className="text-sm font-medium text-ink">
-                {h.name}{" "}
-                <span className="font-normal text-muted">
-                  · {PILLAR_NAMES[h.pillar]} · {h.status === "live" ? "connected" : h.status === "mock" ? "mock for now" : "planned"}
-                </span>
-              </p>
-              <p className="text-xs text-muted">
-                {h.description} Refresh: {h.refresh.toLowerCase()}.
-              </p>
-            </div>
+            </article>
           ))}
         </div>
-        <Link href="/data-hookups" className="mt-4 inline-block text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark">
-          Technical detail for each source
-        </Link>
-      </Card>
-    </div>
+      </section>
+
+      <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+        <section id="glossary" className="scroll-mt-16 xl:col-span-7">
+          <Panel title="Glossary" subtitle="The terms used across the app">
+            <GlossarySearch entries={GLOSSARY} />
+          </Panel>
+        </section>
+        <section id="methods" className="scroll-mt-16 xl:col-span-5">
+          <Panel title="How numbers are calculated">
+            <dl className="divide-y divide-hairline">
+              {METHODS.map((m) => (
+                <div key={m.title} className="py-2.5 first:pt-0 last:pb-0">
+                  <dt className="text-body-strong text-ink">
+                    {m.href ? (
+                      <Link href={m.href} className={link}>
+                        {m.title}
+                      </Link>
+                    ) : (
+                      m.title
+                    )}
+                  </dt>
+                  <dd className="mt-0.5 text-body-sm text-ink-muted">{m.body}</dd>
+                </div>
+              ))}
+            </dl>
+          </Panel>
+        </section>
+      </div>
+
+      <section id="sources" className="scroll-mt-16">
+        <Panel
+          title="Where the numbers come from"
+          subtitle="Every source in the app, what it is, how often it refreshes, and whether it is connected"
+          bodyClassName="p-0"
+          footer={
+            <Link href="/data-hookups" className={cn(link, "ml-auto")}>
+              Technical detail in Data Hookups
+            </Link>
+          }
+        >
+          <div role="region" aria-label="Data sources" tabIndex={0} className="overflow-x-auto">
+            <table className="w-full min-w-[820px] border-collapse font-body text-table">
+              <caption className="sr-only">
+                Data sources: what each is, its pillar, whether it is live, mock or planned, and how often it refreshes.
+              </caption>
+              <thead className="bg-surface-sunken">
+                <tr className="border-b border-hairline">
+                  <th scope="col" className={cn(TH, "text-left")}>
+                    Source
+                  </th>
+                  <th scope="col" className={cn(TH, "text-left")}>
+                    Pillar
+                  </th>
+                  <th scope="col" className={cn(TH, "text-left")}>
+                    Status
+                  </th>
+                  <th scope="col" className={cn(TH, "text-left")}>
+                    Refresh
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {HOOKUPS.map((h) => (
+                  <tr key={h.id} className="border-b border-hairline align-top last:border-b-0">
+                    <th scope="row" className="px-3 py-2 text-left font-normal">
+                      <span className="text-ink">{h.name}</span>
+                      <span className="block text-caption text-ink-muted">{h.description}</span>
+                    </th>
+                    <td className="whitespace-nowrap px-3 py-2 text-ink-muted">{PILLAR_NAMES[h.pillar]}</td>
+                    <td className="px-3 py-2">
+                      <DataChip status={h.status} />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-ink-muted">{h.refresh}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      </section>
+
+      <p id="walkthroughs" className="flex flex-wrap items-center gap-2 text-body-sm text-ink">
+        <span className="font-display text-card-title">Walkthroughs</span>
+        <DataChip status="planned" />
+        <span className="text-ink-muted">Short videos for each role, to be recorded.</span>
+      </p>
+    </PageBody>
   );
 }

@@ -279,7 +279,7 @@ export const HOOKUPS: Hookup[] = [
   },
   {
     id: "tam-sam-som",
-    name: "TAM / SAM / SOM tables",
+    name: "TAM, SAM and SOM tables",
     pillar: "derived",
     status: "mock",
     description: "Pre-computed market size, serviceable market and Avnet share by segment and period.",
@@ -305,7 +305,7 @@ export const HOOKUPS: Hookup[] = [
     status: "live",
     description: "Quarterly financials, segment and region splits, filings and press releases for 77 companies.",
     sources: ["data.sec.gov company facts and submissions", "www.sec.gov filing documents"],
-    refresh: "Every 6–12 hours",
+    refresh: "Every 6 to 12 hours",
   },
   {
     id: "news",

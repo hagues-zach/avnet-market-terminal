@@ -93,7 +93,7 @@ Order, by how often sellers and leaders will open the page:
 - [x] 2.14 Customers & End Markets (the market that added the most growth in words, a full-width end-market table with mock billings beside live customer-group growth and an "against demand" read, a dot plot of the two, the ten largest accounts withheld, then the 23 public customer companies linking to Company Profile and QBR Prep; concentration and accounts join the shared model of Avnet; brief and mockups in `docs/design/pages/`)
 - [x] 2.15 Economic Signals (readout layout, all live: the backdrop in words from four rule-written reads (demand, costs, financing, dollar), production beside utilisation, then every indicator in one card with a switch per group; to revisit for a proprietary "Semiconductor Economic Coincident Index" of leading and lagging indicators, notes to come; brief and mockups in `docs/design/pages/`)
 - [x] 2.16 Code Mapping (workbench: coverage in words and four KPIs, a segment strip that filters, then one table of mappings switched between needs review, validated and not mapped, each row opening into its definition, reason and history; accept, edit and reject shown as planned for 3.5; the code map joins the shared model of Avnet; brief and mockups in `docs/design/pages/`)
-- [ ] 2.17 Learning Center, with Nano Banana illustrations
+- [x] 2.17 Learning Center, with Nano Banana illustrations (paths by role, six technology primers with brand line illustrations, each opening into a reading page that ends with the suppliers in the app that make the part and their live growth, then a searchable glossary, the methods and every data source; brief and mockups in `docs/design/pages/`)
 - [ ] 2.18 Data Hookups
 - [ ] 2.19 Scenario Modeler
 - [ ] 2.20 Ask the Terminal
