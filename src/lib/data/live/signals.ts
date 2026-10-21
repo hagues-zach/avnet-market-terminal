@@ -144,10 +144,10 @@ async function fromBls(): Promise<Signal[]> {
 // ---- IMF Primary Commodity Prices ----
 
 const IMF_SERIES: Record<string, { label: string; detail: string }> = {
-  PCOPP: { label: "Copper", detail: "US dollars per tonne · connectors, cable, leadframes" },
-  PTIN: { label: "Tin", detail: "US dollars per tonne · solder" },
-  PNICK: { label: "Nickel", detail: "US dollars per tonne · capacitors, plating" },
-  PALUM: { label: "Aluminum", detail: "US dollars per tonne · capacitors, heat sinks" },
+  PCOPP: { label: "Copper", detail: "US dollars per tonne, used in connectors, cable and leadframes" },
+  PTIN: { label: "Tin", detail: "US dollars per tonne, used in solder" },
+  PNICK: { label: "Nickel", detail: "US dollars per tonne, used in capacitors and plating" },
+  PALUM: { label: "Aluminum", detail: "US dollars per tonne, used in capacitors and heat sinks" },
 };
 
 interface ImfResponse {
@@ -245,7 +245,7 @@ async function fromFx(): Promise<Signal[]> {
     unit: "fx",
     frequency: "daily",
     source: "European Central Bank",
-    detail: `${code} per US dollar · a rise means a stronger dollar`,
+    detail: `${code} per US dollar: a rise means a stronger dollar`,
     upIsGood: null,
     points: lastDays(
       Object.entries(body.rates ?? {})
@@ -263,7 +263,7 @@ const SOURCES: { name: string; load: () => Promise<Signal[]> }[] = [
   { name: "IMF commodity prices", load: fromImf },
   { name: "Treasury and New York Fed rates", load: fromRates },
   { name: "ECB exchange rates", load: fromFx },
-].map((s, i) => ({ name: s.name, load: unstable_cache(s.load, [`signals-v1-${i}`], { revalidate: REVALIDATE_SECONDS }) }));
+].map((s, i) => ({ name: s.name, load: unstable_cache(s.load, [`signals-v2-${i}`], { revalidate: REVALIDATE_SECONDS }) }));
 
 export async function getSignals(): Promise<Signals> {
   const settled = await Promise.allSettled(SOURCES.map((s) => s.load()));
