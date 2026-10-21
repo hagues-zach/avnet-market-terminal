@@ -1,45 +1,84 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { COHORT_LABELS, COMPANIES, ROLE_SINGULAR, roleOf } from "@/lib/data/live/earnings-model";
-import { PageHeader } from "@/components/ui/page-header";
+import { BookOpenCheck } from "lucide-react";
+import { COMPANIES, ROLE_SINGULAR, roleOf } from "@/lib/data/live/earnings-model";
+import { PageBody } from "@/components/layout/page-body";
+import { PageTitle } from "@/components/ui/page-title";
+import { ButtonLink } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { RevenueMix, RevenueMixFallback } from "@/components/earnings/revenue-mix";
-import { ProfileComingNext, ProfileCommentary, ProfileFallback, ProfileLineCard, ProfileNews, ProfileSummary } from "@/components/network/company-profile";
+import { earningsHref } from "@/components/earnings/format";
+import {
+  ProfileAvnetBusiness,
+  ProfileChips,
+  ProfileCommentary,
+  ProfileDistribution,
+  ProfileFallback,
+  ProfileKeyFacts,
+  ProfileNews,
+  ProfileOverview,
+} from "@/components/network/company-profile";
 
+// A dossier: analysis in the main column, quick facts in the rail.
 export default async function CompanyProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const company = COMPANIES.find((c) => c.slug === slug);
   if (!company) notFound();
   const role = roleOf(company);
+  // Avnet does business with its suppliers and customers; not with itself or competitors.
+  const business = role === "supplier" || role === "customer";
 
   return (
-    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
-      <Link href={role === "avnet" ? "/network" : `/network?role=${role}`} className="inline-flex items-center gap-1 text-xs text-muted hover:text-ink">
-        <ArrowLeft className="h-3 w-3" />
-        Company Profiles
-      </Link>
-      <PageHeader title={company.name} subtitle={`${ROLE_SINGULAR[role]} · ${COHORT_LABELS[company.cohort]}`} />
-      <Suspense fallback={<ProfileFallback title="At a glance" subtitle="Reading the company's filings from SEC EDGAR." />}>
-        <ProfileSummary company={company} />
-      </Suspense>
-      <Suspense fallback={<ProfileFallback title="Management commentary" subtitle="Reading the latest earnings press release." />}>
-        <ProfileCommentary company={company} />
-      </Suspense>
-      <Suspense fallback={<RevenueMixFallback />}>
-        <RevenueMix company={company.slug} />
-      </Suspense>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Suspense fallback={<ProfileFallback title="In the news" subtitle="Searching the Market News feed." />}>
-          <ProfileNews company={company} />
+    <PageBody>
+      <PageTitle
+        title={company.name}
+        subtitle="From SEC filings, the latest earnings release and the Market News feed"
+        breadcrumb={[{ label: "Company Profiles", href: role === "avnet" ? "/network" : `/network?role=${role}` }, { label: company.name }]}
+        actions={
+          <>
+            <ButtonLink href={earningsHref(company.slug, "all")}>Full earnings view</ButtonLink>
+            {role !== "avnet" && (
+              <ButtonLink href={`/tools/qbr?company=${company.slug}`} variant="primary">
+                <BookOpenCheck className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+                Add to QBR brief
+              </ButtonLink>
+            )}
+          </>
+        }
+      >
+        <Chip>{ROLE_SINGULAR[role]}</Chip>
+        <Suspense fallback={<Chip>SEC filer</Chip>}>
+          <ProfileChips company={company} />
         </Suspense>
-        {role === "supplier" && (
-          <Suspense fallback={<ProfileFallback title="Line card presence" subtitle="Checking the stored line cards." />}>
-            <ProfileLineCard company={company} />
+      </PageTitle>
+
+      <div className="grid gap-4 lg:grid-cols-12">
+        <div className="min-w-0 space-y-4 lg:col-span-8">
+          <Suspense fallback={<ProfileFallback title="Overview" />}>
+            <ProfileOverview company={company} />
           </Suspense>
-        )}
-        <ProfileComingNext company={company} />
+          <Suspense fallback={<ProfileFallback title="Management commentary" />}>
+            <ProfileCommentary company={company} />
+          </Suspense>
+          <Suspense fallback={<RevenueMixFallback />}>
+            <RevenueMix company={company.slug} />
+          </Suspense>
+        </div>
+        <aside className="min-w-0 space-y-4 lg:col-span-4" aria-label={`${company.name} at a glance`}>
+          <Suspense fallback={<ProfileFallback title="Key facts" />}>
+            <ProfileKeyFacts company={company} />
+          </Suspense>
+          {business && <ProfileAvnetBusiness company={company} />}
+          {role === "supplier" && (
+            <Suspense fallback={<ProfileFallback title="Distribution" />}>
+              <ProfileDistribution company={company} />
+            </Suspense>
+          )}
+          <Suspense fallback={<ProfileFallback title="In the news" />}>
+            <ProfileNews company={company} />
+          </Suspense>
+        </aside>
       </div>
-    </div>
+    </PageBody>
   );
 }

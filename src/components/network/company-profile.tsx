@@ -1,16 +1,20 @@
 import Link from "next/link";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { getCompanyNews } from "@/lib/data/live/company-news";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getNextRelease, TIMING_LABELS } from "@/lib/data/live/earnings-calendar";
-import { roleOf, type Company, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
+import { COHORT_LABELS, ROLE_SINGULAR, roleOf, type Company, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
 import { getRevenueMix, type RevenueMix } from "@/lib/data/live/revenue-mix";
 import { getCommentary, type Digest } from "@/lib/ai/commentary";
 import { getCarriers } from "@/lib/line-cards/analysis";
 import { AVNET } from "@/lib/colors";
-import { Card } from "@/components/ui/card";
-import { GrowthChart, RevenueChart } from "@/components/charts/earnings-charts";
-import { DASH, earningsHref, format, longDate } from "@/components/earnings/format";
+import { Panel, SourceLine } from "@/components/ui/panel";
+import { KpiTile } from "@/components/ui/kpi-tile";
+import { Chip, DataChip } from "@/components/ui/chip";
+import { HookupMarker } from "@/components/ui/hookup-marker";
+import { EmptyState, LoadingBlock } from "@/components/ui/states";
+import { RevenueSwitch } from "./revenue-switch";
+import { format, longDate } from "@/components/earnings/format";
 
 const DAY = 86_400_000;
 
@@ -25,7 +29,7 @@ const points = (v: number) => `${(Math.abs(v) * 100).toFixed(1)} points`;
  * Plain-language facts a seller can open a conversation with. Every line is a
  * rule applied to reported figures; nothing here is generated or inferred.
  */
-function glance(earnings: CompanyEarnings, mix: RevenueMix): string[] {
+export function glance(earnings: CompanyEarnings, mix: RevenueMix): string[] {
   const { quarters } = earnings;
   const q = quarters[quarters.length - 1];
   if (!q) return [];
@@ -80,194 +84,140 @@ function glance(earnings: CompanyEarnings, mix: RevenueMix): string[] {
   return lines;
 }
 
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="rounded-card border border-line bg-surface px-4 py-3 shadow-card">
-      <span className="font-display text-2xs uppercase tracking-wider text-muted">{label}</span>
-      <div className="mt-1.5 font-display text-2xl tabular text-ink">{value}</div>
-      <div className="mt-1 text-xs text-muted">{note ?? " "}</div>
-    </div>
-  );
-}
+const linkClass = "text-ink underline-offset-2 hover:underline";
 
-/** Server component: the headline card and financial snapshot for one company. */
-export async function ProfileSummary({ company }: { company: Company }) {
-  // The mix is cached and shared with the Revenue mix section below.
-  const [earnings, mix, next] = await Promise.all([getCompanyEarnings(company.slug), getRevenueMix(company.slug), getNextRelease(company.slug)]);
-  const { quarters, latestFiling } = earnings;
-  const q = quarters[quarters.length - 1];
-  const lines = glance(earnings, mix);
-  const v = q?.values ?? {};
-  // Avnet Green only ever represents Avnet.
-  const color = company.slug === "avnet" ? AVNET.green : AVNET.blueDark;
+/* ---------- Header ---------- */
 
+/** Chips under the title; "Carried by Avnet" only once Avnet's line card is imported. */
+export async function ProfileChips({ company }: { company: Company }) {
+  const role = roleOf(company);
+  let onAvnet = false;
+  if (role === "supplier") {
+    const { carriers, hasHome } = await getCarriers(company.name).catch(() => ({ carriers: [], hasHome: false }));
+    onAvnet = hasHome && carriers.some((c) => c.slug === "avnet");
+  }
   return (
     <>
-      <Card
-        title="At a glance"
-        subtitle={q ? `From ${company.name}'s filings · latest quarter ended ${longDate(q.end)}` : company.name}
-        actions={
-          <Link href={earningsHref(company.slug, "all")} className="inline-flex items-center gap-1 text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark">
-            Full earnings view
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        }
-      >
-        {lines.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted">
-            {company.name}&apos;s filings could not be loaded from SEC EDGAR right now{earnings.error ? ` (${earnings.error})` : ""}.
-          </p>
-        ) : (
-          <ul className="list-disc space-y-1.5 pl-5 text-sm text-ink marker:text-avnet-green">
-            {lines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        )}
-        <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t border-line pt-3 text-xs">
-          <div>
-            <dt className="font-display text-2xs uppercase tracking-widest text-muted">Next earnings</dt>
-            <dd className="mt-0.5 text-ink">
-              {next ? (
-                <>
-                  {next.status === "due" ? "Expected around " : ""}
-                  {longDate(next.date)}
-                  {next.timing ? `, ${TIMING_LABELS[next.timing].toLowerCase()}` : ""}{" "}
-                  <span className="rounded border border-dashed border-accent-yellow px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider">Estimate</span>
-                </>
-              ) : (
-                DASH
-              )}
-            </dd>
-          </div>
-          {latestFiling && (
-            <div>
-              <dt className="font-display text-2xs uppercase tracking-widest text-muted">Latest results filing</dt>
-              <dd className="mt-0.5">
-                <a
-                  href={latestFiling.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark"
-                >
-                  {latestFiling.form} filed {longDate(latestFiling.filed)}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </dd>
-            </div>
-          )}
-        </dl>
-      </Card>
-
-      {q && (
-        <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Tile label="Revenue" value={format("usd", v.revenue)} note={v.revenueYoY === undefined ? q.fiscalLabel : `${format("growth", v.revenueYoY)} YoY · ${q.fiscalLabel}`} />
-            <Tile label="Gross margin" value={format("pct", v.grossMargin)} note={q.fiscalLabel} />
-            <Tile label="Operating margin" value={format("pct", v.operatingMargin)} note={q.fiscalLabel} />
-            <Tile label="Inventory days" value={format("days", v.inventoryDays)} note={v.inventoryDays === undefined ? "Not reported" : q.fiscalLabel} />
-          </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            <Card title="Revenue" subtitle="By fiscal quarter">
-              <RevenueChart quarters={quarters} color={color} />
-            </Card>
-            <Card title="Revenue growth" subtitle="Year over year, by fiscal quarter">
-              <GrowthChart quarters={quarters} color={color} />
-            </Card>
-          </div>
-        </>
+      <Chip>SEC filer</Chip>
+      {onAvnet && (
+        <Chip>
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+          Carried by Avnet
+        </Chip>
       )}
     </>
   );
 }
 
-/** Server component: recent stories and filings that name the company. */
-export async function ProfileNews({ company }: { company: Company }) {
-  const articles = await getCompanyNews(company);
-  const now = Date.now();
-  const ago = (iso: string) => {
-    const days = Math.max(0, Math.round((now - Date.parse(iso)) / DAY));
-    return days === 0 ? "today" : days === 1 ? "1 day ago" : `${days} days ago`;
-  };
-  return (
-    <Card
-      title="In the news"
-      subtitle={`Stories and filings in the Market News feed that name ${company.name}`}
-      actions={
-        <Link href="/news" className="inline-flex items-center gap-1 text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark">
-          Market News
-          <ArrowRight className="h-3 w-3" />
-        </Link>
-      }
-    >
-      {articles.length === 0 ? (
-        <p className="py-4 text-center text-sm text-muted">Nothing in the current feed names {company.name}.</p>
+/** Rail card: role, cohort, next earnings (estimated) and the latest results filing. */
+export async function ProfileKeyFacts({ company }: { company: Company }) {
+  const [earnings, next] = await Promise.all([getCompanyEarnings(company.slug), getNextRelease(company.slug)]);
+  const filing = earnings.latestFiling;
+  const q = earnings.quarters[earnings.quarters.length - 1];
+  const rows: { label: string; value: React.ReactNode }[] = [
+    {
+      label: "Next earnings",
+      value: next ? (
+        <>
+          {next.status === "due" ? "Expected around " : ""}
+          {longDate(next.date)}
+          {next.timing && <span className="block text-caption text-ink-muted">{TIMING_LABELS[next.timing]}</span>}
+          <Chip tone="warning" className="mt-1">
+            Estimate
+          </Chip>
+        </>
       ) : (
-        <ul className="divide-y divide-line">
-          {articles.map((a) => (
-            <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
-              <a
-                href={a.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-start gap-1.5 text-sm font-medium text-ink hover:text-avnet-greenDark focus:outline-none focus-visible:underline"
-              >
-                <span>{a.title}</span>
-                <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-gray-medium group-hover:text-avnet-greenDark" />
-              </a>
-              <p className="mt-0.5 text-2xs text-gray-medium">
-                {a.outlet} · {ago(a.publishedAt)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
+        "Not known"
+      ),
+    },
+    {
+      label: "Latest filing",
+      value: filing ? (
+        <a href={filing.url} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 ${linkClass}`}>
+          {filing.form}, {longDate(filing.filed)}
+          <ExternalLink className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+        </a>
+      ) : (
+        "Not found"
+      ),
+    },
+    ...(q ? [{ label: "Latest quarter", value: `${q.fiscalLabel}, ended ${longDate(q.end)}` }] : []),
+    { label: "Role", value: ROLE_SINGULAR[roleOf(company)] },
+    { label: "Cohort", value: COHORT_LABELS[company.cohort] },
+  ];
+  return (
+    <Panel title="Key facts">
+      <dl className="divide-y divide-hairline">
+        {rows.map((r) => (
+          <div key={r.label} className="grid grid-cols-[7rem_1fr] gap-3 py-2 first:pt-0 last:pb-0">
+            <dt className="text-body-sm text-ink-muted">{r.label}</dt>
+            <dd className="text-body-sm text-ink">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Panel>
   );
 }
 
-/** Server component: which tracked distributors list this supplier. */
-export async function ProfileLineCard({ company }: { company: Company }) {
-  const { carriers, tracked, hasHome } = await getCarriers(company.name);
-  const onAvnet = carriers.some((c) => c.slug === "avnet");
+/* ---------- Overview ---------- */
+
+export async function ProfileOverview({ company }: { company: Company }) {
+  // The mix is cached and shared with the Revenue mix section.
+  const [earnings, mix] = await Promise.all([getCompanyEarnings(company.slug), getRevenueMix(company.slug)]);
+  const { quarters } = earnings;
+  const q = quarters[quarters.length - 1];
+  if (!q) {
+    return (
+      <Panel title="Overview">
+        <EmptyState title={`${company.name}'s filings couldn't be loaded from SEC EDGAR right now.`} body={earnings.error} />
+      </Panel>
+    );
+  }
+  const p = yearAgo(quarters, q);
+  const v = q.values;
+  const lines = glance(earnings, mix);
+  // Avnet Green only ever represents Avnet.
+  const color = company.slug === "avnet" ? AVNET.green : AVNET.blueDark;
+  const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
+  const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
+  const footer = <SourceLine source={`${company.name}'s SEC filings`} asOf={`quarter ended ${longDate(q.end)}`} />;
+
   return (
-    <Card
-      title="Line card presence"
-      subtitle={`Across the ${tracked} distributor line ${tracked === 1 ? "card" : "cards"} tracked so far`}
-      actions={
-        <Link href="/line-cards" className="inline-flex items-center gap-1 text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark">
-          Line Cards
-          <ArrowRight className="h-3 w-3" />
-        </Link>
-      }
-    >
-      {tracked === 0 ? (
-        <p className="py-4 text-center text-sm text-muted">No line cards have been collected yet.</p>
-      ) : carriers.length === 0 ? (
-        <p className="text-sm text-ink">
-          {company.name} is not listed by any tracked distributor. That can also mean it is listed under a different name.
-        </p>
-      ) : (
-        <ul className="space-y-1 text-sm text-ink">
-          {carriers.map((c) => (
-            <li key={c.slug} className="flex items-baseline justify-between gap-3">
-              <span className="font-medium">{c.name}</span>
-              <span className="text-xs text-muted">listed as of {longDate(c.date)}</span>
-            </li>
-          ))}
-        </ul>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <KpiTile
+          label={`Revenue, ${q.fiscalLabel}`}
+          value={format("usd", v.revenue)}
+          delta={v.revenueYoY === undefined ? undefined : { value: v.revenueYoY, period: "YoY" }}
+        />
+        <KpiTile
+          label="Gross margin"
+          value={format("pct", v.grossMargin)}
+          delta={gmDelta === undefined ? undefined : { value: gmDelta, display: `${(Math.abs(gmDelta) * 100).toFixed(1)} pts`, period: "YoY" }}
+        />
+        <KpiTile label="Operating margin" value={format("pct", v.operatingMargin)} />
+        <KpiTile
+          label="Inventory days"
+          value={format("days", v.inventoryDays)}
+          note={v.inventoryDays === undefined ? "Not reported" : undefined}
+          delta={invDelta === undefined || invDelta === 0 ? undefined : { value: invDelta, display: `${Math.abs(invDelta)}`, period: "YoY", invert: true }}
+        />
+      </div>
+      <RevenueSwitch quarters={quarters} color={color} footer={footer} />
+      {lines.length > 0 && (
+        <Panel title="In brief" subtitle="Plain facts from the filings, for opening a conversation">
+          <ul className="list-disc space-y-1 pl-5 text-body text-ink marker:text-ink-muted">
+            {lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </Panel>
       )}
-      <p className="mt-3 border-t border-line pt-3 text-xs text-muted">
-        {hasHome
-          ? onAvnet
-            ? `${company.name} is on Avnet's line card.`
-            : `${company.name} is not on Avnet's imported line card.`
-          : "Avnet's own line card has not been imported yet, so this cannot say whether Avnet carries it."}{" "}
-        A listing on a distributor's site is not proof of a franchise agreement.
-      </p>
-    </Card>
+    </div>
   );
 }
+
+/* ---------- Commentary ---------- */
 
 const TOPICS: { key: keyof Omit<Digest, "headline" | "takeaways">; label: string }[] = [
   { key: "guidance", label: "Guidance" },
@@ -279,105 +229,199 @@ const TOPICS: { key: keyof Omit<Digest, "headline" | "takeaways">; label: string
   { key: "endMarkets", label: "End markets" },
 ];
 
-/** Server component: Claude's digest of the company's latest earnings press release. */
 export async function ProfileCommentary({ company }: { company: Company }) {
   const c = await getCommentary(company.slug);
   const covered = c.digest ? TOPICS.filter((t) => c.digest![t.key]) : [];
   const silent = c.digest ? TOPICS.filter((t) => !c.digest![t.key]).map((t) => t.label.toLowerCase()) : [];
   return (
-    <Card
+    <Panel
       title="Management commentary"
       subtitle={c.filed ? `From the earnings press release filed ${longDate(c.filed)}` : "From the latest earnings press release"}
-      actions={
-        <span className="flex items-center gap-3">
-          {c.digest && (
-            <span className="rounded border border-line px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider text-muted" title="Written by Claude from the press release">
-              AI summary
-            </span>
-          )}
+      actions={c.digest ? <Chip>Written by Claude</Chip> : undefined}
+      footer={
+        <>
+          <span>
+            {c.digest
+              ? `Written by Claude from the press release only, so it can miss or misread things. Check the release before quoting it.${
+                  silent.length ? ` The release didn't address ${silent.join(", ")}.` : ""
+                }`
+              : "Prepared remarks and the call's question-and-answer session aren't included."}
+          </span>
           {c.releaseUrl && (
-            <a
-              href={c.releaseUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark"
-            >
+            <a href={c.releaseUrl} target="_blank" rel="noopener noreferrer" className={`ml-auto inline-flex items-center gap-1 ${linkClass}`}>
               Press release
-              <ExternalLink className="h-3 w-3" />
+              <ExternalLink className="h-3 w-3" strokeWidth={1.5} aria-hidden />
             </a>
           )}
-        </span>
+        </>
       }
     >
       {!c.digest ? (
-        <p className="py-4 text-center text-sm text-muted">
-          {c.message}
-          {c.status === "off" && c.releaseWords ? ` The release was found (about ${c.releaseWords.toLocaleString("en-US")} words) and will be summarised once it is.` : ""}
-        </p>
+        <EmptyState
+          title={c.message ?? "No summary yet"}
+          body={c.status === "off" && c.releaseWords ? `The release was found (about ${c.releaseWords.toLocaleString("en-US")} words) and will be summarised once Claude is on.` : undefined}
+        />
       ) : (
         <>
-          <p className="text-sm font-medium text-ink">{c.digest.headline}</p>
+          <p className="text-body-strong text-ink">{c.digest.headline}</p>
           {covered.length > 0 && (
-            <dl className="mt-3 grid gap-x-8 gap-y-3 md:grid-cols-2">
+            <dl className="mt-3 divide-y divide-hairline border-t border-hairline">
               {covered.map((t) => (
-                <div key={t.key}>
-                  <dt className="font-display text-2xs uppercase tracking-widest text-muted">{t.label}</dt>
-                  <dd className="mt-0.5 text-sm text-ink">{c.digest![t.key]}</dd>
+                <div key={t.key} className="grid gap-1 py-2.5 md:grid-cols-[11rem_1fr] md:gap-4">
+                  <dt className="font-display text-label uppercase text-ink-muted md:pt-0.5">{t.label}</dt>
+                  <dd className="text-body text-ink">{c.digest![t.key]}</dd>
                 </div>
               ))}
             </dl>
           )}
           {c.digest.takeaways.length > 0 && (
-            <div className="mt-4 border-t border-line pt-3">
-              <h3 className="font-display text-2xs uppercase tracking-widest text-muted">To raise in a conversation</h3>
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-ink marker:text-avnet-green">
+            <div className="mt-3 border-t border-hairline pt-3">
+              <h3 className="font-display text-card-title text-ink">To raise in a conversation</h3>
+              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-body text-ink marker:text-ink-muted">
                 {c.digest.takeaways.map((t) => (
                   <li key={t}>{t}</li>
                 ))}
               </ul>
             </div>
           )}
-          <p className="mt-4 text-2xs text-muted">
-            Written by Claude from the press release only, so it can miss or misread things; check the release before quoting it.
-            {silent.length > 0 && ` The release did not address: ${silent.join(", ")}.`} Prepared remarks and the question-and-answer
-            session on the earnings call are not included.
-          </p>
         </>
       )}
-    </Card>
+    </Panel>
   );
 }
 
-/** What the profile will gain as later steps of the plan land. */
-export function ProfileComingNext({ company }: { company: Company }) {
+/* ---------- Distribution, news, Avnet business ---------- */
+
+/** Which tracked distributors list this supplier. */
+export async function ProfileDistribution({ company }: { company: Company }) {
+  const { carriers, tracked, hasHome } = await getCarriers(company.name);
+  const onAvnet = carriers.some((c) => c.slug === "avnet");
+  return (
+    <Panel
+      title="Distribution"
+      subtitle={`${carriers.length} of ${tracked} tracked line cards list it`}
+      footer={
+        <>
+          <span>
+            {hasHome
+              ? onAvnet
+                ? `${company.name} is on Avnet's line card.`
+                : `${company.name} isn't on Avnet's imported line card.`
+              : "Avnet's own line card hasn't been imported yet."}{" "}
+            A listing isn&apos;t proof of a franchise agreement.
+          </span>
+          <Link href="/line-cards" className={`ml-auto ${linkClass}`}>
+            Line Cards
+          </Link>
+        </>
+      }
+    >
+      {tracked === 0 ? (
+        <EmptyState title="No line cards collected yet" />
+      ) : carriers.length === 0 ? (
+        <EmptyState title={`No tracked distributor lists ${company.name}`} body="It may be listed under a different name." />
+      ) : (
+        <table className="w-full text-table">
+          <caption className="sr-only">Distributors that list {company.name}</caption>
+          <thead>
+            <tr className="border-b border-hairline">
+              <th scope="col" className="h-control pr-3 text-left font-display text-label font-normal uppercase text-ink-muted">
+                Distributor
+              </th>
+              <th scope="col" className="h-control text-right font-display text-label font-normal uppercase text-ink-muted">
+                Listed as of
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {carriers.map((c) => (
+              <tr key={c.slug} className="border-b border-hairline last:border-b-0">
+                <td className="h-control pr-3 text-ink">{c.name}</td>
+                <td className="h-control text-right tabular-nums text-ink-muted">{longDate(c.date)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Panel>
+  );
+}
+
+/** Recent stories and filings that name the company. */
+export async function ProfileNews({ company }: { company: Company }) {
+  const articles = await getCompanyNews(company);
+  const short = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(iso));
+  return (
+    <Panel
+      title="In the news"
+      subtitle={`Stories and filings that name ${company.name}`}
+      footer={
+        <Link href="/news" className={`ml-auto ${linkClass}`}>
+          Market News
+        </Link>
+      }
+    >
+      {articles.length === 0 ? (
+        <EmptyState title={`Nothing in the current feed names ${company.name}`} />
+      ) : (
+        <ul className="divide-y divide-hairline">
+          {articles.map((a) => (
+            <li key={a.id} className="py-2.5 first:pt-0 last:pb-0">
+              <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-body-sm font-medium text-ink underline-offset-2 hover:underline">
+                {a.title}
+              </a>
+              <p className="mt-0.5 text-caption text-ink-muted">
+                {a.outlet}, {short(a.publishedAt)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+/** Deterministic mock figures per company, so a profile doesn't change between visits. */
+function seeded(slug: string, salt: number, min: number, max: number): number {
+  let h = 2166136261 ^ salt;
+  for (const ch of slug) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return min + ((h >>> 0) % 1000) / 1000 * (max - min);
+}
+
+/** Avnet's business with a supplier or customer. MOCK until billings and account data are hooked up. */
+export function ProfileAvnetBusiness({ company }: { company: Company }) {
   const role = roleOf(company);
-  // Suppliers get a live line card section instead; distributors' own cards are on the Line Cards page.
-  const lineCard =
-    role === "competitor" || role === "avnet" ? `${company.name}'s own line card on this profile, with additions, removals and overlap with other distributors.` : null;
+  const supplier = role === "supplier";
+  const billings = seeded(company.slug, 1, 40, 900);
+  const rows = [
+    { label: "Billings, last 12 months", value: `$${billings.toFixed(1)}M` },
+    { label: "Backlog", value: `$${(billings * seeded(company.slug, 2, 0.3, 0.8)).toFixed(1)}M` },
+    supplier
+      ? { label: "Open design registrations", value: Math.round(seeded(company.slug, 3, 40, 1400)).toLocaleString("en-US") }
+      : { label: "Open quotes", value: Math.round(seeded(company.slug, 4, 20, 600)).toLocaleString("en-US") },
+  ];
+  const hookups = supplier ? ["billings", "backlog", "drms"] : ["billings", "backlog", "quotes", "customer-master"];
   return (
-    <Card title="Coming to this profile" subtitle="Planned in docs/superapp-plan.md">
-      <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted marker:text-gray-light">
-        {lineCard && (
-          <li>
-            <span className="text-ink">Line card.</span> {lineCard}
-          </li>
-        )}
-        <li>
-          <span className="text-ink">QBR prep.</span> A one-click brief built from this profile.
-        </li>
-      </ul>
-    </Card>
+    <Panel title="Avnet business" subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`} actions={<DataChip status="mock" />}>
+      <dl className="divide-y divide-hairline">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline justify-between gap-3 py-2 first:pt-0">
+            <dt className="text-body-sm text-ink-muted">{r.label}</dt>
+            <dd className="font-display text-section-title tabular-nums text-ink">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-3">
+        <HookupMarker ids={hookups} />
+      </div>
+    </Panel>
   );
 }
 
-export function ProfileFallback({ title, subtitle }: { title: string; subtitle: string }) {
+export function ProfileFallback({ title }: { title: string }) {
   return (
-    <Card title={title} subtitle={subtitle}>
-      <div className="space-y-2" role="status" aria-label={`Loading ${title.toLowerCase()}`}>
-        {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="h-4 animate-pulse rounded bg-canvas" />
-        ))}
-      </div>
-    </Card>
+    <Panel title={title}>
+      <LoadingBlock label={`Loading ${title.toLowerCase()}…`} />
+    </Panel>
   );
 }
