@@ -70,3 +70,15 @@ export const LEAD_TIMES = [
   { category: "Electromechanical", weeks: 15, change: 0 },
 ];
 
+
+/** MOCK. Avnet purchase orders placed by category, latest quarter ($M), and the change on the quarter before. */
+export const PURCHASING = [
+  { category: "MCUs", poValue: 620, change: 0.12 },
+  { category: "Analog", poValue: 540, change: 0.05 },
+  { category: "Discretes & power", poValue: 410, change: 0.21 },
+  { category: "Memory", poValue: 380, change: 0.34 },
+  { category: "FPGAs", poValue: 260, change: -0.08 },
+  { category: "Connectors", poValue: 300, change: 0.02 },
+  { category: "Passives (MLCC)", poValue: 220, change: 0.06 },
+  { category: "Electromechanical", poValue: 180, change: -0.03 },
+];
