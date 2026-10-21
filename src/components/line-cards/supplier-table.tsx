@@ -48,10 +48,10 @@ export function SupplierTable({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-hairline px-4 py-3">
         <label className="relative min-w-[12rem] flex-1">
           <span className="sr-only">Search suppliers</span>
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-medium" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
           <input
             type="search"
             value={query}
@@ -60,7 +60,7 @@ export function SupplierTable({
               setShown(PAGE);
             }}
             placeholder="Search suppliers"
-            className="w-full rounded border border-line bg-surface py-1.5 pl-8 pr-2 text-sm text-ink placeholder:text-gray-medium focus:border-avnet-green focus:outline-none focus:ring-2 focus:ring-avnet-green/30"
+            className="w-full rounded-none border border-hairline bg-surface py-1.5 pl-8 pr-2 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none"
           />
         </label>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Which suppliers to show">
@@ -75,22 +75,22 @@ export function SupplierTable({
                 setShown(PAGE);
               }}
               className={cn(
-                "rounded px-2 py-1 font-display text-2xs uppercase tracking-wider transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-avnet-green/40",
-                view === v.key ? "bg-ink text-white" : "text-muted hover:bg-canvas",
+                "h-6 px-2 font-body text-micro transition-colors cursor-pointer",
+                view === v.key ? "bg-surface-sunken font-semibold text-ink" : "text-ink-muted hover:text-ink",
               )}
             >
               {v.label}
             </button>
           ))}
         </div>
-        <p className="text-xs tabular text-muted">
+        <p className="text-caption tabular-nums text-ink-muted">
           {rows.length.toLocaleString("en-US")} of {suppliers.length.toLocaleString("en-US")}
         </p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-xs">
+        <table className="w-full min-w-[560px] text-caption">
           <thead>
-            <tr className="border-b border-line font-display text-2xs uppercase tracking-wider text-muted">
+            <tr className="border-b border-hairline font-display text-micro uppercase tracking-wider text-ink-muted">
               <th scope="col" className="px-4 py-2 text-left font-normal">
                 Supplier
               </th>
@@ -106,21 +106,21 @@ export function SupplierTable({
           </thead>
           <tbody>
             {rows.slice(0, shown).map((s) => (
-              <tr key={s.key} className="border-b border-line last:border-b-0 hover:bg-canvas">
+              <tr key={s.key} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
                 <th scope="row" className="px-4 py-1.5 text-left font-normal text-ink">
                   {s.profile ? (
-                    <Link href={`/network/${s.profile}`} className="font-medium underline decoration-line underline-offset-2 hover:text-avnet-greenDark">
+                    <Link href={`/network/${s.profile}`} className="font-medium underline decoration-hairline underline-offset-2 hover:text-ink-muted">
                       {s.name}
                     </Link>
                   ) : (
                     s.name
                   )}
-                  {s.brands > 1 && <span className="ml-2 text-2xs text-muted">{s.brands} listings</span>}
+                  {s.brands > 1 && <span className="ml-2 text-micro text-ink-muted">{s.brands} listings</span>}
                 </th>
                 {distributors.map((d) => (
                   <td key={d.slug} className="px-2 py-1.5 text-center">
                     {s.carriedBy.includes(d.slug) ? (
-                      <Check className={cn("mx-auto h-3.5 w-3.5", d.slug === home ? "text-avnet-greenDark" : "text-ink")} aria-label={`On ${d.name}'s line card`} />
+                      <Check className={cn("mx-auto h-3.5 w-3.5", d.slug === home ? "text-ink" : "text-ink")} aria-label={`On ${d.name}'s line card`} />
                     ) : (
                       <span className="text-gray-light" aria-label={`Not on ${d.name}'s line card`}>
                         ·
@@ -128,7 +128,7 @@ export function SupplierTable({
                     )}
                   </td>
                 ))}
-                <td className="px-3 py-1.5 text-right tabular text-muted">
+                <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">
                   {s.carriedBy.length} of {distributors.length}
                 </td>
               </tr>
@@ -136,10 +136,10 @@ export function SupplierTable({
           </tbody>
         </table>
       </div>
-      {rows.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted">No suppliers match.</p>}
+      {rows.length === 0 && <p className="px-4 py-8 text-center text-body-sm text-ink-muted">No suppliers match.</p>}
       {rows.length > shown && (
-        <div className="border-t border-line px-4 py-2 text-center">
-          <button type="button" onClick={() => setShown((n) => n + PAGE)} className="text-xs text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark cursor-pointer">
+        <div className="border-t border-hairline px-4 py-2 text-center">
+          <button type="button" onClick={() => setShown((n) => n + PAGE)} className="text-caption text-ink underline decoration-hairline underline-offset-2 hover:text-ink-muted cursor-pointer">
             Show {Math.min(PAGE, rows.length - shown)} more
           </button>
         </div>
