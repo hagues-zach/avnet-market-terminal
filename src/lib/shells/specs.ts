@@ -1,6 +1,6 @@
 import type { ShellSpec } from "./types";
 import { DESIGN_APPROVED_SHARE, fmtM, fmtPct, PERFORMANCE, QUARTERS, REGION_PERFORMANCE, SEGMENTS, SUPPLIERS, TTM_BILLINGS, TTM_BILLINGS_YEAR_AGO, VERTICALS } from "./mock-avnet";
-import { LEAD_TIMES, SHARE_BY_SEGMENT, SHARE_TREND } from "./mock-market";
+import { LEAD_TIMES, PURCHASING, SHARE_BY_SEGMENT, SHARE_TREND } from "./mock-market";
 import { MAPPING_ROWS } from "./mock-mapping";
 
 // One spec per shell page. Every Avnet-specific figure here is MOCK and every
@@ -219,8 +219,8 @@ export const SUPPLY_CHAIN_SPEC: ShellSpec = {
       ],
       rows: LEAD_TIMES.slice(0, 6).map((l, i) => ({
         category: l.category,
-        pos: fmtM([620, 540, 410, 380, 260, 300][i]),
-        change: fmtPct([0.12, 0.05, 0.21, 0.34, -0.08, 0.02][i], true),
+        pos: fmtM(PURCHASING[i].poValue),
+        change: fmtPct(PURCHASING[i].change, true),
         lead: `${l.weeks} wks`,
       })),
     },
