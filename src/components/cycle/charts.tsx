@@ -1,0 +1,208 @@
+"use client";
+
+import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CHART, VIZ } from "@/lib/colors";
+import { formatUsdMillions } from "@/lib/format";
+
+// Market Cycle charts, on the shared CHART tokens: solid horizontal gridlines,
+// 2px tooltips, values and labels in ink, never in the series colour. Nothing
+// here is Avnet except the order book, so only that chart uses Avnet Green.
+
+const MARGIN = { top: 20, right: 12, left: 4, bottom: 0 };
+const tick = { fontSize: CHART.tickFontSize, fill: CHART.tick };
+const TOOLTIP = { ...CHART.tooltip, padding: "6px 8px" };
+const pct = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v * 100).toFixed(1)}%`;
+
+function Empty({ height }: { height: number }) {
+  return (
+    <p className="flex items-center justify-center text-body-sm text-ink-muted" style={{ height }}>
+      Not enough companies have reported to show this yet.
+    </p>
+  );
+}
+
+/** Supply-chain growth by quarter, one colour, with each quarter's phase written under its label. */
+export function GrowthBars({ rows, height = 260 }: { rows: { label: string; growth?: number; phase: string | null }[]; height?: number }) {
+  if (!rows.some((r) => r.growth !== undefined)) return <Empty height={height} />;
+  const byLabel = new Map(rows.map((r) => [r.label, r.phase]));
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={rows} margin={{ ...MARGIN, bottom: 18 }}>
+        <CartesianGrid stroke={CHART.grid} vertical={false} />
+        <XAxis
+          dataKey="label"
+          axisLine={{ stroke: CHART.axis }}
+          tickLine={false}
+          interval={0}
+          height={36}
+          tick={({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => {
+            const phase = byLabel.get(payload.value);
+            return (
+              <g transform={`translate(${x},${y})`}>
+                <text dy={12} textAnchor="middle" fontSize={CHART.tickFontSize} fill={CHART.label}>
+                  {payload.value}
+                </text>
+                {/* The bar's sign already says expansion or contraction; the word under it says which way it is moving. */}
+                {phase && (
+                  <text dy={26} textAnchor="middle" fontSize={10} fill={CHART.tick}>
+                    {phase.split(", ")[1].replace(/^./, (c) => c.toUpperCase())}
+                  </text>
+                )}
+              </g>
+            );
+          }}
+        />
+        <YAxis tickFormatter={(v: number) => `${Math.round(v * 100)}%`} tick={tick} axisLine={false} tickLine={false} width={44} />
+        <Tooltip
+          cursor={{ fill: "rgba(0,0,0,0.03)" }}
+          contentStyle={TOOLTIP}
+          formatter={(v: number) => [pct(v), "Supply-chain revenue, YoY"]}
+          labelFormatter={(l: string) => `${l}${byLabel.get(l) ? `, ${byLabel.get(l)}` : ""}`}
+        />
+        <ReferenceLine y={0} stroke={CHART.tick} />
+        <Bar dataKey="growth" fill={VIZ.arrow} maxBarSize={40} isAnimationActive={false}>
+          <LabelList dataKey="growth" position="top" formatter={(v: number) => pct(v)} style={{ fontSize: CHART.tickFontSize, fill: CHART.label }} />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+const LINE_COLORS = [VIZ.arrow, VIZ.orange, VIZ.blueLight] as const;
+
+/** Up to three groups' median inventory days, labelled at the end of each line instead of a legend. */
+export function InventoryLines({
+  rows,
+  series,
+  short = {},
+  height = 240,
+}: {
+  rows: ({ label: string } & Record<string, number | string | undefined>)[];
+  series: string[];
+  /** Shorter names for the end-of-line labels. */
+  short?: Record<string, string>;
+  height?: number;
+}) {
+  if (!rows.some((r) => series.some((s) => typeof r[s] === "number"))) return <Empty height={height} />;
+  const lastIndex = (s: string) => rows.reduce((last, r, i) => (typeof r[s] === "number" ? i : last), -1);
+  // Keep end labels at least 13px apart: work out each line's end in pixels, then push neighbours apart.
+  const values = rows.flatMap((r) => series.map((s) => r[s]).filter((v): v is number => typeof v === "number"));
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const plot = height - MARGIN.top - 30;
+  const ends = series
+    .map((s) => ({ s, y: ((hi - (rows[lastIndex(s)]?.[s] as number)) / (hi - lo || 1)) * plot }))
+    .filter((e) => Number.isFinite(e.y))
+    .sort((a, b) => a.y - b.y);
+  const nudge: Record<string, number> = {};
+  ends.forEach((e, i) => {
+    const prev = ends[i - 1];
+    const y = prev ? Math.max(e.y, prev.y + (nudge[prev.s] ?? 0) + 13) : e.y;
+    nudge[e.s] = y - e.y;
+  });
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart data={rows} margin={{ ...MARGIN, right: 124 }}>
+        <CartesianGrid stroke={CHART.grid} vertical={false} />
+        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        <YAxis
+          tickFormatter={(v: number) => `${Math.round(v)}d`}
+          tick={tick}
+          axisLine={false}
+          tickLine={false}
+          width={40}
+          domain={["auto", "auto"]}
+        />
+        <Tooltip contentStyle={TOOLTIP} formatter={(v: number, n: string) => [`${Math.round(v)} days`, n]} />
+        {series.map((s, i) => {
+          const end = lastIndex(s);
+          return (
+            <Line
+              key={s}
+              type="monotone"
+              dataKey={s}
+              stroke={LINE_COLORS[i]}
+              strokeWidth={LINE_COLORS[i] === VIZ.blueLight ? CHART.lineWidthLight : CHART.lineWidth}
+              dot={false}
+              activeDot={CHART.activeDot}
+              connectNulls
+              isAnimationActive={false}
+            >
+              <LabelList
+                dataKey={s}
+                content={({ x, y, index, value }) =>
+                  index === end && typeof value === "number" ? (
+                    <text x={Number(x) + 8} y={Number(y) + (nudge[s] ?? 0)} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
+                      {short[s] ?? s} {Math.round(value)}d
+                    </text>
+                  ) : null
+                }
+              />
+            </Line>
+          );
+        })}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Combined hyperscaler capex by quarter. */
+export function CapexBars({ rows, height = 150 }: { rows: { label: string; capex?: number }[]; height?: number }) {
+  if (!rows.some((r) => r.capex !== undefined)) return <Empty height={height} />;
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={rows} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+        <CartesianGrid stroke={CHART.grid} vertical={false} />
+        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        <YAxis tickFormatter={(v: number) => formatUsdMillions(v / 1e6)} tick={tick} axisLine={false} tickLine={false} width={52} />
+        <Tooltip
+          cursor={{ fill: "rgba(0,0,0,0.03)" }}
+          contentStyle={TOOLTIP}
+          formatter={(v: number) => [formatUsdMillions(v / 1e6, { precise: true }), "Combined capex"]}
+        />
+        <Bar dataKey="capex" fill={VIZ.benchmark} maxBarSize={28} isAnimationActive={false} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Avnet's book-to-bill (mock) against parity. */
+export function BookToBill({ rows, height = 150 }: { rows: { quarter: string; bookToBill: number }[]; height?: number }) {
+  const last = rows.length - 1;
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart data={rows} margin={{ top: 16, right: 28, left: 4, bottom: 0 }}>
+        <CartesianGrid stroke={CHART.grid} vertical={false} />
+        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        <YAxis tick={tick} axisLine={false} tickLine={false} width={36} domain={[0.9, "auto"]} tickFormatter={(v: number) => v.toFixed(2)} />
+        <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => [v.toFixed(2), "Book-to-bill (mock)"]} />
+        <ReferenceLine
+          y={1}
+          stroke={CHART.tick}
+          strokeDasharray="4 3"
+          label={{ value: "1.0", position: "insideTopLeft", fontSize: 10, fill: CHART.tick }}
+        />
+        <Line
+          type="monotone"
+          dataKey="bookToBill"
+          stroke={VIZ.avnet}
+          strokeWidth={CHART.lineWidthLight}
+          dot={false}
+          activeDot={CHART.activeDot}
+          isAnimationActive={false}
+        >
+          <LabelList
+            dataKey="bookToBill"
+            content={({ x, y, index, value }) =>
+              index === last ? (
+                <text x={Number(x)} y={Number(y)} dy={-8} textAnchor="middle" fontSize={CHART.tickFontSize} fontWeight={600} fill={CHART.label}>
+                  {Number(value).toFixed(2)}
+                </text>
+              ) : null
+            }
+          />
+        </Line>
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
