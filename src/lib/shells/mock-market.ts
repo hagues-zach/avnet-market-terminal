@@ -28,3 +28,22 @@ export const LEAD_TIMES = [
   { category: "Passives (MLCC)", weeks: 12, change: 3 },
   { category: "Electromechanical", weeks: 15, change: 0 },
 ];
+
+/**
+ * Avnet billings of each supplier's parts ÷ that supplier's reported revenue,
+ * latest four quarters. "Market size" is the supplier's revenue, $B.
+ */
+export const SHARE_BY_SUPPLIER = [
+  { name: "Supplier A", tam: 9.4, share: 0.196, shareChange: 0.012, confidence: "High" },
+  { name: "Supplier B", tam: 7.1, share: 0.17, shareChange: 0.004, confidence: "High" },
+  { name: "Supplier C", tam: 4.2, share: 0.205, shareChange: 0.021, confidence: "Medium" },
+  { name: "Supplier D", tam: 5.8, share: 0.11, shareChange: -0.009, confidence: "High" },
+  { name: "Supplier E", tam: 3.3, share: 0.158, shareChange: 0.002, confidence: "Medium" },
+];
+
+/** Avnet billings in a region ÷ that region's market (WSTS regions), latest four quarters. */
+export const SHARE_BY_REGION = [
+  { name: "Americas", tam: 58, share: 0.052, shareChange: 0.004, confidence: "High" },
+  { name: "EMEA", tam: 41, share: 0.071, shareChange: -0.002, confidence: "High" },
+  { name: "Asia", tam: 71, share: 0.021, shareChange: 0.003, confidence: "Medium" },
+];

@@ -8,6 +8,8 @@ import { MAPPING_ROWS } from "./mock-mapping";
 
 const latest = PERFORMANCE[PERFORMANCE.length - 1];
 const yearAgo = PERFORMANCE[PERFORMANCE.length - 5];
+const shareNow = SHARE_TREND[SHARE_TREND.length - 1]["Avnet share of mapped TAM"];
+const shareYearAgo = SHARE_TREND[SHARE_TREND.length - 5]["Avnet share of mapped TAM"];
 
 export const START: ShellSpec = {
   title: "Start Here",
@@ -26,7 +28,7 @@ export const START: ShellSpec = {
         { label: "Billings", value: fmtM(latest.billings), change: `${fmtPct(latest.billings / yearAgo.billings - 1, true)} YoY`, good: true },
         { label: "Book-to-bill", value: latest.bookToBill.toFixed(2), note: "above 1 means demand is building" },
         { label: "Backlog", value: fmtM(latest.backlog), change: `${fmtPct(latest.backlog / yearAgo.backlog - 1, true)} YoY`, good: true },
-        { label: "Share of mapped market", value: "4.3%", change: "+0.3 pts YoY", good: true },
+        { label: "Share of mapped market", value: fmtPct(shareNow), change: `+${((shareNow - shareYearAgo) * 100).toFixed(1)} pts YoY`, good: shareNow >= shareYearAgo },
       ],
     },
     {
