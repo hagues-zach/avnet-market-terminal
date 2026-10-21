@@ -1,366 +1,486 @@
 import Link from "next/link";
+import { ChevronRight, ExternalLink, Info } from "lucide-react";
+import { getCommentary, type Commentary } from "@/lib/ai/commentary";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
-import type { Metric, Quarter } from "@/lib/data/live/earnings-model";
+import { getNextRelease } from "@/lib/data/live/earnings-calendar";
+import type { CompanyEarnings, Metric, Quarter } from "@/lib/data/live/earnings-model";
 import { getSegmentHistory, type MemberSeries, type SeriesPoint } from "@/lib/data/live/segment-history";
-import { AVNET } from "@/lib/colors";
-import { Card } from "@/components/ui/card";
-import { GroupLines, type ChartRow, type Unit } from "@/components/charts/cycle-charts";
-import { DASH, earningsHref, format, longDate, type Kind } from "@/components/earnings/format";
+import { getMoves } from "@/lib/line-cards/moves";
+import { scorecard, strengths, talkingPoint, tally, verdict, type ScoreRow, type Side } from "@/lib/competitive/compare";
+import { DASH, format, longDate } from "@/components/earnings/format";
+import { Chip } from "@/components/ui/chip";
+import { Panel, SourceLine } from "@/components/ui/panel";
+import { EmptyState, ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
+import { PairLines, type PairRow, type Unit } from "./charts";
+import { PairSpark } from "./pair-spark";
 import { cn } from "@/lib/utils";
 
-// The two sides, and which of each company's segments is its components
-// distribution business (the like-for-like comparison) versus the rest.
-const A = { slug: "avnet", components: /ElectronicComponents/i };
-const B = { slug: "arrow", components: /GlobalComponents/i };
-// Avnet Green only ever represents Avnet.
-const COLORS = [AVNET.green, AVNET.blueDark] as const;
+// Which of each company's segments is its components distribution business: the
+// like-for-like comparison. The others have no direct counterpart.
+const COMPONENTS = { avnet: /ElectronicComponents/i, arrow: /GlobalComponents/i };
 
 const order = (label: string) => {
   const m = label.match(/^CY(\d+) Q(\d)$/);
   return m ? Number(m[1]) * 4 + Number(m[2]) : -1;
 };
-const byOrder = (a: string, b: string) => order(a) - order(b);
-const shared = (a: string[], b: string[]) => a.filter((l) => b.includes(l)).sort(byOrder);
+const shared = (a: string[], b: string[]) => a.filter((l) => b.includes(l)).sort((x, y) => order(x) - order(y));
+const yearBefore = (label: string) => label.replace(/^CY(\d+)/, (_, y: string) => `CY${String(Number(y) - 1).padStart(y.length, "0")}`);
+const link = "text-ink underline-offset-2 hover:underline";
 
-interface Row {
-  label: string;
-  metric: Metric;
-  kind: Kind;
-  /** Which direction counts as the stronger position; null when neither does. */
-  higherIsBetter: boolean | null;
+interface Pair {
+  avnet: CompanyEarnings;
+  arrow: CompanyEarnings;
+  qa: Map<string, Quarter>;
+  qb: Map<string, Quarter>;
+  /** Calendar quarters both have reported, oldest first. */
+  labels: string[];
+  latest?: string;
 }
 
-const SCORECARD: Row[] = [
-  { label: "Revenue", metric: "revenue", kind: "usd", higherIsBetter: null },
-  { label: "Revenue growth, year over year", metric: "revenueYoY", kind: "growth", higherIsBetter: true },
-  { label: "Revenue growth, quarter over quarter", metric: "revenueQoQ", kind: "growth", higherIsBetter: true },
-  { label: "Gross margin", metric: "grossMargin", kind: "pct", higherIsBetter: true },
-  { label: "SG&A, % of revenue", metric: "sgaPct", kind: "pct", higherIsBetter: false },
-  { label: "Operating margin", metric: "operatingMargin", kind: "pct", higherIsBetter: true },
-  { label: "Net margin", metric: "netMargin", kind: "pct", higherIsBetter: true },
-  { label: "Inventory days", metric: "inventoryDays", kind: "days", higherIsBetter: false },
-  // Receivable, payable and cash-cycle days are not marked: see the note on Arrow below.
-  { label: "Receivable days", metric: "receivableDays", kind: "days", higherIsBetter: null },
-  { label: "Payable days", metric: "payableDays", kind: "days", higherIsBetter: null },
-  { label: "Cash conversion cycle, days", metric: "cashCycleDays", kind: "days", higherIsBetter: null },
-  { label: "Free cash flow margin", metric: "fcfMargin", kind: "pct", higherIsBetter: true },
-  { label: "Long-term debt", metric: "longTermDebt", kind: "usd", higherIsBetter: null },
-];
-
-function gap(kind: Kind, a: number | undefined, b: number | undefined): string {
-  if (a === undefined || b === undefined) return DASH;
-  const d = a - b;
-  const sign = d >= 0 ? "+" : "−";
-  if (kind === "pct" || kind === "growth") return `${sign}${(Math.abs(d) * 100).toFixed(1)} pts`;
-  if (kind === "days") return `${sign}${Math.round(Math.abs(d))}`;
-  // For dollar amounts a ratio reads better than a difference.
-  return b ? `${(a / b).toFixed(2)}×` : DASH;
-}
-
-/** The side with the stronger figure gets a marker; the numbers themselves stay in plain ink. */
-function Lead({ show }: { show: boolean }) {
-  return show ? <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-ink align-middle" aria-label="stronger" /> : <span className="ml-1.5 inline-block w-1.5" />;
-}
-
-const REGIONS = ["Americas", "EMEA", "Asia"] as const;
-function regionOf(key: string): (typeof REGIONS)[number] | undefined {
-  if (/Americas/.test(key)) return "Americas";
-  if (/EMEA|Europe/.test(key)) return "EMEA";
-  if (/Asia/.test(key)) return "Asia";
-  return undefined;
-}
-
-const at = (s: MemberSeries | undefined, label: string): SeriesPoint | undefined => s?.points.find((p) => p.label === label);
-const pct = (v: number | undefined) => (v === undefined ? DASH : `${(v * 100).toFixed(1)}%`);
-const share = (v: number | undefined) => (v === undefined ? DASH : `${Math.round(v * 100)}%`);
-
-function SegmentRows({ name, series, label, total }: { name: string; series: MemberSeries[]; label: string; total: number | undefined }) {
-  return (
-    <>
-      {series.map((s) => {
-        const p = at(s, label);
-        return (
-          <tr key={`${name}-${s.key}`} className="border-b border-line last:border-b-0">
-            <th scope="row" className="px-4 py-1.5 text-left font-normal">
-              <span className="text-muted">{name} · </span>
-              <span className="font-medium text-ink">{s.label}</span>
-            </th>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{format("usd", p?.revenue)}</td>
-            <td className="px-3 py-1.5 text-right tabular text-muted">{share(p?.revenue !== undefined && total ? p.revenue / total : undefined)}</td>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{p?.yoy === undefined ? DASH : format("growth", p.yoy)}</td>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{pct(p?.grossMargin)}</td>
-            <td className="px-3 py-1.5 text-right tabular text-ink">{pct(p?.operatingMargin)}</td>
-          </tr>
-        );
-      })}
-    </>
-  );
-}
-
-/** Server component: reads both companies' filings, so the page streams it in. */
-export async function HeadToHead() {
-  const [ea, eb, sa, sb] = await Promise.all([getCompanyEarnings(A.slug), getCompanyEarnings(B.slug), getSegmentHistory(A.slug), getSegmentHistory(B.slug)]);
-  const nameA = ea.company.name;
-  const nameB = eb.company.name.replace(/ Electronics$/, "");
-  const qa = new Map<string, Quarter>(ea.quarters.map((q) => [q.calendarLabel, q]));
-  const qb = new Map<string, Quarter>(eb.quarters.map((q) => [q.calendarLabel, q]));
+async function loadPair(): Promise<Pair> {
+  const [avnet, arrow] = await Promise.all([getCompanyEarnings("avnet"), getCompanyEarnings("arrow")]);
+  const qa = new Map(avnet.quarters.map((q) => [q.calendarLabel, q]));
+  const qb = new Map(arrow.quarters.map((q) => [q.calendarLabel, q]));
   const labels = shared(Array.from(qa.keys()), Array.from(qb.keys()));
-  const latest = labels[labels.length - 1];
+  return { avnet, arrow, qa, qb, labels, latest: labels[labels.length - 1] };
+}
 
+const series = (pair: Pair, metric: Metric, n = 8) =>
+  pair.labels.slice(-n).map((label) => ({ label, avnet: pair.qa.get(label)?.values[metric], arrow: pair.qb.get(label)?.values[metric] }));
+
+function Marker({ side }: { side: Side }) {
+  return <span className={cn("inline-block h-2.5 w-2.5 shrink-0", side === "Avnet" ? "bg-viz-avnet" : "bg-viz-arrow")} aria-hidden />;
+}
+
+function gapText(row: Pick<ScoreRow, "kind">, gap: number | undefined): string {
+  if (gap === undefined) return DASH;
+  if (row.kind === "usd") return `${gap.toFixed(2)}×`;
+  const sign = gap >= 0 ? "+" : "−";
+  return row.kind === "days" ? `${sign}${Math.round(Math.abs(gap))}` : `${sign}${(Math.abs(gap) * 100).toFixed(1)} pts`;
+}
+
+/* ---------- Verdict, scorecard and strengths ---------- */
+
+/** Server component: both companies' structured financials. */
+export async function Overview() {
+  const pair = await loadPair();
+  const { latest } = pair;
   if (!latest) {
     return (
-      <Card>
-        <p className="py-10 text-center text-sm text-muted">The two companies&apos; filings could not be loaded from SEC EDGAR right now.</p>
-      </Card>
+      <Panel>
+        <ErrorState title="The two companies' filings could not be loaded right now" source="SEC EDGAR" retryHref="/competitive" />
+      </Panel>
     );
   }
-  const a = qa.get(latest)!;
-  const b = qb.get(latest)!;
-
-  const trend = (metric: Metric): ChartRow[] => labels.map((label) => ({ label, [nameA]: qa.get(label)?.values[metric], [nameB]: qb.get(label)?.values[metric] }));
-  const charts: { title: string; subtitle: string; metric: Metric; unit: Unit }[] = [
-    { title: "Revenue growth", subtitle: "Year over year", metric: "revenueYoY", unit: "pct" },
-    { title: "Gross margin", subtitle: "Share of revenue", metric: "grossMargin", unit: "pctWhole" },
-    { title: "Operating margin", subtitle: "Share of revenue", metric: "operatingMargin", unit: "pctWhole" },
-    { title: "Inventory days", subtitle: "Quarter-end inventory against 91 days of cost", metric: "inventoryDays", unit: "days" },
-  ];
-
-  // Components against components.
-  const compA = sa.segments.find((s) => A.components.test(s.key));
-  const compB = sb.segments.find((s) => B.components.test(s.key));
-  const segLabels = shared(compA?.points.map((p) => p.label) ?? [], compB?.points.map((p) => p.label) ?? []);
-  const segLatest = segLabels[segLabels.length - 1];
-  const nameCompA = `${nameA} ${compA?.label ?? "components"}`;
-  const nameCompB = `${nameB} ${compB?.label ?? "components"}`;
-  const compRevenue: ChartRow[] = segLabels.map((label) => ({ label, [nameCompA]: at(compA, label)?.revenue, [nameCompB]: at(compB, label)?.revenue }));
-  const compMargin: ChartRow[] = segLabels.map((label) => ({
-    label,
-    [nameCompA]: at(compA, label)?.operatingMargin,
-    [nameCompB]: at(compB, label)?.operatingMargin,
-  }));
-  const compShare: ChartRow[] = segLabels.map((label) => {
-    const x = at(compA, label)?.revenue;
-    const y = at(compB, label)?.revenue;
-    return { label, [`${nameA} share`]: x !== undefined && y !== undefined && x + y > 0 ? x / (x + y) : undefined };
-  });
-  const totalAt = (segments: MemberSeries[], label: string) => segments.reduce((sum, s) => sum + (at(s, label)?.revenue ?? 0), 0) || undefined;
-
-  // Regions, on the three both companies report.
-  const regionLabels = shared(sa.regions[0]?.points.map((p) => p.label) ?? [], sb.regions[0]?.points.map((p) => p.label) ?? []);
-  const regionLatest = regionLabels[regionLabels.length - 1];
-  const region = (series: MemberSeries[], name: (typeof REGIONS)[number]) => series.find((s) => regionOf(s.key) === name);
-  const regionTotal = (series: MemberSeries[]) => (regionLatest ? REGIONS.reduce((sum, r) => sum + (at(region(series, r), regionLatest)?.revenue ?? 0), 0) || undefined : undefined);
-  const totalRegA = regionTotal(sa.regions);
-  const totalRegB = regionTotal(sb.regions);
-  const segmentError = sa.error ?? sb.error;
+  const a = pair.qa.get(latest)!;
+  const b = pair.qb.get(latest)!;
+  const ago = yearBefore(latest);
+  const rows = scorecard(a, b, pair.qa.get(ago), pair.qb.get(ago));
+  const count = tally(rows);
+  const [nextA, nextB] = await Promise.all([getNextRelease("avnet").catch(() => null), getNextRelease("arrow").catch(() => null)]);
+  const next = [nextB && { name: "Arrow", e: nextB }, nextA && { name: "Avnet", e: nextA }]
+    .filter((x): x is { name: string; e: NonNullable<typeof nextA> } => Boolean(x))
+    .sort((x, y) => x.e.date.localeCompare(y.e.date));
 
   return (
     <>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1">
-        <h2 className="font-display text-lg uppercase tracking-wide text-ink">
-          {nameA} vs {nameB} <span className="text-muted">· {latest}</span>
+      <section aria-labelledby="verdict" className="space-y-1">
+        <h2 id="verdict" className="text-pretty text-xl leading-snug text-ink">
+          {verdict(rows, latest)}
         </h2>
-        <p className="text-xs text-muted">
-          {nameA} {a.fiscalLabel}, quarter ended {longDate(a.end)} · {nameB} {b.fiscalLabel}, quarter ended {longDate(b.end)}
+        <p className="text-caption text-ink-muted">
+          Avnet {a.fiscalLabel}, quarter ended {longDate(a.end)}. Arrow {b.fiscalLabel}, quarter ended {longDate(b.end)}.
+          {next.length > 0 &&
+            ` Next results: ${next.map(({ name, e }) => `${name} ${longDate(e.date)}${e.status === "estimated" ? " (estimated)" : e.status === "due" ? " (due)" : ""}`).join(", ")}.`}
         </p>
-      </div>
+      </section>
 
-      <Card title="Whole company" subtitle={`${latest} · a dot marks the stronger figure where one direction is clearly better`} bodyClassName="p-0">
+      <Panel
+        title="Scorecard"
+        subtitle={`${latest}. Avnet leads on ${count.avnet} and Arrow on ${count.arrow} of the ${count.counted} measures where higher or lower is clearly better`}
+        bodyClassName="p-0"
+        footer={<SourceLine source="SEC filings, GAAP as reported" asOf={latest} />}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-xs">
-            <thead>
-              <tr className="border-b border-line text-right font-display text-2xs uppercase tracking-wider text-muted">
-                <th scope="col" className="px-4 py-2 text-left font-normal">
+          <table className="w-full min-w-[760px] border-collapse font-body text-table">
+            <caption className="sr-only">Avnet against Arrow on each measure for {latest}</caption>
+            <thead className="bg-surface-sunken">
+              <tr className="border-b border-hairline">
+                <th scope="col" className={cn(TH, "text-left")}>
                   Measure
                 </th>
-                <th scope="col" className="px-3 py-2 font-normal">
-                  <Link href={earningsHref(A.slug, "all")} className="inline-flex items-center gap-1.5 hover:text-ink">
-                    <span className="h-1.5 w-1.5 rounded-full bg-avnet-green" />
-                    {nameA}
-                  </Link>
+                <th scope="col" className={cn(TH, "text-right")}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Marker side="Avnet" />
+                    Avnet
+                  </span>
                 </th>
-                <th scope="col" className="px-3 py-2 font-normal">
-                  <Link href={earningsHref(B.slug, "all")} className="inline-flex items-center gap-1.5 hover:text-ink">
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-dark" />
-                    {nameB}
-                  </Link>
+                <th scope="col" className={cn(TH, "text-right")}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Marker side="Arrow" />
+                    Arrow
+                  </span>
                 </th>
-                <th scope="col" className="px-3 py-2 font-normal">
-                  {nameA} vs {nameB}
+                <th scope="col" className={cn(TH, "text-right")} title="Avnet minus Arrow, in points or days; a ratio for dollar amounts">
+                  Gap
+                </th>
+                <th scope="col" className={cn(TH, "text-left")}>
+                  Leads
+                </th>
+                <th scope="col" className={cn(TH, "text-right")}>
+                  Gap a year ago
                 </th>
               </tr>
             </thead>
             <tbody>
-              {SCORECARD.map((row) => {
-                const x = a.values[row.metric];
-                const y = b.values[row.metric];
-                const comparable = row.higherIsBetter !== null && x !== undefined && y !== undefined && x !== y;
-                const aLeads = comparable && x! > y! === row.higherIsBetter;
-                return (
-                  <tr key={row.metric} className="border-b border-line last:border-b-0 hover:bg-canvas">
-                    <th scope="row" className="px-4 py-1.5 text-left font-normal text-ink">
-                      {row.label}
-                    </th>
-                    <td className={cn("px-3 py-1.5 text-right tabular text-ink", aLeads && "font-medium")}>
-                      {format(row.kind, x)}
-                      <Lead show={aLeads} />
-                    </td>
-                    <td className={cn("px-3 py-1.5 text-right tabular text-ink", comparable && !aLeads && "font-medium")}>
-                      {format(row.kind, y)}
-                      <Lead show={comparable && !aLeads} />
-                    </td>
-                    <td className="px-3 py-1.5 text-right tabular text-muted">{gap(row.kind, x, y)}</td>
-                  </tr>
-                );
-              })}
+              {rows.map((r) => (
+                <tr key={r.metric} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
+                  <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
+                    <span className="inline-flex items-center gap-1.5">
+                      {r.label}
+                      {r.caveat && (
+                        <span title={r.caveat} className="inline-flex text-ink-muted">
+                          <Info className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+                          <span className="sr-only">{r.caveat}</span>
+                        </span>
+                      )}
+                    </span>
+                  </th>
+                  <td className={cn("px-3 py-1.5 text-right tabular-nums text-ink", r.leads === "Avnet" && "font-semibold")}>
+                    {format(r.kind, r.avnet)}
+                  </td>
+                  <td className={cn("px-3 py-1.5 text-right tabular-nums text-ink", r.leads === "Arrow" && "font-semibold")}>
+                    {format(r.kind, r.arrow)}
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{r.caveat ? DASH : gapText(r, r.gap)}</td>
+                  <td className="px-3 py-1.5 text-left text-ink">{r.leads ?? <span className="text-ink-muted">n/a</span>}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">{r.caveat ? DASH : gapText(r, r.gapYearAgo)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </Card>
+      </Panel>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {charts.map((c) => (
-          <Card key={c.metric} title={c.title} subtitle={`${c.subtitle} · by calendar quarter`}>
-            <GroupLines rows={trend(c.metric)} series={[nameA, nameB]} unit={c.unit} colors={COLORS} />
-          </Card>
-        ))}
+      <div className="grid items-start gap-4 xl:grid-cols-2 [&>*]:min-w-0">
+        <Strengths side="Avnet" rows={rows} pair={pair} />
+        <Strengths side="Arrow" rows={rows} pair={pair} />
       </div>
+    </>
+  );
+}
 
-      {!segLatest ? (
-        <Card title="Components against components">
-          <p className="py-6 text-center text-sm text-muted">
-            Segment detail could not be read from the filing documents{segmentError ? `: ${segmentError}` : "."}
-          </p>
-        </Card>
+const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
+
+function Strengths({ side, rows, pair }: { side: Side; rows: ScoreRow[]; pair: Pair }) {
+  const list = strengths(rows, side);
+  return (
+    <Panel title={`Where ${side} is stronger`} subtitle="Biggest edge first, with a sentence to use in a conversation">
+      {list.length === 0 ? (
+        <EmptyState title={`${side} doesn't lead on any measure this quarter`} />
+      ) : (
+        <ul className="divide-y divide-hairline">
+          {list.map((r) => {
+            const s = series(pair, r.metric);
+            return (
+              <li key={r.metric} className="flex gap-4 py-3 first:pt-0 last:pb-0">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-display text-card-title text-ink">{r.label}</h3>
+                  <p className="mt-0.5 flex flex-wrap gap-x-4 text-body-sm tabular-nums">
+                    <span className={cn("inline-flex items-center gap-1.5", side === "Avnet" ? "font-semibold text-ink" : "text-ink-muted")}>
+                      <Marker side="Avnet" />
+                      Avnet {format(r.kind, r.avnet)}
+                    </span>
+                    <span className={cn("inline-flex items-center gap-1.5", side === "Arrow" ? "font-semibold text-ink" : "text-ink-muted")}>
+                      <Marker side="Arrow" />
+                      Arrow {format(r.kind, r.arrow)}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-body-sm text-ink">{talkingPoint(r)}</p>
+                </div>
+                <PairSpark avnet={s.map((p) => p.avnet)} arrow={s.map((p) => p.arrow)} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+/* ---------- What each management said ---------- */
+
+const TOPICS = [
+  ["demand", "Demand"],
+  ["inventory", "Inventory"],
+  ["leadTimes", "Lead times"],
+  ["pricing", "Pricing"],
+] as const;
+
+function CommentaryColumn({ c, label }: { c: Commentary; label: string }) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <h3 className="flex items-center gap-1.5 font-display text-card-title text-ink">
+        <Marker side={c.company.slug === "avnet" ? "Avnet" : "Arrow"} />
+        {label}
+      </h3>
+      {c.status !== "ok" || !c.digest ? (
+        <p className="text-body-sm text-ink-muted">{c.message ?? "The latest earnings release could not be read."}</p>
       ) : (
         <>
-          <Card
-            title="Segments"
-            subtitle={`${segLatest} · ${compA?.label} and ${compB?.label} are the like-for-like components businesses; the others have no direct counterpart`}
-            bodyClassName="p-0"
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-xs">
-                <thead>
-                  <tr className="border-b border-line text-right font-display text-2xs uppercase tracking-wider text-muted">
-                    <th scope="col" className="px-4 py-2 text-left font-normal">
-                      Segment
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      Revenue
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      Of company
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      Growth YoY
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      Gross margin
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-normal">
-                      Op margin
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <SegmentRows name={nameA} series={sa.segments} label={segLatest} total={totalAt(sa.segments, segLatest)} />
-                  <SegmentRows name={nameB} series={sb.segments} label={segLatest} total={totalAt(sb.segments, segLatest)} />
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          <div className="grid gap-4 xl:grid-cols-3">
-            <Card title="Components revenue" subtitle="By calendar quarter">
-              <GroupLines rows={compRevenue} series={[nameCompA, nameCompB]} unit="usd" colors={COLORS} />
-            </Card>
-            <Card title="Components operating margin" subtitle="Segment operating income over segment revenue">
-              <GroupLines rows={compMargin} series={[nameCompA, nameCompB]} unit="pctWhole" colors={COLORS} />
-            </Card>
-            <Card title="Relative share" subtitle={`${nameA}'s share of the two components businesses combined`}>
-              <GroupLines rows={compShare} series={[`${nameA} share`]} unit="pctWhole" colors={COLORS} />
-            </Card>
-          </div>
+          <p className="text-base leading-snug text-ink">{c.digest.headline}</p>
+          <dl className="space-y-1.5">
+            {TOPICS.map(([key, name]) => (
+              <div key={key} className="text-body-sm">
+                <dt className="inline font-semibold text-ink">{name}: </dt>
+                <dd className="inline text-ink">{c.digest![key] ?? <span className="text-ink-muted">Not covered in the release.</span>}</dd>
+              </div>
+            ))}
+          </dl>
+          {c.releaseUrl && (
+            <a href={c.releaseUrl} target="_blank" rel="noopener noreferrer" className={cn(link, "inline-flex items-center gap-1 text-caption")}>
+              Read the release{c.filed ? `, filed ${longDate(c.filed)}` : ""}
+              <ExternalLink className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+              <span className="sr-only"> (opens SEC EDGAR in a new tab)</span>
+            </a>
+          )}
         </>
       )}
+    </div>
+  );
+}
 
-      {regionLatest && (
-        <Card title="Regional mix" subtitle={`${regionLatest} · whole-company revenue by where it is sold`} bodyClassName="p-0">
+/** Server component: Claude's digest of each company's latest earnings release. */
+export async function ManagementSaid() {
+  const [arrow, avnet] = await Promise.all([getCommentary("arrow"), getCommentary("avnet")]);
+  return (
+    <Panel
+      title="What Arrow's management said last quarter"
+      subtitle="Set beside what Avnet's said. Written by Claude from each company's latest earnings release; check the release before quoting it"
+    >
+      <div className="grid gap-6 md:grid-cols-2 md:divide-x md:divide-hairline [&>*:last-child]:md:pl-6">
+        <CommentaryColumn c={arrow} label="Arrow" />
+        <CommentaryColumn c={avnet} label="And Avnet" />
+      </div>
+    </Panel>
+  );
+}
+
+/* ---------- Franchise moves ---------- */
+
+const MOVE_LIMIT = 8;
+
+/** Server component: distribution agreements read from news headlines. */
+export async function Moves() {
+  const { moves, error } = await getMoves().catch(() => ({ moves: [], error: "Franchise news could not be loaded." }));
+  const ours = moves.filter((m) => m.distributor.avnet || m.distributor.slug === "arrow");
+  return (
+    <Panel
+      className="xl:col-span-5"
+      title="Franchise moves, last 12 months"
+      subtitle="Agreements Avnet and Arrow announced or ended, from news headlines"
+      footer={
+        <>
+          <span>{ours.length} found</span>
+          <Link href="/line-cards" className={cn(link, "ml-auto")}>
+            Line Cards
+          </Link>
+        </>
+      }
+    >
+      {ours.length === 0 ? (
+        <EmptyState title="No agreements found" body={error ?? "No distribution agreement headlines for Avnet or Arrow in the last 12 months."} />
+      ) : (
+        <ul className="divide-y divide-hairline">
+          {ours.slice(0, MOVE_LIMIT).map((m) => (
+            <li key={m.id} className="flex items-start gap-2 py-2 first:pt-0 last:pb-0">
+              <span className="pt-1">
+                <Marker side={m.distributor.avnet ? "Avnet" : "Arrow"} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-center gap-x-2 text-body-sm text-ink">
+                  <span className="font-medium">{m.supplier ?? "Supplier not named"}</span>
+                  <span className="text-ink-muted">{m.distributor.name}</span>
+                  {m.ended && <Chip>Ended</Chip>}
+                </p>
+                <a
+                  href={m.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(link, "line-clamp-1 text-caption text-ink-muted hover:text-ink")}
+                >
+                  {m.title}
+                </a>
+              </div>
+              <time dateTime={m.date} className="whitespace-nowrap text-caption text-ink-muted">
+                {longDate(m.date.slice(0, 10))}
+              </time>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+/* ---------- Components against components ---------- */
+
+const at = (s: MemberSeries | undefined, label: string): SeriesPoint | undefined => s?.points.find((p) => p.label === label);
+
+/** Server component: segment history read from the filing documents. */
+export async function Components() {
+  const [sa, sb] = await Promise.all([getSegmentHistory("avnet"), getSegmentHistory("arrow")]);
+  const compA = sa.segments.find((s) => COMPONENTS.avnet.test(s.key));
+  const compB = sb.segments.find((s) => COMPONENTS.arrow.test(s.key));
+  const labels = shared(compA?.points.map((p) => p.label) ?? [], compB?.points.map((p) => p.label) ?? []);
+  const latest = labels[labels.length - 1];
+  const names = { avnet: `Avnet ${compA?.label ?? "components"}`, arrow: `Arrow ${compB?.label ?? "components"}` };
+  const rows = (pick: (p: SeriesPoint | undefined) => number | undefined): PairRow[] =>
+    labels.map((label) => ({ label, avnet: pick(at(compA, label)), arrow: pick(at(compB, label)) }));
+
+  return (
+    <Panel
+      className="xl:col-span-7"
+      title="Components against components"
+      subtitle={`${names.avnet} against ${names.arrow}, the like-for-like businesses`}
+      footer={<SourceLine source="Segment figures in 10-Q and 10-K filings" asOf={latest} />}
+    >
+      {!latest ? (
+        <ErrorState title="Segment detail could not be read from the filings" source="SEC EDGAR" detail={sa.error ?? sb.error} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <h3 className="font-display text-card-title text-ink">Revenue</h3>
+            <PairLines rows={rows((p) => p?.revenue)} unit="usd" names={names} />
+          </div>
+          <div>
+            <h3 className="font-display text-card-title text-ink">Segment operating margin</h3>
+            <PairLines rows={rows((p) => p?.operatingMargin)} unit="pct" names={names} />
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/* ---------- Trends and regional mix (folded) ---------- */
+
+const TRENDS: { title: string; metric: Metric; unit: Unit }[] = [
+  { title: "Revenue growth YoY", metric: "revenueYoY", unit: "growth" },
+  { title: "Gross margin", metric: "grossMargin", unit: "pct" },
+  { title: "Operating margin", metric: "operatingMargin", unit: "pct" },
+  { title: "Inventory days", metric: "inventoryDays", unit: "days" },
+];
+
+const REGIONS = ["Americas", "EMEA", "Asia"] as const;
+const regionOf = (key: string) => (/Americas/.test(key) ? "Americas" : /EMEA|Europe/.test(key) ? "EMEA" : /Asia/.test(key) ? "Asia" : undefined);
+const share = (v: number | undefined) => (v === undefined ? DASH : `${Math.round(v * 100)}%`);
+
+/** Server component: trends and regions, folded under the comparison. */
+export async function MoreMeasures() {
+  const [pair, sa, sb] = await Promise.all([loadPair(), getSegmentHistory("avnet"), getSegmentHistory("arrow")]);
+  const regionLabels = shared(sa.regions[0]?.points.map((p) => p.label) ?? [], sb.regions[0]?.points.map((p) => p.label) ?? []);
+  const rl = regionLabels[regionLabels.length - 1];
+  const region = (list: MemberSeries[], name: string) => list.find((s) => regionOf(s.key) === name);
+  const total = (list: MemberSeries[]) => (rl ? REGIONS.reduce((n, r) => n + (at(region(list, r), rl)?.revenue ?? 0), 0) || undefined : undefined);
+  const totals = { avnet: total(sa.regions), arrow: total(sb.regions) };
+
+  return (
+    <details className="group rounded-sm border border-hairline bg-surface">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-90" strokeWidth={1.5} aria-hidden />
+        <span className="font-display text-card-title text-ink">Trends and regional mix</span>
+        <span className="ml-auto truncate pl-3 text-caption text-ink-muted">
+          Growth, margins and inventory over eight quarters; revenue by region
+        </span>
+      </summary>
+      <div className="space-y-6 border-t border-hairline p-4">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+          {TRENDS.map((t) => (
+            <div key={t.metric}>
+              <h3 className="font-display text-card-title text-ink">{t.title}</h3>
+              <PairLines rows={series(pair, t.metric)} unit={t.unit} height={160} />
+            </div>
+          ))}
+        </div>
+        {rl && (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-xs">
-              <thead>
-                <tr className="border-b border-line text-right font-display text-2xs uppercase tracking-wider text-muted">
-                  <th scope="col" className="px-4 py-2 text-left font-normal">
+            <h3 className="mb-1 font-display text-card-title text-ink">Regional mix, {rl}</h3>
+            <table className="w-full min-w-[640px] border-collapse font-body text-table">
+              <caption className="sr-only">Revenue by region for Avnet and Arrow, {rl}</caption>
+              <thead className="bg-surface-sunken">
+                <tr className="border-b border-hairline">
+                  <th scope="col" className={cn(TH, "text-left")}>
                     Region
                   </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
-                    {nameA} revenue
+                  <th scope="col" className={cn(TH, "text-right")}>
+                    Avnet revenue
                   </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
+                  <th scope="col" className={cn(TH, "text-right")}>
                     Share
                   </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
+                  <th scope="col" className={cn(TH, "text-right")}>
                     Growth YoY
                   </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
-                    {nameB} revenue
+                  <th scope="col" className={cn(TH, "text-right")}>
+                    Arrow revenue
                   </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
+                  <th scope="col" className={cn(TH, "text-right")}>
                     Share
                   </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
+                  <th scope="col" className={cn(TH, "text-right")}>
                     Growth YoY
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {REGIONS.map((r) => {
-                  const x = at(region(sa.regions, r), regionLatest);
-                  const y = at(region(sb.regions, r), regionLatest);
+                  const x = at(region(sa.regions, r), rl);
+                  const y = at(region(sb.regions, r), rl);
                   return (
-                    <tr key={r} className="border-b border-line last:border-b-0 hover:bg-canvas">
-                      <th scope="row" className="px-4 py-1.5 text-left font-normal font-medium text-ink">
+                    <tr key={r} className="border-b border-hairline last:border-b-0">
+                      <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
                         {r}
                       </th>
-                      <td className="px-3 py-1.5 text-right tabular text-ink">{format("usd", x?.revenue)}</td>
-                      <td className="px-3 py-1.5 text-right tabular text-muted">{share(x?.revenue !== undefined && totalRegA ? x.revenue / totalRegA : undefined)}</td>
-                      <td className="px-3 py-1.5 text-right tabular text-ink">{x?.yoy === undefined ? DASH : format("growth", x.yoy)}</td>
-                      <td className="px-3 py-1.5 text-right tabular text-ink">{format("usd", y?.revenue)}</td>
-                      <td className="px-3 py-1.5 text-right tabular text-muted">{share(y?.revenue !== undefined && totalRegB ? y.revenue / totalRegB : undefined)}</td>
-                      <td className="px-3 py-1.5 text-right tabular text-ink">{y?.yoy === undefined ? DASH : format("growth", y.yoy)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("usd", x?.revenue)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">
+                        {share(x?.revenue !== undefined && totals.avnet ? x.revenue / totals.avnet : undefined)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{x?.yoy === undefined ? DASH : format("growth", x.yoy)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("usd", y?.revenue)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">
+                        {share(y?.revenue !== undefined && totals.arrow ? y.revenue / totals.arrow : undefined)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{y?.yoy === undefined ? DASH : format("growth", y.yoy)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        </Card>
-      )}
-
-      <p className="px-1 text-2xs text-muted">
-        Both companies&apos; figures come from their SEC filings (GAAP, as reported) and are lined up on calendar quarters, because
-        {` ${nameA}`}&apos;s fiscal year ends in June and {nameB}&apos;s in December. Whole-company measures use the structured
-        financial data; segment and region figures are read from the last six 10-Q and 10-K documents, with fourth quarters
-        backed out of the annual report. Segment margins use each company&apos;s own definition of segment operating income,
-        which excludes corporate costs and, for {nameA}, restructuring charges, so they are not strictly like for like. {nameB}&apos;s
-        receivable and payable days run far above {nameA}&apos;s; that is consistent with its enterprise computing business
-        reporting some sales net while carrying the receivables and payables gross, so those rows and the cash conversion
-        cycle are not a clean comparison. The &quot;vs&quot; column is a difference in points or days, or a ratio for dollar amounts. Line cards, customer counts,
-        design wins and pricing are not in filings.
-      </p>
-    </>
+        )}
+      </div>
+    </details>
   );
 }
 
-export function HeadToHeadFallback() {
+/* ---------- Loading states ---------- */
+
+export function OverviewFallback() {
   return (
-    <Card title="Reading filings" subtitle="Reading both companies' recent 10-Q and 10-K documents from SEC EDGAR. The first load can take a minute.">
-      <div className="space-y-2" role="status" aria-label="Loading the comparison">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="h-4 animate-pulse rounded bg-canvas" />
-        ))}
-      </div>
-    </Card>
+    <div className="space-y-6">
+      <Skeleton className="h-7 w-2/3" />
+      <Panel title="Scorecard" subtitle="Reading both companies' filings from SEC EDGAR. The first load can take a minute.">
+        <LoadingBlock label="Loading the comparison…" lines={8} />
+      </Panel>
+    </div>
+  );
+}
+
+export function SectionFallback({ title, className }: { title: string; className?: string }) {
+  return (
+    <Panel title={title} className={className}>
+      <LoadingBlock label={`Loading ${title.toLowerCase()}…`} lines={5} />
+    </Panel>
   );
 }
