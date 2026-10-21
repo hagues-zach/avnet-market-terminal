@@ -41,7 +41,7 @@ const VIDEOS = ["Getting around the app", "Reading a company profile", "Market s
 
 export default function LearnPage() {
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Learning Center" subtitle="The terms, the methods, and where every number comes from" />
       <div className="grid gap-4 xl:grid-cols-2">
         <Card title="Glossary" className="xl:row-span-2">

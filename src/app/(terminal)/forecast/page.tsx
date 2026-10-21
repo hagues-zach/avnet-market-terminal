@@ -25,7 +25,7 @@ export default function ForecastPage() {
   const p2026 = f.points.find((p) => p.year === 2026)!;
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Scenario Modeler" subtitle="WSTS forecast with confidence band, scenarios & vintage revisions" />
       <ShellBanner {...LEGACY["/forecast"]} />
 

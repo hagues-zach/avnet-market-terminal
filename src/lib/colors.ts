@@ -89,3 +89,17 @@ export const CHART = {
   lineWidthLight: 2.5, // Light Blue, Yellow and grey lines
   activeDot: { r: 4, stroke: "#FFFFFF", strokeWidth: 2 },
 } as const;
+
+const luminance = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/** Text colour for a label drawn on a filled mark: black or white, whichever contrasts more. */
+export function labelOn(fill: string): string {
+  const l = luminance(fill);
+  return (1.05 / (l + 0.05)) >= ((l + 0.05) / 0.05) ? "#FFFFFF" : CHART.label;
+}

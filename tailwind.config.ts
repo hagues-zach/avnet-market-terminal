@@ -115,13 +115,13 @@ const config: Config = {
       },
       boxShadow: {
         overlay: "0 4px 16px rgba(0,0,0,0.12)", // menus, popovers, tooltips, toasts only
-        // Legacy: cards lose their shadow in step 1.6
-        card: "0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)",
+        // Legacy name: cards have no shadow (step 1.6). Remove usages in page passes.
+        card: "none",
       },
       borderRadius: {
         // none (0) for controls and sm (2px) for cards are Tailwind defaults; pill = full.
-        // Legacy: drops to 2px in step 1.6
-        card: "0.5rem",
+        // Legacy name for the 2px card corner (step 1.6). Prefer rounded-sm.
+        card: "0.125rem",
       },
       transitionDuration: {
         DEFAULT: "150ms",

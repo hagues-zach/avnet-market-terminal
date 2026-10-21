@@ -8,7 +8,7 @@ export function Skeleton({ className }: { className?: string }) {
 }
 
 /** A loading panel body: a few skeleton lines with a screen-reader status. */
-export function LoadingBlock({ label = "Loading", lines = 3 }: { label?: string; lines?: number }) {
+export function LoadingBlock({ label = "Loading…", lines = 3 }: { label?: string; lines?: number }) {
   return (
     <div role="status" className="space-y-2">
       <span className="sr-only">{label}</span>

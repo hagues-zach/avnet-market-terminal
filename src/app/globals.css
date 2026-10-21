@@ -4,6 +4,7 @@
 
 @layer base {
   html {
+    touch-action: manipulation;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -38,9 +39,6 @@
      kit no longer uses the slash mark. */
   .caps-heading {
     @apply font-display uppercase tracking-wide text-ink flex items-center gap-2;
-  }
-  .accent-bar {
-    @apply border-l-[3px] border-avnet-green pl-3;
   }
   .tabular {
     font-variant-numeric: tabular-nums;

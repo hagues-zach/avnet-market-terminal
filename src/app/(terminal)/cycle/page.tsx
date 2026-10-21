@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default function CyclePage() {
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader
         title="Market Cycle"
         subtitle={`Where the semiconductor supply chain and its customers are in the cycle, rolled up from ${COMPANIES.length} companies' SEC filings`}

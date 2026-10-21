@@ -351,7 +351,7 @@ That is Avnet plus four. A fifth company folds into "All other", or the chart be
 
 **Severity** (risk, heat): Light Gray → Yellow → Orange → Negative red, always with a word label. It never starts at Avnet Green.
 
-In code: `VIZ`, `chartSeriesColor`, `entityColor`, `ALL_PAIRS_ORDER`, `RISK_COLOR` and the shared chart chrome `CHART` in `src/lib/colors.ts`. Tailwind exposes the same values as `viz-*`.
+In code: `VIZ`, `chartSeriesColor`, `entityColor`, `ALL_PAIRS_ORDER`, `RISK_COLOR`, `labelOn` (label colour on a fill) and the shared chart chrome `CHART` in `src/lib/colors.ts`. Tailwind exposes the same values as `viz-*`.
 
 ### Chart rules
 
@@ -433,8 +433,8 @@ Desktop and laptop are the design targets. Every page is checked at 1440px and 1
 | 2 | `surface-sunken` fill | Table headers, hovered rows, inputs |
 | 3 | `0 4px 16px rgba(0,0,0,0.12)` shadow + `rounded.sm` | Menus, popovers, tooltips, command palette, toasts |
 
-- No drop shadows on cards. The current `shadow-card` goes away in step 1.6.
-- Corners: **0px** for buttons, inputs, tabs and tables. **2px** for cards, popovers and tooltips. **Pill** for status and source chips only. The current 8px `rounded-card` drops to 2px.
+- No drop shadows on cards. The legacy `shadow-card` token is now `none`; remove its uses in page passes.
+- Corners: **0px** for buttons, inputs, tabs and tables. **2px** for cards, popovers and tooltips. **Pill** for status and source chips only. The legacy `rounded-card` token is now 2px; prefer `rounded-sm`.
 - **Focus**: a 2px `primary` outline with 2px offset on every interactive element. This is already in `globals.css`. Keep it.
 
 ## Brand graphic elements
@@ -464,8 +464,8 @@ The `components:` front matter holds the token-level specs (colours, type, size)
 - **Chart card.** A card with a `card-title`, an optional sentence-case "so what" line underneath, the chart, then a footer with the source chip and as-of date.
 - **Filter bar.** Period, region, segment and supplier selects in one 44px row. Active filters show as removable chips. "Reset" is a ghost button.
 - **Buttons.** Primary: green with a black label. One per view. Secondary: white with a 1px black border. Ghost: text only. Destructive: a `negative` border and text, filled only on confirm.
-- **Source chip.** A pill naming the source: Live (green dot), Mock (yellow dashed border, black text), or Planned (grey). The current yellow-text variant (1.7:1) is fixed in step 1.5.
-- **Hookup marker.** Keep the dashed yellow treatment. Move to black text on the 6% yellow tint so it passes contrast.
+- **Source chip.** A pill naming the source: Live (green dot), Mock (yellow dashed border, black text), or Planned (grey).
+- **Hookup marker.** Dashed yellow border, black text on a 6% yellow tint, directly under the section it describes.
 - **Empty, loading and error states.** Loading uses skeleton blocks shaped like the final layout, on `hairline`, never a lone spinner. Empty states give one line saying why it's empty and one action. Errors say what failed, name the source, and offer a retry.
 
 ## Voice in the interface

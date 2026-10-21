@@ -1,7 +1,7 @@
 "use client";
 
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
-import { chartSeriesColor } from "@/lib/colors";
+import { CHART, chartSeriesColor, labelOn } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 import { PRODUCT_LABEL, type ProductCategory } from "@/lib/data/types";
 
@@ -19,15 +19,16 @@ function TreemapCell(props: CellProps) {
   const { x, y, width, height, index, name, value } = props;
   if (width <= 0 || height <= 0) return null;
   const fill = chartSeriesColor(index);
+  const ink = labelOn(fill);
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} fill={fill} stroke="#fff" strokeWidth={2} />
       {width > 64 && height > 32 && (
         <>
-          <text x={x + 8} y={y + 18} fontSize={12} fill="#fff" style={{ fontFamily: "var(--font-oswald)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+          <text x={x + 8} y={y + 18} fontSize={12} fill={ink} style={{ fontFamily: "var(--font-oswald)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
             {name}
           </text>
-          <text x={x + 8} y={y + 33} fontSize={11} fill="#fff" opacity={0.92} style={{ fontVariantNumeric: "tabular-nums" }}>
+          <text x={x + 8} y={y + 33} fontSize={11} fill={ink} style={{ fontVariantNumeric: "tabular-nums" }}>
             {value != null ? formatUsdMillions(value) : ""}
           </text>
         </>
@@ -43,7 +44,7 @@ export function ProductTreemap({ data }: { data: { product: ProductCategory; usd
   return (
     <ResponsiveContainer width="100%" height={260}>
       <Treemap data={nodes} dataKey="size" nameKey="name" isAnimationActive={false} content={<TreemapCell {...({} as CellProps)} />}>
-        <Tooltip formatter={(v: number) => [formatUsdMillions(v), "2025 market"]} contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid #E3E5E8" }} />
+        <Tooltip formatter={(v: number) => [formatUsdMillions(v), "2025 market"]} contentStyle={CHART.tooltip} />
       </Treemap>
     </ResponsiveContainer>
   );

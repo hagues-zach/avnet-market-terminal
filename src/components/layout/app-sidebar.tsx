@@ -21,7 +21,7 @@ export function AppSidebar() {
           <Wordmark className="h-6" />
         </Link>
       </div>
-      <nav className="flex-1 overflow-y-auto pb-3" aria-label="Main">
+      <nav className="flex-1 overflow-y-auto overscroll-contain pb-3" aria-label="Main">
         {PILLARS.map((pillar) => {
           const items = NAV.filter((item) => item.pillar === pillar);
           if (!items.length) return null;

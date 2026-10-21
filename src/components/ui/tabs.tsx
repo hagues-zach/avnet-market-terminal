@@ -51,15 +51,14 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex border border-hairline">
+    <div role="group" aria-label={label} className="inline-flex border border-hairline">
       {options.map((o, i) => {
         const active = o.value === value;
         return (
           <button
             key={o.value}
             type="button"
-            role="radio"
-            aria-checked={active}
+            aria-pressed={active}
             onClick={() => onChange(o.value)}
             className={cn(
               "h-6 cursor-pointer px-2 font-body text-micro transition-colors",

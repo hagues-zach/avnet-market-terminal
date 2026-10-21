@@ -1,8 +1,11 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { DataSource } from "@/lib/data/types";
+import { Delta } from "./delta";
 import { SourceChip } from "./source-chip";
 
+/**
+ * The older KPI card API, drawn as a KpiTile: label, figure, change, source.
+ * Prefer KpiTile in new code.
+ */
 export function KpiCard({
   label,
   value,
@@ -18,28 +21,16 @@ export function KpiCard({
   invertDelta?: boolean; // when down-is-good (e.g. aging days)
   source?: DataSource;
 }) {
-  const hasDelta = typeof delta === "number";
-  const positive = hasDelta && delta! >= 0;
-  const good = invertDelta ? !positive : positive;
-  const Arrow = positive ? ArrowUpRight : ArrowDownRight;
-
   return (
-    <div className="rounded-card border border-line bg-surface px-4 py-3 shadow-card">
-      <div className="flex items-center justify-between">
-        <span className="font-display text-2xs uppercase tracking-wider text-muted">{label}</span>
+    <div className="flex min-w-0 flex-col rounded-sm border border-hairline bg-surface px-4 py-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-display text-label uppercase text-ink-muted">{label}</span>
         {source && <SourceChip source={source} />}
       </div>
-      <div className="mt-1.5 font-display text-2xl tabular text-ink">{value}</div>
-      {hasDelta && (
-        <div
-          className={cn(
-            "mt-1 inline-flex items-center gap-0.5 text-xs tabular",
-            good ? "text-avnet-greenDark" : "text-danger",
-          )}
-        >
-          <Arrow className="h-3.5 w-3.5" />
-          {Math.abs(delta! * 100).toFixed(1)}%
-          {deltaLabel && <span className="ml-1 text-muted">{deltaLabel}</span>}
+      <div className="mt-1.5 font-display text-figure tabular-nums text-ink">{value}</div>
+      {typeof delta === "number" && (
+        <div className="mt-1">
+          <Delta value={delta} period={deltaLabel} invert={invertDelta} />
         </div>
       )}
     </div>

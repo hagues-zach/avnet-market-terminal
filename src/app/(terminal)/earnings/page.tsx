@@ -17,7 +17,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const earnings = await getCompanyEarnings(company);
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader
         title="Quarterly Earnings"
         subtitle={`One reporting framework across ${COMPANIES.length} distributors, chipmakers, suppliers and their customers, from SEC filings`}

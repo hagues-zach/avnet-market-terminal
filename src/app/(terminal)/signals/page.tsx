@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default function SignalsPage() {
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <PageHeader title="Economic Signals" subtitle="Production, prices, input costs, rates and currency around the semiconductor supply chain" />
       <Suspense fallback={<SignalsFallback />}>
         <SignalsView />

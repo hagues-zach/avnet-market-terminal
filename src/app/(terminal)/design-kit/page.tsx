@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Download } from "lucide-react";
-import { PageBody } from "@/components/layout/app-shell";
+import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Chip, DataChip } from "@/components/ui/chip";
@@ -130,7 +130,7 @@ export default function DesignKitPage() {
           <Panel title="Loading">
             <div className="space-y-3">
               <Skeleton className="h-7 w-24" />
-              <LoadingBlock label="Loading filings" />
+              <LoadingBlock label="Loading filings…" />
             </div>
           </Panel>
           <Panel title="Empty">

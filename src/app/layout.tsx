@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 
@@ -13,6 +13,8 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
 });
+
+export const viewport: Viewport = { themeColor: "#FFFFFF" };
 
 export const metadata: Metadata = {
   title: "Avnet · Market Intelligence Terminal",

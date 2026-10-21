@@ -50,7 +50,7 @@ const SEGMENTS: SegmentRow[] = [
   { segment: "Connectors", market: 14.1, avnet: 620, share: 4.4, change: 0, confidence: "Low" },
 ];
 const COLUMNS: Column<SegmentRow>[] = [
-  { key: "segment", header: "Segment", sortValue: (r) => r.segment, render: (r) => <a href="#" className="underline-offset-2 hover:underline">{r.segment}</a> },
+  { key: "segment", header: "Segment", sortValue: (r) => r.segment, render: (r) => <span className="font-medium">{r.segment}</span> },
   { key: "market", header: "Market $B", numeric: true, sortValue: (r) => r.market, render: (r) => `$${r.market.toFixed(1)}B` },
   { key: "avnet", header: "Avnet $M", numeric: true, sortValue: (r) => r.avnet, render: (r) => `$${r.avnet.toLocaleString("en-US")}M` },
   { key: "share", header: "Avnet share", numeric: true, sortValue: (r) => r.share, render: (r) => `${r.share.toFixed(1)}%` },

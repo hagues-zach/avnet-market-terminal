@@ -14,7 +14,7 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
   const role = roleOf(company);
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
       <Link href={role === "avnet" ? "/network" : `/network?role=${role}`} className="inline-flex items-center gap-1 text-xs text-muted hover:text-ink">
         <ArrowLeft className="h-3 w-3" />
         Company Profiles
