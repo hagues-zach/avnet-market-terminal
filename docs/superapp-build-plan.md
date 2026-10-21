@@ -2,7 +2,7 @@
 
 The working plan for turning the PRD into the finished app, one step at a time. It sits under the strategy in `docs/superapp-plan.md` and the product requirements in the PRD ("AMI Superapp", Google Doc, Oct 15 2026).
 
-Last updated: 2026-10-20
+Last updated: 2026-10-21
 
 ## How the PRD maps onto the app
 
@@ -84,7 +84,7 @@ Order, by how often sellers and leaders will open the page:
 - [x] 2.5 TAM / SAM / SOM (funnel first with a category table and a live forecast check; brief and mockups in `docs/design/pages/`)
 - [x] 2.6 Performance Tracker (operating view, live reported revenue; one shared mock model of Avnet now feeds every page; brief and mockups in `docs/design/pages/`)
 - [x] 2.7 Line Cards (briefing then reference on live data; Avnet's line card still to import; brief and mockups in `docs/design/pages/`)
-- [ ] 2.8 Market News
+- [x] 2.8 Market News (briefing layout: Claude's top stories beside topics this week, with Avnet's mock billings per topic, then the filtered feed; links into Company Profile and QBR Prep; brief and mockups in `docs/design/pages/`)
 - [ ] 2.9 Market Cycle
 - [ ] 2.10 Avnet vs Arrow
 - [ ] 2.11 Quarterly Earnings
