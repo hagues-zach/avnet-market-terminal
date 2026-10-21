@@ -48,8 +48,20 @@ const QUERIES = [
   `("distribution agreement" OR "distribution deal" OR "franchise agreement") (${SEARCH_NAMES})`,
   `("global distribution" OR "authorized distributor" OR "line card") electronic components (${SEARCH_NAMES})`,
 ];
-// A headline has to read like an agreement, not just mention a distributor.
-const IS_MOVE = /\b(distribution|distributor|franchis\w*|line ?card)\b/i;
+// A headline has to read like an agreement, not just mention a distributor:
+// someone signs, a distribution or franchise deal is named, or a line is added.
+const IS_AGREEMENT = new RegExp(
+  [
+    String.raw`\b(signs?|signed|signing|inks?|inked)\b`,
+    String.raw`\b(distribution|distributor|franchise|partnership|reseller|channel)\s+(agreement|deal|pact|contract|partnership|partner|network)\b`,
+    String.raw`\bfranchis(e|ed|es|ing)\b`,
+    String.raw`\bauthori[sz]ed\s+(distributor|distribution|reseller)\b`,
+    String.raw`\bpartners?\s+(with|to)\b`,
+    String.raw`\bappoints?\b`,
+    String.raw`\badds?\b.{1,80}\b(line|line ?card|portfolio)\b`,
+  ].join("|"),
+  "i",
+);
 
 export interface Move {
   id: string;
@@ -92,19 +104,29 @@ const GENERIC = /^(customers?|suppliers?|manufacturers?|parts?|products?|portfol
 const DESCRIPTOR = /^(specialist|maker|provider|manufacturer|supplier|vendor|developer|leader|company|firm)$/i;
 // The agreement being ended is as useful to know as one being signed.
 const ENDED = /\b(terminat\w*|ends?|ending|cancel\w*|drops?|exits?)\b/i;
-// Awards, rankings and warehouse stories mention distribution without being an agreement.
-const NOT_A_MOVE = /\b(awards?|honou?rs?|ranks?|ranking|recogni[sz]\w*|distributor of the year|wins?|distribution cent(er|re))\b/i;
+// Awards, rankings, investment, capacity, earnings and warehouse stories mention
+// distribution without being an agreement.
+const NOT_A_MOVE = new RegExp(
+  [
+    String.raw`\b(awards?|honou?rs?|ranks?|ranking|recogni[sz]\w*|distributor of the year|wins?)\b`,
+    String.raw`\b(invest\w*|capacity|capex|million|billion|funding)\b|\$\s?\d`,
+    String.raw`\b(earnings|revenues?|results|quarterly|fiscal|guidance|profits?|sales (rise|fall|grow\w*|decline\w*))\b`,
+    String.raw`\b(facility|facilities|warehouses?|logistics|headquarters|operations|distribution cent(er|re)s?)\b`,
+    String.raw`\b(acquires?|acquired|acquisition|merger|layoffs?|job cuts)\b`,
+  ].join("|"),
+  "i",
+);
 
 const words = (text: string) => text.trim().split(/\s+/).filter(Boolean);
 const bare = (w: string) => w.replace(/[,:;|]+$/, "");
 
-/** The run of name-like words at the start of `text`: capitalised, up to four, ending at a stop word. */
+/** The run of name-like words at the start of `text`: capitalised (or "iDEAL"-style), up to four, ending at a stop word. */
 function lead(text: string): { name: string; next?: string } {
   const out: string[] = [];
   const all = words(text);
   for (const raw of all) {
     const w = bare(raw);
-    if (out.length === 4 || STOP.has(w.toLowerCase()) || !/^[A-Z0-9]/.test(w)) break;
+    if (out.length === 4 || STOP.has(w.toLowerCase()) || !/^([A-Z0-9]|[a-z][A-Z])/.test(w)) break;
     out.push(w);
     if (w !== raw) break; // punctuation ends the name
   }
@@ -135,7 +157,8 @@ function supplierFrom(title: string, distributor: RegExp): string | undefined {
   const verbAt = all.findIndex((w) => VERBS.includes(bare(w).toLowerCase()));
   if (verbAt >= 0) {
     const object = lead(all.slice(verbAt + 1).join(" "));
-    if (object.next === "distribution") {
+    // "Distributor adds Supplier products to its line card"
+    if (object.next === "distribution" || /^adds?$/i.test(bare(all[verbAt]))) {
       const found = ok(object.name);
       if (found) return found;
     }
@@ -144,6 +167,26 @@ function supplierFrom(title: string, distributor: RegExp): string | undefined {
   const first = lead(title);
   if (first.next && STOP.has(first.next) && !distributor.test(first.name)) return ok(first.name);
   return undefined;
+}
+
+export interface MoveRead {
+  distributor: MoveDistributor;
+  supplier?: string;
+  ended: boolean;
+}
+
+/**
+ * Reads one headline as a franchise move, or returns null when it is not one.
+ * A move needs agreement wording, a known distributor and another party.
+ */
+export function readMove(title: string): MoveRead | null {
+  if (!IS_AGREEMENT.test(title) || NOT_A_MOVE.test(title)) return null;
+  const hit = DISTRIBUTOR_PATTERNS.find(([re]) => re.test(title));
+  if (!hit) return null;
+  const [pattern, distributor] = hit;
+  const supplier = supplierFrom(title, pattern);
+  if (!supplier) return null;
+  return { distributor, supplier, ended: ENDED.test(title) };
 }
 
 async function search(query: string): Promise<string> {
@@ -171,16 +214,13 @@ export async function getMoves(): Promise<Moves> {
       const cut = rawTitle.lastIndexOf(" - ");
       const title = cut > 0 ? rawTitle.slice(0, cut) : rawTitle;
       const outlet = decode(item.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1] ?? "") || (cut > 0 ? rawTitle.slice(cut + 3) : "");
-      if (!IS_MOVE.test(title) || NOT_A_MOVE.test(title)) continue;
-      const hit = DISTRIBUTOR_PATTERNS.find(([re]) => re.test(title));
-      if (!hit) continue;
-      const [pattern, distributor] = hit;
-      const supplier = supplierFrom(title, pattern);
+      const read = readMove(title);
+      if (!read) continue;
       // The same announcement is carried by many outlets; keep the first seen.
-      const key = supplier ? `${distributor.slug}|${supplierKey(supplier)}` : title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const key = `${read.distributor.slug}|${read.supplier ? supplierKey(read.supplier) : ""}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      moves.push({ id: url, date: new Date(time).toISOString(), distributor, supplier, ended: ENDED.test(title), title, outlet, url });
+      moves.push({ id: url, date: new Date(time).toISOString(), ...read, title, outlet, url });
     }
   }
   moves.sort((a, b) => b.date.localeCompare(a.date));
