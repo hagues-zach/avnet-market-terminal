@@ -282,7 +282,7 @@ It starts from **IBM Carbon** (the closest system in awesome-design-md for a dat
 
 ### Brand
 
-- **Avnet Green** `{colors.primary}` #41C363 (Pantone 2256 C). The brand's signature. Used for: primary buttons (black label), the active nav rule, selected tab underlines, focused input underlines, the focus ring, the slash mark, the highlight bar, progress fills, and the Avnet series in every chart.
+- **Avnet Green** `{colors.primary}` #41C363 (Pantone 2256 C). The brand's signature. Used for: primary buttons (black label), the active nav rule, selected tab underlines, focused input underlines, the focus ring, the highlight bar, progress fills, and the Avnet series in every chart.
 - **Black** `{colors.ink}` #000000. All headlines, body and figures.
 - **White** `{colors.surface}` #FFFFFF. Cards, tables, sidebar and top bar.
 
@@ -380,7 +380,7 @@ The brand's print sizes (26pt headline, 9pt body) are scaled up for screens. Bod
 
 | Token | Font | Size / line | Weight | Case | Use |
 |---|---|---|---|---|---|
-| `page-title` | Oswald | 24 / 30 | 300 | ALL CAPS, +0.5px | One per page, after the slash mark |
+| `page-title` | Oswald | 24 / 30 | 300 | ALL CAPS, +0.5px | One per page |
 | `section-title` | Oswald | 16 / 20 | 400 | Sentence | Section headings within a page |
 | `card-title` | Oswald | 14 / 18 | 400 | Sentence | Card and chart titles |
 | `figure-xl` | Oswald | 32 / 35 | 400 | n/a | Hero KPI on Start Here |
@@ -404,7 +404,7 @@ Nothing in the app is smaller than 11px. Text stays left-aligned except numeric 
 - **App shell**: a 240px sidebar, a 48px top bar, and content on `canvas` with 24px page padding (16px below 1280px).
 - **Content**: a 12-column grid with 16px gutters. Content stretches to the window up to a 1584px maximum. It is not centred in a narrow column, because analysts use wide screens.
 - **Card padding** is 16px. Gaps between cards are 16px. Gaps between page sections are 24px.
-- **Page rhythm**: page header (slash mark, title, one-line subtitle, page actions on the right) → filter bar if the page has one → KPI row → primary chart or table → supporting cards.
+- **Page rhythm**: page header (title, one-line subtitle, page actions on the right) → filter bar if the page has one → KPI row → primary chart or table → supporting cards.
 
 ### Density
 
@@ -441,10 +441,10 @@ Desktop and laptop are the design targets. Every page is checked at 1440px and 1
 
 Avnet's graphic elements are strong and rare. In a working tool they appear even less often.
 
-- **Slash mark**: a green diagonal bar to the left of the page title, **once per page**, only in the page header. The brand forbids a typed "/". The current `.slash-heading::before { content: "/" }` must become a drawn element (an inline SVG or a skewed 3px bar, about 1.5× the cap height). Fix in step 1.5.
+- **No slash mark.** The current Avnet brand kit no longer uses the green slash mark (decided 2026-10-20). Don't draw it, type it as "/", or use the slash pattern, anywhere in the app.
 - **Highlight bar**: an angled green bar that bleeds off the edge, with black text. Used for a single key message, for example the Start Here headline insight. At most one per page, and never on dense data pages.
 - **A-Frame**: only in Learning Center and onboarding illustrations. Never in app chrome.
-- **Patterns** (dot, plus, slash): only on empty states and the login screen, one pattern at a time.
+- **Patterns** (dot, plus): only on empty states and the login screen, one pattern at a time.
 - **Logo**: the primary logo (black wordmark, green bar) on white. The brand prefers the top or bottom right corner. App chrome conventionally puts it at the top left of the sidebar; confirm this with brand (see Open questions). Never recolour, stretch or add a tagline.
 
 ## Iconography and illustration
@@ -458,7 +458,7 @@ The `components:` front matter holds the token-level specs (colours, type, size)
 
 - **Sidebar.** Nav groups (Start Here, Knowledge, Network, Avnet performance, Tools, Setup) get `label` headings. The active item has the `surface-selected` fill, a 3px green left rule and black text. Mock pages keep their small yellow ring.
 - **Top bar.** Search, or later the command palette, on the left; persona switch, data freshness and the user on the right. 48px high.
-- **Page header.** Slash mark, title, a one-line subtitle in `ink-muted`, and page actions on the right (export, share).
+- **Page header.** Title, a one-line subtitle in `ink-muted`, and page actions on the right (export, share).
 - **KPI tile.** The label on top, the figure, then the delta (arrow, sign, %, comparison period) and the source chip. Mock values keep the hookup marker.
 - **Data table.** Sticky header on `surface-sunken`, `label` header text, sortable columns, right-aligned tabular numbers, the row hover fill, and column alignment that holds across pages. A Company name cell links to its profile.
 - **Chart card.** A card with a `card-title`, an optional sentence-case "so what" line underneath, the chart, then a footer with the source chip and as-of date.
@@ -490,14 +490,13 @@ Avnet's voice is **a confident and collaborative guide**: resourceful, straightf
 - Use 0px corners on controls and 2px on cards; depth comes from hairlines and surface change.
 - Use tabular figures, right-aligned, for every number in a table.
 - Show a source and an as-of date on every chart and KPI.
-- Draw the slash mark once per page, in the page header.
 
 ### Don't
 
 - Don't put green text on white, or yellow or light blue text on anything light.
 - Don't use Avnet Green for "good", "low risk" or any non-Avnet series in a chart.
 - Don't add drop shadows to cards or round controls into pills.
-- Don't type a "/" as the slash mark.
+- Don't use the slash mark, drawn or typed, or the slash pattern.
 - Don't use more than one highlight bar, A-Frame or pattern on a page, or any of them on dense data pages.
 - Don't use Medium Gray (#919191) for small body text.
 - Don't introduce new accent colours. Use the brand secondary and tertiary palettes, in order.
@@ -509,7 +508,7 @@ Picked up in steps 1.3, 1.5 and 1.6:
 1. ~~`RISK_COLOR.low` is Avnet Green.~~ Done in step 1.3: the ramp starts at Light Gray.
 2. ~~`SERIES_ORDER` includes Dark Green and Medium Gray, and cycles.~~ Done in step 1.3: the validated order, no cycling, `entityColor` keeps Arrow Dark Blue.
 3. The `source-chip` and `data-hookup` yellow text (1.7:1) becomes black text with a yellow border or tint.
-4. `.slash-heading::before { content: "/" }` becomes a drawn slash mark.
+4. ~~The typed "/" before card headings.~~ Removed: the brand kit dropped the slash mark.
 5. `shadow-card` goes, and `rounded-card` goes from 8px to 2px.
 6. Charts hard-code `#E3E5E8`, `#EEF0F2` and a 6px tooltip radius. The shared `CHART` tokens exist (step 1.3); each chart moves to them, with solid gridlines, in its phase 2 pass.
 8. `endmarket-bars.tsx` colours one series of bars by index. Make it one colour in its phase 2 pass.
@@ -557,10 +556,11 @@ Mockups made in Google Stitch from this document: project "Avnet Market Intellig
 2. **Company Profile**: `docs/design/reference/02-company-profile.png`. A detail page mixing narrative and data: header with actions and tabs, KPIs with sources, a stacked chart with no green (not Avnet), management commentary with word-plus-arrow tone chips, and a distribution table.
 3. **Market Share**: `docs/design/reference/03-market-share.png`. The densest type of page: filter bar, KPIs, Avnet green and Arrow blue lines labelled at the line end, a white-space list with trackless bars, and a sortable table with a density switch.
 
-**Keep from the references:** square controls, hairline-only tables, the KPI tile layout (label, figure, delta, source), the dashed mock marker under the section it describes, the green slash before the page title, the green fill only for Avnet, the Arrow blue, line labels at the end of the line, the tone chips with words and arrows, and the compact/comfortable switch.
+**Keep from the references:** square controls, hairline-only tables, the KPI tile layout (label, figure, delta, source), the dashed mock marker under the section it describes, the green fill only for Avnet, the Arrow blue, line labels at the end of the line, the tone chips with words and arrows, and the compact/comfortable switch.
 
 **Correct when building (the references drift from this document):**
 
+- Remove the green slash before page titles. It appears in every reference screen, but the brand kit no longer uses it.
 - Card and section titles are sentence case in Oswald Regular, not all caps. All caps is for the page title and `label` text only.
 - The highlight bar is angled and bleeds off the edge, per the brand. The references draw it as a flat full-width banner.
 - The mock marker's link and label use black text, not amber (amber fails contrast). Drop the "Configure data source" link until that flow exists.
@@ -587,10 +587,11 @@ Mockups made in Google Stitch from this document: project "Avnet Market Intellig
 2. A new colour need goes through the brand palette first, in order: primary, then secondary, then tertiary, data viz only.
 3. Run `npx @google/design.md lint DESIGN.md` after edits.
 4. When the tokens change, update `tailwind.config.ts` and `src/lib/colors.ts` in the same change.
-5. When this document changes, refresh Stitch: run `node scripts/stitch-design-md.mjs` (it writes `docs/design/stitch-design.md`, this file minus the repo-only sections), then update the Stitch design system with that file's content.
+5. When this document changes, refresh Stitch: run `node scripts/stitch-design-md.mjs` (it writes `docs/design/stitch-design.md`, this file minus the repo-only sections), then create a new Stitch design system from that file (updates fail; see below) and record its id here.
 
 ### Stitch
 
-- Project "Avnet Market Intelligence - Direction" (`18036872963696779556`). Design system **"Avnet Market Intelligence"** (`assets/4378956131163205347`), created from `docs/design/stitch-design.md` on 2026-10-20. Pass it as `designSystem` on every `generate_screen_from_text` call. Ignore "Precision Intelligence Core", which Stitch generated for the first reference screen.
-- Test screen: `docs/design/reference/04-avnet-vs-arrow-ds-test.png`, from a five-line prompt with no styling. It got the brand right (Avnet green, Arrow `#4273B8`, square controls, hairlines, Oswald, the slash mark) and invented every number.
-- Stitch still drifts on these, so repeat them in each prompt: card titles in sentence case; one primary button, labels on one line; no emoji or icons in banners; bars without background tracks; no version labels; mock marker in black text; real or clearly mock numbers only.
+- Project "Avnet Market Intelligence - Direction" (`18036872963696779556`). Design system **"Avnet Market Intelligence v2"** (`assets/12368506614593897195`), created from `docs/design/stitch-design.md` on 2026-10-20 after the slash mark was dropped. Pass it as `designSystem` on every `generate_screen_from_text` call. Ignore the other two: "Avnet Market Intelligence" (`assets/4378956131163205347`) still describes the slash mark, and "Precision Intelligence Core" was generated by Stitch for the first reference screen.
+- Stitch's `update_design_system` rejects every call for these systems ("invalid argument"), so refresh by creating a new system from the export and updating the id here.
+- Test screen: `docs/design/reference/04-avnet-vs-arrow-ds-test.png`, from a five-line prompt with no styling. It got the brand right (Avnet green, Arrow `#4273B8`, square controls, hairlines, Oswald) and invented every number.
+- Stitch still drifts on these, so repeat them in each prompt: card titles in sentence case; one primary button, labels on one line; no emoji or icons in banners; no slash mark before titles; bars without background tracks; no version labels; mock marker in black text; real or clearly mock numbers only.

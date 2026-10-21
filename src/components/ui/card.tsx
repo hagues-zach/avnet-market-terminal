@@ -29,7 +29,7 @@ export function Card({
       {title && (
         <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
           <div>
-            <h2 className="slash-heading text-sm">{title}</h2>
+            <h2 className="caps-heading text-sm">{title}</h2>
             {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
           </div>
           <div className="flex items-center gap-2">

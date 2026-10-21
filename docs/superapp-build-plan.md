@@ -54,7 +54,7 @@ Brand inputs already on disk: `~/avnet-repos/cellular-module-iot/assets/avnet-br
 
 Do these in order; every page pass in phase 2 depends on them.
 
-Progress: 1.1 done (`DESIGN.md`). 1.2 done, pending your review (direction note and three Stitch reference screens in `docs/design/reference/`). 1.3 done: semantic tokens in `tailwind.config.ts` (existing classes unchanged), validated chart palette and shared chart tokens in `src/lib/colors.ts`. 1.4 done: Stitch design system "Avnet Market Intelligence" (`assets/4378956131163205347`) in project `18036872963696779556`, created from `docs/design/stitch-design.md` (built by `node scripts/stitch-design-md.mjs`), tested with an Avnet vs Arrow screen. 1.5 done: component kit in `src/components/ui` and a new shell in `src/components/layout/app-*.tsx`, shown at `/design-kit` (screenshots in `docs/design/kit/`); old components stay until 1.6.
+Progress: 1.1 done (`DESIGN.md`). 1.2 done, pending your review (direction note and three Stitch reference screens in `docs/design/reference/`). 1.3 done: semantic tokens in `tailwind.config.ts` (existing classes unchanged), validated chart palette and shared chart tokens in `src/lib/colors.ts`. 1.4 done: Stitch design system "Avnet Market Intelligence v2" (`assets/12368506614593897195`, without the slash mark) in project `18036872963696779556`, created from `docs/design/stitch-design.md` (built by `node scripts/stitch-design-md.mjs`), tested with an Avnet vs Arrow screen. 1.5 done: component kit in `src/components/ui` and a new shell in `src/components/layout/app-*.tsx`, shown at `/design-kit` (screenshots in `docs/design/kit/`); old components stay until 1.6.
 
 | Step | Goal | Tools | Done when |
 |---|---|---|---|
