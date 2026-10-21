@@ -32,14 +32,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [open]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2 focus:text-body-sm focus:text-ink focus:shadow-overlay"
       >
         Skip to content
       </a>
-      <div className="hidden lg:flex">
+      <div className="hidden lg:flex print:hidden">
         <AppSidebar />
       </div>
 
@@ -61,9 +61,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col" inert={open || undefined}>
+      <div className="flex min-w-0 flex-1 flex-col print:block" inert={open || undefined}>
         <AppTopbar onMenu={() => setOpen(true)} menuOpen={open} />
-        <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto bg-canvas focus:outline-none">
+        <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto bg-canvas focus:outline-none print:overflow-visible print:bg-surface">
           {children}
         </main>
       </div>

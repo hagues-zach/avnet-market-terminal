@@ -18,7 +18,7 @@ import { format, longDate } from "@/components/earnings/format";
 
 const DAY = 86_400_000;
 
-function yearAgo(quarters: Quarter[], q: Quarter): Quarter | undefined {
+export function yearAgo(quarters: Quarter[], q: Quarter): Quarter | undefined {
   const target = Date.parse(q.end) - 364 * DAY;
   return quarters.find((p) => Math.abs(Date.parse(p.end) - target) <= 20 * DAY);
 }
@@ -388,19 +388,28 @@ function seeded(slug: string, salt: number, min: number, max: number): number {
   return min + ((h >>> 0) % 1000) / 1000 * (max - min);
 }
 
-/** Avnet's business with a supplier or customer. MOCK until billings and account data are hooked up. */
-export function ProfileAvnetBusiness({ company }: { company: Company }) {
-  const role = roleOf(company);
-  const supplier = role === "supplier";
+/**
+ * Avnet's business with a supplier or customer. MOCK until billings and account
+ * data are hooked up; shared by the profile and the QBR brief so they agree.
+ */
+export function avnetBusinessMock(company: Company) {
+  const supplier = roleOf(company) === "supplier";
   const billings = seeded(company.slug, 1, 40, 900);
-  const rows = [
-    { label: "Billings, last 12 months", value: `$${billings.toFixed(1)}M` },
-    { label: "Backlog", value: `$${(billings * seeded(company.slug, 2, 0.3, 0.8)).toFixed(1)}M` },
-    supplier
-      ? { label: "Open design registrations", value: Math.round(seeded(company.slug, 3, 40, 1400)).toLocaleString("en-US") }
-      : { label: "Open quotes", value: Math.round(seeded(company.slug, 4, 20, 600)).toLocaleString("en-US") },
-  ];
-  const hookups = supplier ? ["billings", "backlog", "drms"] : ["billings", "backlog", "quotes", "customer-master"];
+  return {
+    supplier,
+    rows: [
+      { label: "Billings, last 12 months", value: `$${billings.toFixed(1)}M` },
+      { label: "Backlog", value: `$${(billings * seeded(company.slug, 2, 0.3, 0.8)).toFixed(1)}M` },
+      supplier
+        ? { label: "Open design registrations", value: Math.round(seeded(company.slug, 3, 40, 1400)).toLocaleString("en-US") }
+        : { label: "Open quotes", value: Math.round(seeded(company.slug, 4, 20, 600)).toLocaleString("en-US") },
+    ],
+    hookups: supplier ? ["billings", "backlog", "drms"] : ["billings", "backlog", "quotes", "customer-master"],
+  };
+}
+
+export function ProfileAvnetBusiness({ company }: { company: Company }) {
+  const { supplier, rows, hookups } = avnetBusinessMock(company);
   return (
     <Panel title="Avnet business" subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`} actions={<DataChip status="mock" />}>
       <dl className="divide-y divide-hairline">

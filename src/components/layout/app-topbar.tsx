@@ -17,7 +17,7 @@ export function AppTopbar({
   menuOpen?: boolean;
 }) {
   return (
-    <header className="flex h-topbar shrink-0 items-center justify-between gap-4 border-b border-hairline bg-surface px-4 xl:px-6">
+    <header className="flex h-topbar shrink-0 print:hidden items-center justify-between gap-4 border-b border-hairline bg-surface px-4 xl:px-6">
       <div className="flex min-w-0 items-center gap-3">
         {onMenu && (
           <button

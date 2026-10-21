@@ -79,7 +79,7 @@ Order, by how often sellers and leaders will open the page:
 
 - [x] 2.1 Start Here, including the persona switch (hybrid layout; brief and mockups in `docs/design/pages/`)
 - [x] 2.2 Company Profile (dossier layout; brief and mockups in `docs/design/pages/`)
-- [ ] 2.3 QBR Prep
+- [x] 2.3 QBR Prep (document-first layout with live sections; brief and mockups in `docs/design/pages/`)
 - [ ] 2.4 Market Share
 - [ ] 2.5 TAM / SAM / SOM
 - [ ] 2.6 Performance Tracker
@@ -104,7 +104,7 @@ Order, by how often sellers and leaders will open the page:
 
 Functional builds that do not need internal data.
 
-- [ ] 3.1 QBR Prep: assemble the brief from live public data (profile, commentary, news, line cards, cycle) and have Claude write talking points with sources. Avnet account numbers stay mock.
+- [ ] 3.1 QBR Prep: ~~assemble the brief from live public data (profile, commentary, news, line cards, cycle)~~ (done in 2.3) and have Claude write talking points and questions for the meeting and its focus, with sources. Avnet account numbers stay mock.
 - [ ] 3.2 Ask the Terminal: Claude with tools over the app's live data, answering with sources.
 - [ ] 3.3 Pitch Deck Builder: export chosen views as Avnet-branded slides from the Avnet template.
 - [ ] 3.4 Scenario Modeler: real what-if maths over the market data (growth and share targets).
