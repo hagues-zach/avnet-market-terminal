@@ -1,133 +1,77 @@
 import Link from "next/link";
-import { HOOKUPS, PILLAR_NAMES, type DataPillar, type HookupStatus } from "@/lib/hookups";
-import * as specs from "@/lib/shells/specs";
-import type { ShellSpec } from "@/lib/shells/types";
-import { LEGACY } from "@/lib/shells/legacy";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { HOOKUPS, PILLAR_NAMES } from "@/lib/hookups";
+import { CONNECTION_ORDER } from "@/lib/data-hookups/order";
+import { PAGE_HOOKUPS } from "@/lib/data-hookups/pages";
+import { byCloseness, countBy, lead, nextStep, readPages, readSteps, unscheduled } from "@/lib/data-hookups/read";
+import { NAV } from "@/components/layout/nav";
+import { PageBody } from "@/components/layout/page-body";
+import { KpiTile } from "@/components/ui/kpi-tile";
+import { PageTitle } from "@/components/ui/page-title";
+import { HookupsWorkbench } from "@/components/hookups/workbench";
 
-const ROUTES: Record<string, string> = {
-  START: "/start",
-  PERFORMANCE_SPEC: "/performance",
-  MARKET_SHARE_SPEC: "/market-share",
-  SUPPLY_CHAIN_SPEC: "/supply-chain",
-  PIPELINE_SPEC: "/design-pipeline",
-  CUSTOMERS_SPEC: "/customers",
-  QBR_SPEC: "/tools/qbr",
-  DECK_SPEC: "/tools/deck",
-  LEADS_SPEC: "/tools/leads",
-  MAPPING_SPEC: "/tools/mapping",
-};
+// Data Hookups (PRD 10.3): every source the app needs, what each takes, the
+// pages it feeds and the phase 5 order. Built from the register in
+// src/lib/hookups.ts and the page usage in src/lib/data-hookups/pages.ts, so
+// nothing here is mock: changing a status to "live" changes this page.
 
-const STATUS_STYLE: Record<HookupStatus, string> = {
-  live: "border-avnet-green text-ink",
-  mock: "border-dashed border-accent-yellow text-ink",
-  planned: "border-line text-muted",
-};
-const STATUS_LABEL: Record<HookupStatus, string> = { live: "Live", mock: "Mock in place", planned: "Planned" };
-const ORDER: DataPillar[] = ["internal", "licensed", "derived", "open"];
+const link = "text-ink underline-offset-2 hover:underline";
 
 export default function DataHookupsPage() {
-  // Which pages use each hookup, from the shell specs and the older mock pages.
-  const usedBy = new Map<string, { title: string; href: string }[]>();
-  const add = (id: string, page: { title: string; href: string }) => {
-    const list = usedBy.get(id) ?? [];
-    if (!list.some((p) => p.href === page.href)) list.push(page);
-    usedBy.set(id, list);
-  };
-  for (const [name, spec] of Object.entries(specs) as [string, ShellSpec][]) {
-    const href = ROUTES[name];
-    if (href) for (const s of spec.sections) for (const id of s.hookups) add(id, { title: spec.title, href });
-  }
-  for (const [href, page] of Object.entries(LEGACY)) for (const id of page.hookups) add(id, { title: page.title, href });
-
-  const counts = (s: HookupStatus) => HOOKUPS.filter((h) => h.status === s).length;
+  const pages = readPages(HOOKUPS, PAGE_HOOKUPS);
+  const marked = pages.filter((p) => p.pending.length > 0).length;
+  const steps = readSteps(HOOKUPS, PAGE_HOOKUPS, CONNECTION_ORDER);
+  const live = HOOKUPS.filter((h) => h.status === "live");
+  const register = { status: "live" as const, label: "Register" };
 
   return (
-    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
-      <PageHeader title="Data Hookups" subtitle="Every data source the app needs, where it is used, and what is still mock" />
-      <div className="grid grid-cols-3 gap-3">
-        {(["live", "mock", "planned"] as const).map((s) => (
-          <div key={s} className="rounded-card border border-line bg-surface px-4 py-3 shadow-card">
-            <span className="font-display text-2xs uppercase tracking-wider text-muted">{STATUS_LABEL[s]}</span>
-            <div className="mt-1.5 font-display text-2xl tabular text-ink">{counts(s)}</div>
-          </div>
-        ))}
+    <PageBody>
+      <PageTitle title="Data Hookups" subtitle="Every data source the app needs, what each one takes, and the order the data team connects them" />
+
+      <h2 className="text-pretty text-xl leading-snug text-ink">{lead(HOOKUPS, PAGE_HOOKUPS, CONNECTION_ORDER)}</h2>
+
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <KpiTile
+          label="Live"
+          value={String(live.length)}
+          note={live.every((h) => h.pillar === "open") ? "all open data" : undefined}
+          source={register}
+        />
+        <KpiTile label="Mock" value={String(countBy(HOOKUPS, "mock"))} note="a mock stands in" source={register} />
+        <KpiTile label="Planned" value={String(countBy(HOOKUPS, "planned"))} note="nothing in place yet" source={register} />
+        <KpiTile label="Pages with a mock marker" value={`${marked} of ${NAV.length}`} note="in the navigation" source={register} />
       </div>
-      {ORDER.map((pillar) => (
-        <Card key={pillar} title={PILLAR_NAMES[pillar]} bodyClassName="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-xs">
-              <thead>
-                <tr className="border-b border-line text-left font-display text-2xs uppercase tracking-wider text-muted">
-                  <th scope="col" className="px-4 py-2 font-normal">
-                    Source
-                  </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
-                    Status
-                  </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
-                    Tables, files or endpoints
-                  </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
-                    Refresh
-                  </th>
-                  <th scope="col" className="px-3 py-2 font-normal">
-                    Used by
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {HOOKUPS.filter((h) => h.pillar === pillar).map((h) => (
-                  <tr key={h.id} id={h.id} className="border-b border-line align-top last:border-b-0">
-                    <th scope="row" className="w-64 px-4 py-2 text-left font-normal">
-                      <span className="font-medium text-ink">{h.name}</span>
-                      <span className="mt-0.5 block text-2xs text-muted">{h.description}</span>
-                      {h.notes && <span className="mt-0.5 block text-2xs text-muted">{h.notes}</span>}
-                    </th>
-                    <td className="px-3 py-2">
-                      <span className={cn("whitespace-nowrap rounded border px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider", STATUS_STYLE[h.status])}>
-                        {STATUS_LABEL[h.status]}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <ul className="space-y-0.5 font-mono text-2xs text-ink">
-                        {h.sources.map((s) => (
-                          <li key={s}>{s}</li>
-                        ))}
-                      </ul>
-                      {h.fields && <p className="mt-1 text-2xs text-muted">Fields: {h.fields.join(", ")}</p>}
-                      {h.replaceIn && <p className="mt-0.5 text-2xs text-muted">Mock lives in {h.replaceIn}</p>}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-muted">{h.refresh}</td>
-                    <td className="px-3 py-2">
-                      {(usedBy.get(h.id) ?? []).length === 0 ? (
-                        <span className="text-muted">{h.status === "live" ? "Live pages" : "Not yet on a page"}</span>
-                      ) : (
-                        <ul className="space-y-0.5">
-                          {usedBy.get(h.id)!.map((p) => (
-                            <li key={p.href}>
-                              <Link href={p.href} className="text-ink underline decoration-line underline-offset-2 hover:text-avnet-greenDark">
-                                {p.title}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ))}
-      <p className="px-1 text-2xs text-muted">
-        The register is src/lib/hookups.ts. When a source is connected, set its status to live and replace the mock module it
-        names; every page and marker that uses it updates. Table and view names are from the PRD and have not been checked
-        against the Databricks workspace.
-      </p>
-    </div>
+
+      <HookupsWorkbench
+        hookups={HOOKUPS}
+        pillars={PILLAR_NAMES}
+        steps={steps.map((s) => ({
+          step: s.step,
+          name: s.name,
+          status: s.status,
+          live: s.live,
+          total: s.ids.length,
+          ids: s.ids,
+          reach: s.reach.map((p) => p.href),
+          completes: s.completes.map((p) => p.title),
+        }))}
+        next={nextStep(steps)?.step}
+        unscheduled={unscheduled(HOOKUPS, CONNECTION_ORDER).map((h) => h.name)}
+        pageRows={byCloseness(pages).map((p) => ({ href: p.href, title: p.title, ids: p.ids, live: p.live }))}
+      />
+
+      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-caption text-ink-muted">
+        <p className="max-w-[90ch]">
+          Table and view names are from the PRD and have not been checked against the Databricks workspace. Sources are queried in place, never copied
+          (build plan, step 5.1). To connect one, set its status to live in{" "}
+          <span translate="no" className="font-mono text-micro">
+            src/lib/hookups.ts
+          </span>{" "}
+          and replace the mock module it names; every marker that uses it clears.
+        </p>
+        <Link href="/learn#sources" className={`${link} ml-auto text-body-sm`}>
+          Sellers see these sources in plain words in the Learning Center
+        </Link>
+      </div>
+    </PageBody>
   );
 }

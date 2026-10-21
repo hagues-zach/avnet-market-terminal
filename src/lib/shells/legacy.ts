@@ -9,13 +9,6 @@ export const LEGACY: Record<string, { title: string; purpose: string; prd: strin
     personas: ["executives", "strategy"],
     hookups: ["wsts", "gartner-forecast"],
   },
-  "/tam": {
-    title: "TAM / SAM / SOM",
-    purpose: "Total market, the part Avnet can serve, and the part it wins, by segment and period.",
-    prd: "PRD module 4 and section 7",
-    personas: ["strategy", "executives", "product managers"],
-    hookups: ["wsts", "gartner-forecast", "ipe-forecast", "billings", "code-map", "tam-sam-som"],
-  },
   "/forecast": {
     title: "Scenario Modeler",
     purpose: "What-if on market growth rates and share targets.",

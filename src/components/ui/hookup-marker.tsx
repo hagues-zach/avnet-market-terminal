@@ -24,7 +24,9 @@ export function HookupMarker({ ids }: { ids: string[] }) {
         {items.map((h) => (
           <div key={h.id}>
             <p className="font-semibold">
-              {h.name}{" "}
+              <Link href={`/data-hookups#${h.id}`} className="underline-offset-2 hover:underline">
+                {h.name}
+              </Link>{" "}
               <span className="font-normal text-ink-muted">
                 {PILLAR_NAMES[h.pillar]}, refreshed {h.refresh.toLowerCase()}
               </span>
