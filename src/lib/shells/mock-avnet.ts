@@ -139,6 +139,122 @@ const VERTICAL_MIX = [
 ];
 export const VERTICALS = VERTICAL_MIX.map((v) => ({ ...v, billings: TTM_BILLINGS * v.share }));
 
+/* ---------- Design pipeline (DRMS) ---------- */
+
+// Design registrations submitted in the trailing 12 months, by how far each has
+// got. Values are estimated annual billings ($M). "Approved pipeline" is the
+// value approved but not yet billing: approved minus billing. Groups (supplier,
+// segment, vertical) take shares of the same totals, so every view adds back up.
+
+export type PipelineStage = "submitted" | "approved" | "production" | "billing";
+export const PIPELINE_STAGES: { id: PipelineStage; label: string }[] = [
+  { id: "submitted", label: "Submitted" },
+  { id: "approved", label: "Approved" },
+  { id: "production", label: "In production" },
+  { id: "billing", label: "Billing" },
+];
+
+export interface StageFigures {
+  count: number;
+  value: number; // $M estimated annual billings
+}
+export type Funnel = Record<PipelineStage, StageFigures>;
+
+export const PIPELINE: Funnel = {
+  submitted: { count: 4200, value: 6100 },
+  approved: { count: 2730, value: 4000 },
+  production: { count: 1450, value: 2200 },
+  billing: { count: 1180, value: 1600 },
+};
+/** Approved but not yet billing, $M, now and a year ago. */
+export const APPROVED_PIPELINE = PIPELINE.approved.value - PIPELINE.billing.value;
+export const APPROVED_PIPELINE_YEAR_AGO = APPROVED_PIPELINE / 1.11;
+export const NEW_REGISTRATIONS = { thisQuarter: 1120, yearAgo: 1037 };
+export const APPROVAL_RATE = { now: PIPELINE.approved.count / PIPELINE.submitted.count, yearAgo: 0.63 };
+/** Median months from approval to first billing. */
+export const MONTHS_TO_BILLING = 14;
+
+/** Approved pipeline and billings on design-approved parts, by quarter ($M). The pipeline moves first. */
+const PIPELINE_TREND = [1880, 1960, 2010, 2080, 2150, 2210, 2300, APPROVED_PIPELINE];
+export const PIPELINE_BY_QUARTER = QUARTERS.map((quarter, i) => ({
+  quarter,
+  pipeline: PIPELINE_TREND[i],
+  designBillings: Math.round(BILLINGS[i] * DESIGN_APPROVED_SHARE),
+}));
+
+/** One group's funnel: its share of each stage's total, nudged so conversion differs between groups. */
+function funnelFor(share: number, tilt: number): Funnel {
+  const scale = (f: StageFigures, k: number) => ({ count: Math.round(f.count * share * k), value: f.value * share * k });
+  return {
+    submitted: scale(PIPELINE.submitted, 1),
+    approved: scale(PIPELINE.approved, 1 + tilt * 0.5),
+    production: scale(PIPELINE.production, 1 + tilt),
+    billing: scale(PIPELINE.billing, 1 + tilt),
+  };
+}
+
+export interface PipelineRow {
+  name: string;
+  funnel: Funnel;
+  /** Approved but not yet billing, $M. */
+  pipeline: number;
+  /** Change in approved pipeline on a year ago. */
+  change: number;
+  /** Billings in the trailing 12 months, $M, for the pipeline-to-billings ratio. */
+  billings: number;
+  /** Approved over 12 months ago and not yet in production. */
+  stalled: number;
+}
+
+/** Rows for one view, rescaled stage by stage so the groups add back to the totals. */
+function rows(names: string[], shares: number[], tilts: number[], changes: number[], billings: number[]): PipelineRow[] {
+  const funnels = names.map((_, i) => funnelFor(shares[i], tilts[i]));
+  for (const { id } of PIPELINE_STAGES) {
+    const count = sum(funnels.map((f) => f[id].count));
+    const value = sum(funnels.map((f) => f[id].value));
+    for (const f of funnels) f[id] = { count: Math.round((f[id].count * PIPELINE[id].count) / count), value: (f[id].value * PIPELINE[id].value) / value };
+  }
+  return names.map((name, i) => {
+    const funnel = funnels[i];
+    const stalled = Math.max(0, Math.round(funnel.approved.count * (0.04 - tilts[i] * 0.05)));
+    return { name, funnel, pipeline: funnel.approved.value - funnel.billing.value, change: changes[i], billings: billings[i], stalled };
+  });
+}
+
+// Supplier shares of the pipeline differ from their shares of billings: that gap is the point of the view.
+const SUPPLIER_PIPE = [0.15, 0.11, 0.1, 0.05, 0.06, 0.53];
+const SUPPLIER_TILT = [0.06, -0.04, 0.1, -0.08, 0.02, 0];
+const SUPPLIER_CHANGE = [0.142, 0.094, 0.21, -0.031, 0.118, 0.087];
+export const PIPELINE_BY_SUPPLIER = rows(SUPPLIERS.map((s) => s.name), SUPPLIER_PIPE, SUPPLIER_TILT, SUPPLIER_CHANGE, SUPPLIERS.map((s) => s.billings));
+
+const SEGMENT_PIPE = [0.17, 0.2, 0.12, 0.09, 0.13, 0.04, 0.05, 0.11, 0.05, 0.04];
+const SEGMENT_TILT = [0.02, 0.05, -0.03, -0.06, 0.08, -0.02, 0.04, 0, -0.04, 0.01];
+const SEGMENT_CHANGE = [0.09, 0.16, 0.05, -0.04, 0.21, -0.02, 0.12, 0.07, 0.03, 0.04];
+export const PIPELINE_BY_SEGMENT = rows([...SEGMENTS], SEGMENT_PIPE, SEGMENT_TILT, SEGMENT_CHANGE, SEGMENT_BILLINGS.map((s) => s.billings));
+
+const VERTICAL_PIPE = [0.27, 0.2, 0.17, 0.2, 0.08, 0.05, 0.03];
+const VERTICAL_TILT = [0.03, -0.02, 0.04, 0.07, 0.01, -0.03, -0.05];
+const VERTICAL_CHANGE = [0.08, 0.05, 0.13, 0.27, 0.1, 0.04, -0.06];
+export const PIPELINE_BY_VERTICAL = rows(VERTICALS.map((v) => v.name), VERTICAL_PIPE, VERTICAL_TILT, VERTICAL_CHANGE, VERTICALS.map((v) => v.billings));
+
+const SEG = (i: number) => SEGMENTS[i];
+/** Approved over 12 months ago and not yet in production, oldest first. Names withheld. */
+export const STALLED_REGISTRATIONS = [
+  { reg: "DR-004512", supplier: "Supplier A", segment: SEG(1), value: 4.2, months: 19 },
+  { reg: "DR-004180", supplier: "Supplier B", segment: SEG(0), value: 2.8, months: 17 },
+  { reg: "DR-005219", supplier: "Supplier C", segment: SEG(4), value: 1.9, months: 15 },
+  { reg: "DR-005844", supplier: "Supplier D", segment: SEG(3), value: 1.4, months: 14 },
+  { reg: "DR-006102", supplier: "Supplier E", segment: SEG(2), value: 1.1, months: 13 },
+];
+/** Approved in the last 30 days, newest first. Dates are days ago so the mock never goes stale. */
+export const RECENT_APPROVALS = [
+  { reg: "DR-009842", supplier: "Supplier B", segment: SEG(0), value: 3.5, daysAgo: 3 },
+  { reg: "DR-009811", supplier: "Supplier A", segment: SEG(1), value: 2.1, daysAgo: 6 },
+  { reg: "DR-009764", supplier: "Supplier C", segment: SEG(6), value: 1.8, daysAgo: 9 },
+  { reg: "DR-009710", supplier: "Supplier E", segment: SEG(7), value: 0.95, daysAgo: 13 },
+  { reg: "DR-009685", supplier: "Supplier D", segment: SEG(4), value: 2.4, daysAgo: 17 },
+];
+
 /* ---------- Formatting ---------- */
 
 export const fmtM = (v: number) => (Math.abs(v) >= 1000 ? `$${(v / 1000).toFixed(2)}B` : `$${Math.round(v)}M`);
