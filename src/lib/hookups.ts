@@ -259,7 +259,7 @@ export const HOOKUPS: Hookup[] = [
   // ---- Derived ----
   {
     id: "code-map",
-    name: "Gartner/WSTS to Avnet code map",
+    name: "Gartner and WSTS to Avnet code map",
     pillar: "derived",
     status: "mock",
     description: "The mapping from external market categories to Avnet's product codes. Without it, market share is meaningless.",
