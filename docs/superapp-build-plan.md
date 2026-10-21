@@ -83,7 +83,7 @@ Order, by how often sellers and leaders will open the page:
 - [x] 2.4 Market Share (scorecard layout with live Avnet against Arrow and growth against makers; brief and mockups in `docs/design/pages/`)
 - [x] 2.5 TAM / SAM / SOM (funnel first with a category table and a live forecast check; brief and mockups in `docs/design/pages/`)
 - [x] 2.6 Performance Tracker (operating view, live reported revenue; one shared mock model of Avnet now feeds every page; brief and mockups in `docs/design/pages/`)
-- [ ] 2.7 Line Cards
+- [x] 2.7 Line Cards (briefing then reference on live data; Avnet's line card still to import; brief and mockups in `docs/design/pages/`)
 - [ ] 2.8 Market News
 - [ ] 2.9 Market Cycle
 - [ ] 2.10 Avnet vs Arrow

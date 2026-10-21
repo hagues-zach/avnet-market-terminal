@@ -7,8 +7,8 @@ import { DISTRIBUTORS } from "@/lib/line-cards/model";
 import { cn } from "@/lib/utils";
 
 const field =
-  "w-full rounded border border-line bg-surface px-2 py-1.5 text-sm text-ink placeholder:text-gray-medium focus:border-avnet-green focus:outline-none focus:ring-2 focus:ring-avnet-green/30";
-const label = "mb-1 block font-display text-2xs uppercase tracking-widest text-muted";
+  "w-full rounded-none border border-hairline bg-surface px-2 py-1.5 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none";
+const label = "mb-1 block font-display text-micro uppercase tracking-widest text-ink-muted";
 
 export function ImportForm({ today, suggested }: { today: string; suggested: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(importSnapshot, { ok: false, messages: [] });
@@ -68,13 +68,13 @@ export function ImportForm({ today, suggested }: { today: string; suggested: str
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded bg-ink px-3 py-1.5 font-display text-2xs uppercase tracking-wider text-white transition-colors duration-200 hover:bg-ink/80 cursor-pointer disabled:cursor-wait disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-avnet-green/40"
+          className="inline-flex h-control items-center gap-1.5 border border-ink bg-surface px-3 font-body text-button text-ink transition-colors hover:bg-surface-sunken cursor-pointer disabled:cursor-wait disabled:opacity-60"
         >
           {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Save snapshot
         </button>
         {state.messages.map((m) => (
-          <p key={m} role="status" className={cn("text-xs", state.ok ? "text-avnet-greenDark" : "text-danger")}>
+          <p key={m} role="status" className={cn("text-caption", state.ok ? "text-positive" : "text-negative")}>
             {m}
           </p>
         ))}
