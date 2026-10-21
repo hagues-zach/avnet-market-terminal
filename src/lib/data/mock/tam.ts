@@ -6,6 +6,7 @@ import type {
   TamSummary,
   UsdMillions,
 } from "../types";
+import { SEMI_BILLINGS } from "@/lib/shells/mock-avnet";
 
 // Annual world semiconductor TAM ($M), anchored to WSTS/SIA history; 2026 = WSTS
 // Autumn-2025 forecast. Vintage labeled everywhere.
@@ -21,12 +22,18 @@ const TAM_HISTORY: { year: number; tam: number; forecast?: boolean }[] = [
 ];
 
 // SAM = distribution-served slice of TAM (~18%, ties to ECIA channel size).
-// SOM = Avnet's share of SAM (mock; real value comes from internal billings).
+// SOM = Avnet's semiconductor billings in SAM (mock). The latest year comes from
+// the shared Avnet model so this page agrees with Market Share and Start Here;
+// earlier years follow the shape below. Real value comes from internal billings.
 const SAM_SHARE_OF_TAM = 0.18;
-const SOM_SHARE_OF_SAM: Record<number, number> = {
+const SOM_SHAPE: Record<number, number> = {
   2019: 0.088, 2020: 0.09, 2021: 0.094, 2022: 0.096,
   2023: 0.092, 2024: 0.095, 2025: 0.096, 2026: 0.097,
 };
+const SOM_2025 = SEMI_BILLINGS / (772_200 * SAM_SHARE_OF_TAM);
+const SOM_SHARE_OF_SAM: Record<number, number> = Object.fromEntries(
+  Object.entries(SOM_SHAPE).map(([y, v]) => [y, (v / SOM_SHAPE[2025]) * SOM_2025]),
+);
 
 // 2025 product-category shares of TAM (sum = 1.0). Micro = MPU/MCU/DSP.
 const PRODUCT_SHARE_2025: Record<ProductCategory, number> = {

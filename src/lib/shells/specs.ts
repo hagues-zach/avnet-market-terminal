@@ -1,5 +1,5 @@
 import type { ShellSpec } from "./types";
-import { fmtM, fmtPct, PERFORMANCE, QUARTERS, REGIONS, SEGMENTS, SUPPLIERS, VERTICALS } from "./mock-avnet";
+import { DESIGN_APPROVED_SHARE, fmtM, fmtPct, PERFORMANCE, QUARTERS, REGION_PERFORMANCE, SEGMENTS, SUPPLIERS, TTM_BILLINGS, TTM_BILLINGS_YEAR_AGO, VERTICALS } from "./mock-avnet";
 import { LEAD_TIMES, SHARE_BY_SEGMENT, SHARE_TREND } from "./mock-market";
 import { MAPPING_ROWS } from "./mock-mapping";
 
@@ -73,10 +73,10 @@ export const PERFORMANCE_SPEC: ShellSpec = {
       title: "Headline",
       hookups: ["billings", "bookings", "backlog", "drms"],
       items: [
-        { label: "Billings, trailing 12 months", value: fmtM(PERFORMANCE.slice(-4).reduce((s, p) => s + p.billings, 0)), change: "+21.4% YoY", good: true },
+        { label: "Billings, trailing 12 months", value: fmtM(TTM_BILLINGS), change: `${fmtPct(TTM_BILLINGS / TTM_BILLINGS_YEAR_AGO - 1, true)} YoY`, good: TTM_BILLINGS >= TTM_BILLINGS_YEAR_AGO },
         { label: "Book-to-bill", value: latest.bookToBill.toFixed(2) },
         { label: "Backlog", value: fmtM(latest.backlog) },
-        { label: "Design-approved billings", value: "38%", note: "DRMS status 04, share of billings" },
+        { label: "Design-approved billings", value: fmtPct(DESIGN_APPROVED_SHARE), note: "DRMS status 04, share of billings" },
       ],
     },
     {
@@ -111,12 +111,12 @@ export const PERFORMANCE_SPEC: ShellSpec = {
         { key: "btb", label: "Book-to-bill" },
         { key: "backlog", label: "Backlog" },
       ],
-      rows: REGIONS.map((r, i) => ({
-        region: r,
-        billings: fmtM([2060, 2300, 3440, 500][i]),
-        growth: fmtPct([0.55, 0.44, 0.46, 0.29][i], true),
-        btb: ["1.08", "1.04", "1.12", "1.01"][i],
-        backlog: fmtM([3100, 2900, 3700, 420][i]),
+      rows: REGION_PERFORMANCE.map((r) => ({
+        region: r.region,
+        billings: fmtM(r.billings),
+        growth: fmtPct(r.growth, true),
+        btb: r.bookToBill.toFixed(2),
+        backlog: fmtM(r.backlog),
       })),
     },
     {
