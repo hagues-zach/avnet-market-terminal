@@ -81,7 +81,7 @@ Order, by how often sellers and leaders will open the page:
 - [x] 2.2 Company Profile (dossier layout; brief and mockups in `docs/design/pages/`)
 - [x] 2.3 QBR Prep (document-first layout with live sections; brief and mockups in `docs/design/pages/`)
 - [x] 2.4 Market Share (scorecard layout with live Avnet against Arrow and growth against makers; brief and mockups in `docs/design/pages/`)
-- [ ] 2.5 TAM / SAM / SOM
+- [x] 2.5 TAM / SAM / SOM (funnel first with a category table and a live forecast check; brief and mockups in `docs/design/pages/`)
 - [ ] 2.6 Performance Tracker
 - [ ] 2.7 Line Cards
 - [ ] 2.8 Market News
