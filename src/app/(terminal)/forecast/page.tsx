@@ -1,104 +1,63 @@
-"use client";
+import { getCycle } from "@/lib/data/live/cycle";
+import { COMPANIES, isDemand } from "@/lib/data/live/earnings-model";
+import { getForecast } from "@/lib/data/mock/forecast";
+import { QUARTERS, SEGMENT_BILLINGS } from "@/lib/shells/mock-avnet";
+import { FORECAST_SPREAD, SEGMENT_FORECAST } from "@/lib/shells/mock-market";
+import type { SegmentInput } from "@/lib/scenario/model";
+import { PageBody } from "@/components/layout/page-body";
+import { PageTitle } from "@/components/ui/page-title";
+import { ScenarioModeler, type RealityCheck } from "@/components/scenario/modeler";
 
-import { useState } from "react";
-import { dataProvider } from "@/lib/data/provider";
-import { PageHeader } from "@/components/ui/page-header";
-import { ShellBanner } from "@/components/shell/shell-page";
-import { LEGACY } from "@/lib/shells/legacy";
-import { Card } from "@/components/ui/card";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { FanChart } from "@/components/charts/fan-chart";
-import { VintageBars } from "@/components/charts/vintage-bars";
-import { cn } from "@/lib/utils";
-import { formatUsdMillions, formatPctSigned } from "@/lib/format";
-import { formatPct } from "@/lib/utils";
-import { AVNET } from "@/lib/colors";
-import type { Scenario } from "@/lib/data/types";
+// Scenario Modeler: where Avnet's mapped billings land if the market grows
+// like the forecast and share moves as set. The maths is src/lib/scenario/model.ts
+// over the shared mock model; the reality check's reported growth is live
+// from SEC filings. Step 3.4 swaps in WSTS, Gartner and the IP&E forecast.
 
-const SCEN_COLOR: Record<Scenario, string> = { base: AVNET.blueDark, bull: AVNET.greenDark, bear: AVNET.danger };
-const ORDER: Scenario[] = ["bull", "base", "bear"];
+export const dynamic = "force-dynamic";
 
-export default function ForecastPage() {
-  const { value: f } = dataProvider.getForecast();
-  const [scenario, setScenario] = useState<Scenario>("base");
+/** The latest fiscal quarter and the 16 after it, e.g. FY27 Q1, FY27 Q2, ... */
+function quartersAhead(latest: string, n: number): string[] {
+  const m = latest.match(/^FY(\d+) Q(\d)$/);
+  if (!m) return [];
+  const start = Number(m[1]) * 4 + Number(m[2]) - 1;
+  return Array.from({ length: n + 1 }, (_, i) => `FY${Math.floor((start + i) / 4)} Q${((start + i) % 4) + 1}`);
+}
 
-  const p2026 = f.points.find((p) => p.year === 2026)!;
+async function realityCheck(): Promise<RealityCheck> {
+  const f = getForecast().value;
+  const last = f.points.filter((p) => p.actual !== undefined).at(-1)!;
+  const next = f.points.find((p) => p.year === last.year + 1);
+  const base = {
+    supplyCompanies: COMPANIES.filter((c) => !isDemand(c.cohort)).length,
+    wsts: next?.base !== undefined ? next.base / last.actual! - 1 : 0,
+    wstsYear: last.year + 1,
+  };
+  try {
+    const cycle = await getCycle();
+    const at = (points: { label: string; growth?: number }[]) => points.find((p) => p.label === cycle.latest)?.growth;
+    return { ...base, quarter: cycle.latest, avnet: at(cycle.avnet.points), arrow: at(cycle.arrow.points), supply: at(cycle.supply) };
+  } catch {
+    return { ...base, failed: true };
+  }
+}
 
+export default function ScenarioModelerPage() {
+  const segments: SegmentInput[] = SEGMENT_BILLINGS.map((s) => ({
+    segment: s.segment,
+    market: s.market,
+    share: s.share,
+    billings: s.billings,
+    forecast: SEGMENT_FORECAST[s.segment],
+  }));
   return (
-    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
-      <PageHeader title="Scenario Modeler" subtitle="WSTS forecast with confidence band, scenarios & vintage revisions" />
-      <ShellBanner {...LEGACY["/forecast"]} />
-
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <KpiCard label="2026 Base" value={formatUsdMillions(p2026.base!, { precise: true })} delta={p2026.base! / 772_200 - 1} deltaLabel="vs 2025" source="wsts" />
-        <KpiCard label="2026 Bull" value={formatUsdMillions(p2026.bull!, { precise: true })} source="mock" />
-        <KpiCard label="2026 Bear" value={formatUsdMillions(p2026.bear!, { precise: true })} source="mock" />
-        <KpiCard label="2028 Base" value={formatUsdMillions(f.scenarios.base.value2028, { precise: true })} source="mock" />
-        <KpiCard label="CAGR '25–'28" value={formatPct(f.cagrBase)} source="mock" />
-      </div>
-
-      {/* fan chart with scenario toggle */}
-      <Card
-        title="Market Forecast"
-        subtitle="Actuals (solid) → forecast (dashed) with confidence band · 2027–28 modeled"
-        source="wsts"
-        actions={
-          <div className="flex items-center gap-1">
-            {ORDER.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setScenario(s)}
-                className={cn(
-                  "rounded px-2.5 py-1 font-display text-2xs uppercase tracking-wider transition-colors duration-200 cursor-pointer",
-                  scenario === s ? "bg-ink text-white" : "text-muted hover:bg-canvas",
-                )}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        }
-      >
-        <FanChart points={f.points} scenario={scenario} />
-      </Card>
-
-      {/* vintage revisions + scenario table */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <Card className="lg:col-span-3" title="2026 Forecast — Revision History" subtitle="How WSTS revised the 2026 number each release (kept rising)" source="wsts">
-          <VintageBars data={f.vintages} />
-        </Card>
-        <Card className="lg:col-span-2" title="Scenarios to 2028" subtitle="Modeled bull / base / bear" source="mock">
-          <table className="w-full border-collapse text-sm tabular">
-            <thead>
-              <tr className="border-b border-line text-left font-display text-2xs uppercase tracking-wider text-muted">
-                <th className="py-2 font-normal">Scenario</th>
-                <th className="py-2 text-right font-normal">2028</th>
-                <th className="py-2 text-right font-normal">CAGR</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ORDER.map((s) => (
-                <tr key={s} className="border-b border-line/70 last:border-0">
-                  <td className="py-2.5">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: SCEN_COLOR[s] }} />
-                      <span className="text-ink">{f.scenarios[s].label}</span>
-                    </span>
-                  </td>
-                  <td className="py-2.5 text-right text-ink">{formatUsdMillions(f.scenarios[s].value2028, { precise: true })}</td>
-                  <td className="py-2.5 text-right" style={{ color: SCEN_COLOR[s] }}>{formatPctSigned(f.scenarios[s].cagr)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-3 text-2xs text-muted">
-            Sensitivity sliders (demand, ASP, inventory) wire in a later phase. 2027–28 are modeled extrapolations beyond
-            the current WSTS horizon.
-          </p>
-        </Card>
-      </div>
-    </div>
+    <PageBody>
+      <PageTitle title="Scenario Modeler" subtitle="What Avnet's billings come to if the market grows like the forecast and share moves like this" />
+      <ScenarioModeler
+        segments={segments}
+        spread={FORECAST_SPREAD}
+        quarters={quartersAhead(QUARTERS[QUARTERS.length - 1], 16)}
+        checks={realityCheck()}
+      />
+    </PageBody>
   );
 }

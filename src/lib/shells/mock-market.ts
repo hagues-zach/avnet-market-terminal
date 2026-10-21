@@ -82,3 +82,25 @@ export const PURCHASING = [
   { category: "Passives (MLCC)", poValue: 220, change: 0.06 },
   { category: "Electromechanical", poValue: 180, change: -0.03 },
 ];
+
+/**
+ * MOCK. Forecast market growth by segment for each of the next four years, the
+ * Scenario Modeler's base case. Stands in for the WSTS and Gartner forecasts
+ * (semiconductor segments) and the IP&E forecast (connectors, passives and
+ * electromechanical); replace with those once they are hooked up.
+ */
+export const SEGMENT_FORECAST: Record<(typeof SEGMENT_BILLINGS)[number]["segment"], number[]> = {
+  Analog: [0.07, 0.06, 0.05, 0.05],
+  "Microcontrollers & processors": [0.08, 0.07, 0.06, 0.06],
+  "Logic & FPGA": [0.11, 0.09, 0.08, 0.07],
+  Memory: [0.22, 0.12, 0.06, 0.04],
+  "Discretes & power": [0.03, 0.05, 0.06, 0.05],
+  Optoelectronics: [0.02, 0.03, 0.04, 0.04],
+  Sensors: [0.05, 0.05, 0.05, 0.05],
+  Connectors: [0.06, 0.05, 0.05, 0.05],
+  Passives: [0.05, 0.05, 0.04, 0.04],
+  Electromechanical: [0.04, 0.04, 0.04, 0.03],
+};
+
+/** MOCK. How far the upside and downside sit from the base market at each horizon, from the WSTS forecast's band. */
+export const FORECAST_SPREAD = [0.05, 0.09, 0.13, 0.17];
