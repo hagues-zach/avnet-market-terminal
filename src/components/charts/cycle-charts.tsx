@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AVNET } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 
@@ -73,67 +73,6 @@ export function GroupLines({
           />
         ))}
       </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-/** One measure by quarter. */
-export function QuarterBars({
-  rows,
-  dataKey,
-  name,
-  unit,
-  height = 220,
-  domain,
-}: {
-  rows: ChartRow[];
-  dataKey: string;
-  name: string;
-  unit: Unit;
-  height?: number;
-  domain?: [number, number];
-}) {
-  if (!hasData(rows, [dataKey])) return <Empty height={height} />;
-  const f = FORMAT[unit];
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={rows} margin={MARGIN}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F2" vertical={false} />
-        <XAxis dataKey="label" tick={xTick} axisLine={{ stroke: "#E3E5E8" }} tickLine={false} interval="preserveStartEnd" />
-        <YAxis tickFormatter={f.axis} tick={yTick} axisLine={false} tickLine={false} width={52} domain={domain} />
-        <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} formatter={(v: number) => [f.value(v), name]} contentStyle={TOOLTIP_STYLE} />
-        <ReferenceLine y={0} stroke={AVNET.grayMedium} />
-        <Bar dataKey={dataKey} fill={AVNET.blueDark} radius={[4, 4, 0, 0]} maxBarSize={32} isAnimationActive={false} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-/**
- * Small-multiple growth chart for one group: no axis, a zero line, the latest
- * quarter emphasised. The caller prints the group name and latest value as text.
- */
-export function GrowthSpark({ rows, name }: { rows: ChartRow[]; name: string }) {
-  if (!hasData(rows, ["growth"])) return <Empty height={64} />;
-  const lastIndex = rows.reduce((last, r, i) => (typeof r.growth === "number" ? i : last), -1);
-  return (
-    <ResponsiveContainer width="100%" height={64}>
-      <BarChart data={rows} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-        <XAxis dataKey="label" hide />
-        <YAxis hide domain={[(min: number) => Math.min(min, 0), (max: number) => Math.max(max, 0)]} />
-        <Tooltip
-          cursor={{ fill: "rgba(0,0,0,0.03)" }}
-          formatter={(v: number) => [FORMAT.pct.value(v), `${name} revenue, YoY`]}
-          contentStyle={TOOLTIP_STYLE}
-          wrapperStyle={{ zIndex: 20 }}
-        />
-        <ReferenceLine y={0} stroke={AVNET.grayMedium} />
-        <Bar dataKey="growth" radius={[2, 2, 0, 0]} isAnimationActive={false}>
-          {rows.map((r, i) => (
-            <Cell key={r.label} fill={AVNET.blueDark} fillOpacity={i === lastIndex ? 1 : 0.45} />
-          ))}
-        </Bar>
-      </BarChart>
     </ResponsiveContainer>
   );
 }

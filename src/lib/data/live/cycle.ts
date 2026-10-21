@@ -41,6 +41,47 @@ export interface CapexRow {
 
 export type Phase = "Expansion, accelerating" | "Expansion, slowing" | "Contraction, easing" | "Contraction, deepening";
 
+export type StageId = "customers" | "ems" | "distributors" | "manufacturers" | "equipment";
+
+/**
+ * The supply chain as five stages, from the customers who buy electronics back
+ * to the equipment that makes chips. A stage is the companies of its groups
+ * taken together (combined revenue, median inventory and margin), not an
+ * average of the groups.
+ */
+export const STAGES: { id: StageId; name: string; detail: string; cohorts: Cohort[] }[] = [
+  {
+    id: "customers",
+    name: "Customers",
+    detail: "Hyperscalers, devices, automotive, industrial",
+    cohorts: ["hyperscaler", "systems", "auto", "industrial"],
+  },
+  { id: "ems", name: "Contract manufacturers", detail: "Board and system assembly", cohorts: ["ems"] },
+  { id: "distributors", name: "Distributors", detail: "Electronic components distribution", cohorts: ["distributor"] },
+  {
+    id: "manufacturers",
+    name: "Manufacturers",
+    detail: "Chips, memory, interconnect and passives",
+    cohorts: ["manufacturer", "platform", "connectivity", "memory", "components"],
+  },
+  { id: "equipment", name: "Equipment & design", detail: "Fab equipment, packaging, design software", cohorts: ["equipment", "software"] },
+];
+
+export interface StageSeries {
+  id: StageId;
+  name: string;
+  detail: string;
+  companies: number;
+  points: GroupPoint[];
+}
+
+/** One company's own figures, on the same calendar quarters. */
+export interface CompanySeries {
+  slug: string;
+  name: string;
+  points: GroupPoint[];
+}
+
 export interface Cycle {
   labels: string[];
   /** Latest calendar quarter that most supply-chain companies have reported. */
@@ -48,6 +89,12 @@ export interface Cycle {
   groups: GroupSeries[];
   /** All supply-chain groups combined (customer groups excluded). */
   supply: GroupPoint[];
+  /** The phase each quarter was in, by the same rule as `phase`. */
+  phases: (Phase | null)[];
+  stages: StageSeries[];
+  /** Avnet and Arrow, for the distributor stage. */
+  avnet: CompanySeries;
+  arrow: CompanySeries;
   hyperscalerCapex: { label: string; total?: number; yoy?: number; reporting: number }[];
   hyperscalers: CapexRow[];
   phase: Phase | null;
@@ -106,7 +153,8 @@ function point(label: string, members: ByLabel[]): GroupPoint {
   return p;
 }
 
-function phaseOf(points: GroupPoint[]): Phase | null {
+/** Expansion or contraction is the sign of growth; accelerating or slowing is whether it rose or fell from the quarter before. */
+export function phaseOf(points: GroupPoint[]): Phase | null {
   const withGrowth = points.filter((p) => p.growth !== undefined);
   const last = withGrowth[withGrowth.length - 1];
   const before = withGrowth[withGrowth.length - 2];
@@ -136,6 +184,15 @@ export async function getCycle(): Promise<Cycle> {
     return { cohort, companies: members.length, points: labels.map((l) => point(l, members)) };
   });
   const supply = labels.map((l) => point(l, supplyMembers));
+  const stages: StageSeries[] = STAGES.map((stage) => {
+    const members = membersOf((c) => stage.cohorts.includes(c));
+    return { id: stage.id, name: stage.name, detail: stage.detail, companies: members.length, points: labels.map((l) => point(l, members)) };
+  });
+  const company = (slug: string): CompanySeries => {
+    const c = COMPANIES.find((x) => x.slug === slug)!;
+    const m = [byLabel.get(slug) ?? new Map()];
+    return { slug, name: c.name, points: labels.map((l) => point(l, m)) };
+  };
 
   const hyper = COMPANIES.filter((c) => c.cohort === "hyperscaler");
   const hyperscalerCapex = labels.map((label) => {
@@ -171,6 +228,10 @@ export async function getCycle(): Promise<Cycle> {
     latest,
     groups,
     supply,
+    phases: supply.map((_, i) => (supply[i].growth === undefined ? null : phaseOf(supply.slice(0, i + 1)))),
+    stages,
+    avnet: company("avnet"),
+    arrow: company("arrow"),
     hyperscalerCapex,
     hyperscalers,
     phase: phaseOf(supply),
