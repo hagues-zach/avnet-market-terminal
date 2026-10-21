@@ -128,8 +128,10 @@ export const SUPPLIERS = [
 
 /* ---------- Verticals (end markets Avnet sells into) ---------- */
 
+// Growth rates are set so the billings each vertical added sum to the growth in
+// total billings (mock-avnet.test.ts checks it).
 const VERTICAL_MIX = [
-  { name: "Industrial", share: 0.3, growth: 0.11 },
+  { name: "Industrial", share: 0.3, growth: 0.13 },
   { name: "Automotive", share: 0.18, growth: 0.04 },
   { name: "Communications", share: 0.16, growth: 0.18 },
   { name: "Data center & computing", share: 0.15, growth: 0.34 },
@@ -254,6 +256,56 @@ export const RECENT_APPROVALS = [
   { reg: "DR-009710", supplier: "Supplier E", segment: SEG(7), value: 0.95, daysAgo: 13 },
   { reg: "DR-009685", supplier: "Supplier D", segment: SEG(4), value: 2.4, daysAgo: 17 },
 ];
+
+/* ---------- Customers (customer master) ---------- */
+
+// Concentration by parent company: the share of billings that the largest
+// customers take, now and a year ago, and the size of the customer base.
+export const CONCENTRATION = {
+  top10: { now: 0.18, yearAgo: 0.171 },
+  top100: { now: 0.41, yearAgo: 0.408 },
+  /** Customers billed in the last 12 months, rolled up to parent company. */
+  active: 1_400_000,
+  /** Change in customers billed for the first time, on a year ago. */
+  newCustomerGrowth: 0.062,
+};
+
+// The ten largest customers by parent company. Names withheld. Shares of billings
+// sum to the top-10 share; backlog and approved pipeline are each customer's own.
+const TOP_CUSTOMER_MIX = [
+  { name: "Customer A", vertical: "Data center & computing", region: "Americas", share: 0.031, growth: 0.41, backlog: 0.58, pipe: 1.3 },
+  { name: "Customer B", vertical: "Industrial", region: "EMEA", share: 0.026, growth: 0.09, backlog: 0.44, pipe: 0.9 },
+  { name: "Customer C", vertical: "Communications", region: "Asia", share: 0.022, growth: 0.22, backlog: 0.47, pipe: 1.1 },
+  { name: "Customer D", vertical: "Automotive", region: "EMEA", share: 0.02, growth: 0.03, backlog: 0.52, pipe: 0.8 },
+  { name: "Customer E", vertical: "Data center & computing", region: "Americas", share: 0.017, growth: 0.36, backlog: 0.61, pipe: 1.4 },
+  { name: "Customer F", vertical: "Industrial", region: "Americas", share: 0.016, growth: 0.14, backlog: 0.41, pipe: 1.0 },
+  { name: "Customer G", vertical: "Aerospace & defense", region: "Americas", share: 0.014, growth: 0.12, backlog: 0.72, pipe: 1.2 },
+  { name: "Customer H", vertical: "Communications", region: "Asia", share: 0.013, growth: 0.17, backlog: 0.39, pipe: 1.0 },
+  { name: "Customer I", vertical: "Medical", region: "EMEA", share: 0.011, growth: 0.05, backlog: 0.46, pipe: 0.9 },
+  { name: "Customer J", vertical: "Automotive", region: "Asia", share: 0.01, growth: -0.02, backlog: 0.37, pipe: 0.7 },
+];
+
+export interface TopCustomer {
+  name: string;
+  vertical: string;
+  region: (typeof REGIONS)[number];
+  /** Billings in the last 12 months, $M. */
+  billings: number;
+  growth: number;
+  /** $M */
+  backlog: number;
+  /** Approved design pipeline not yet billing, $M. */
+  pipeline: number;
+}
+
+export const TOP_CUSTOMERS: TopCustomer[] = TOP_CUSTOMER_MIX.map((c) => {
+  const billings = TTM_BILLINGS * c.share;
+  const v = VERTICALS.find((x) => x.name === c.vertical)!;
+  const p = PIPELINE_BY_VERTICAL.find((x) => x.name === c.vertical)!;
+  // The customer's slice of its market's pipeline, by its share of the market's billings, tilted.
+  const pipeline = p.pipeline * (billings / v.billings) * c.pipe;
+  return { name: c.name, vertical: c.vertical, region: c.region as TopCustomer["region"], billings, growth: c.growth, backlog: billings * c.backlog, pipeline };
+});
 
 /* ---------- Formatting ---------- */
 

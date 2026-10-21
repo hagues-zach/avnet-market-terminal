@@ -90,7 +90,7 @@ Order, by how often sellers and leaders will open the page:
 - [x] 2.11 Quarterly Earnings (season first: who has filed, the calendar for all companies and who just reported; then one company with its trend, management commentary and its group with a median; all live; brief and mockups in `docs/design/pages/`)
 - [x] 2.12 Supply Chain (a tightening or easing read over three live signals, a by-category table with mock lead times and purchasing beside live prices and supplier quotes, chain inventory, prices and metals, supplier commentary and supply news, Avnet's mock order book; brief and mockups in `docs/design/pages/`)
 - [x] 2.13 Design Pipeline (funnel first, then the pipeline by supplier, segment or end market with a drill-down funnel per row and live customer growth by end market; the mock pipeline joins the shared model of Avnet; brief and mockups in `docs/design/pages/`)
-- [ ] 2.14 Customers & End Markets
+- [x] 2.14 Customers & End Markets (the market that added the most growth in words, a full-width end-market table with mock billings beside live customer-group growth and an "against demand" read, a dot plot of the two, the ten largest accounts withheld, then the 23 public customer companies linking to Company Profile and QBR Prep; concentration and accounts join the shared model of Avnet; brief and mockups in `docs/design/pages/`)
 - [ ] 2.15 Economic Signals
 - [ ] 2.16 Code Mapping
 - [ ] 2.17 Learning Center, with Nano Banana illustrations

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCycle } from "@/lib/data/live/cycle";
 import type { Cohort } from "@/lib/data/live/earnings-model";
+import { MARKET_GROUP } from "@/lib/customers/read";
 import {
   APPROVAL_RATE,
   APPROVED_PIPELINE,
@@ -23,7 +24,7 @@ import { HookupMarker } from "@/components/ui/hookup-marker";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { PageTitle } from "@/components/ui/page-title";
-import { PipelineBreakdown } from "@/components/pipeline/breakdown";
+import { PipelineBreakdown, type View } from "@/components/pipeline/breakdown";
 import { PipelineTrend } from "@/components/pipeline/charts";
 import { cn } from "@/lib/utils";
 
@@ -37,15 +38,6 @@ const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal
 // The two half-width lists use tighter cells so they fit at 1280px without wrapping IDs and names.
 const TH2 = "h-control whitespace-nowrap px-2 font-display text-label font-normal uppercase text-ink-muted";
 
-// End markets (Avnet's verticals) against the customer groups whose filings show demand there.
-const MARKET_GROUP: Record<string, Cohort | undefined> = {
-  "Data center & computing": "hyperscaler",
-  Communications: "systems",
-  Consumer: "systems",
-  Automotive: "auto",
-  Industrial: "industrial",
-};
-
 async function customerGrowth(): Promise<Record<string, number | undefined>> {
   const cycle = await getCycle().catch(() => null);
   if (!cycle?.latest) return {};
@@ -53,7 +45,10 @@ async function customerGrowth(): Promise<Record<string, number | undefined>> {
   return Object.fromEntries(PIPELINE_BY_VERTICAL.map((v) => [v.name, MARKET_GROUP[v.name] ? growthOf(MARKET_GROUP[v.name]!) : undefined]));
 }
 
-export default async function DesignPipelinePage() {
+export default async function DesignPipelinePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const asked = (await searchParams).view;
+  // Customers & End Markets links here with ?view=market.
+  const view: View = asked === "segment" || asked === "market" ? asked : "supplier";
   const growth = await customerGrowth();
   const pipelineChange = APPROVED_PIPELINE / APPROVED_PIPELINE_YEAR_AGO - 1;
   const regChange = NEW_REGISTRATIONS.thisQuarter / NEW_REGISTRATIONS.yearAgo - 1;
@@ -164,7 +159,11 @@ export default async function DesignPipelinePage() {
           </>
         }
       >
-        <PipelineBreakdown views={{ supplier: PIPELINE_BY_SUPPLIER, segment: PIPELINE_BY_SEGMENT, market: PIPELINE_BY_VERTICAL }} growth={growth} />
+        <PipelineBreakdown
+          views={{ supplier: PIPELINE_BY_SUPPLIER, segment: PIPELINE_BY_SEGMENT, market: PIPELINE_BY_VERTICAL }}
+          growth={growth}
+          initialView={view}
+        />
       </Panel>
 
       <div className="grid items-start gap-4 xl:grid-cols-2 [&>*]:min-w-0">
