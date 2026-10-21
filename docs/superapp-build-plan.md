@@ -77,7 +77,7 @@ One step per page. Each uses the same recipe:
 
 Order, by how often sellers and leaders will open the page:
 
-- [ ] 2.1 Start Here, including the persona switch
+- [x] 2.1 Start Here, including the persona switch (hybrid layout; brief and mockups in `docs/design/pages/`)
 - [ ] 2.2 Company Profile
 - [ ] 2.3 QBR Prep
 - [ ] 2.4 Market Share

@@ -1,6 +1,7 @@
 // Baseline screenshots of every page at 1440px and 1280px, plus console errors and
 // sideways overflow per page. Pages scroll inside <main>, so each shot uses a viewport
-// as tall as the page. Run from the repo root with the kit dev server on port 3012:
+// as tall as the page. Open the session from the repo root (paths resolve from there),
+// with the kit dev server on port 3012:
 //   playwright-cli -s=base open http://localhost:3012/start
 //   playwright-cli -s=base run-code --filename=scripts/baseline-screenshots.js
 // Writes docs/design/baseline/<route>-<width>.png. Add new routes to the list.
