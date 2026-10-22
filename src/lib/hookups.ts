@@ -202,7 +202,7 @@ export const HOOKUPS: Hookup[] = [
     sources: ["WSTS files (format to confirm)"],
     fields: ["product category", "region", "month", "billings", "forecast"],
     refresh: "Monthly",
-    replaceIn: "src/lib/data/mock/tam.ts, src/lib/data/mock/overview.ts, src/lib/data/mock/forecast.ts",
+    replaceIn: "src/lib/data/mock/tam.ts, src/lib/data/mock/forecast.ts, src/lib/shells/mock-market.ts",
   },
   {
     id: "gartner-forecast",

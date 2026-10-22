@@ -10,8 +10,8 @@ export interface PageHookups {
   ids: string[];
   /** Source files whose markers carry the ids (checked by the test). */
   files: string[];
-  /** Pages drawn from a shell spec or a legacy banner, checked against those instead. */
-  from?: { spec: string } | { legacy: string };
+  /** Pages whose markers come from a shell spec, checked against it instead. */
+  from?: { spec: string };
 }
 
 export const PAGE_HOOKUPS: PageHookups[] = [
@@ -23,7 +23,7 @@ export const PAGE_HOOKUPS: PageHookups[] = [
     from: { spec: "START" },
   },
   { href: "/news", title: "Market News", ids: ["billings", "code-map", "customer-master"], files: ["src/components/news/topics.tsx"] },
-  { href: "/overview", title: "Market Overview", ids: ["wsts", "gartner-forecast"], files: [], from: { legacy: "/overview" } },
+  { href: "/overview", title: "Market Overview", ids: ["wsts", "gartner-forecast"], files: ["src/components/overview/sections.tsx"] },
   { href: "/cycle", title: "Market Cycle", ids: ["bookings", "backlog"], files: ["src/components/cycle/cycle-view.tsx"] },
   {
     href: "/network",

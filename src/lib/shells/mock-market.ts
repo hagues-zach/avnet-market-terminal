@@ -104,3 +104,19 @@ export const SEGMENT_FORECAST: Record<(typeof SEGMENT_BILLINGS)[number]["segment
 
 /** MOCK. How far the upside and downside sit from the base market at each horizon, from the WSTS forecast's band. */
 export const FORECAST_SPREAD = [0.05, 0.09, 0.13, 0.17];
+
+/**
+ * MOCK. 2025 sales ($M) and growth on 2024 for the devices AI spending lands on:
+ * DRAM, Flash, MPUs, GPUs and AI accelerators. Synthetic: the published WSTS
+ * figures in the app stop at its top-level categories, so these stand in for
+ * WSTS Blue Book detail (DRAM, NAND Flash, MPU) and the Gartner forecast by
+ * device type (GPUs, AI accelerators) until both are hooked up (build plan 5.5).
+ * They sit inside the published 2025 market; everything else is the rest.
+ */
+export const AI_DEVICES: { device: string; usdM: number; yoy: number }[] = [
+  { device: "DRAM", usdM: 128_000, yoy: 0.48 },
+  { device: "Flash", usdM: 72_000, yoy: 0.22 },
+  { device: "MPUs", usdM: 60_000, yoy: 0.06 },
+  { device: "GPUs", usdM: 140_000, yoy: 0.52 },
+  { device: "AI accelerators", usdM: 48_000, yoy: 0.75 },
+];

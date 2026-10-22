@@ -1,104 +1,95 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Suspense } from "react";
+import Link from "next/link";
 import { dataProvider } from "@/lib/data/provider";
-import { PageHeader } from "@/components/ui/page-header";
-import { ShellBanner } from "@/components/shell/shell-page";
-import { LEGACY } from "@/lib/shells/legacy";
-import { Card } from "@/components/ui/card";
-import { KpiCard } from "@/components/ui/kpi-card";
-import { Sparkline } from "@/components/charts/sparkline";
-import { BookToBillGauge } from "@/components/charts/book-to-bill-gauge";
-import { MarketDonut } from "@/components/charts/market-donut";
-import { AVNET } from "@/lib/colors";
-import { PRODUCT_LABEL, REGION_LABEL } from "@/lib/data/types";
-import { formatUsdMillions, formatPctSigned } from "@/lib/format";
-import { formatPct } from "@/lib/utils";
+import { PageBody } from "@/components/layout/page-body";
+import { PageTitle } from "@/components/ui/page-title";
+import { LoadingBlock } from "@/components/ui/states";
+import { Panel } from "@/components/ui/panel";
+import {
+  Backdrop,
+  ForecastCard,
+  Lead,
+  MarketYears,
+  RegionsCard,
+  Stories,
+  SupplyFigure,
+  ThisQuarter,
+  WhatCarried,
+} from "@/components/overview/sections";
+
+// Market Overview: the chip market's size, direction and what drives it. WSTS
+// figures as published (with their vintage), live reads from SEC filings,
+// economic signals and the news feed, and the split of the devices AI spending
+// lands on as mock until WSTS detail and the Gartner forecast are hooked up.
+
+export const dynamic = "force-dynamic";
+
+const link = "text-ink underline underline-offset-2 hover:text-ink-muted";
+
+function Loading({ title, lines = 5, className }: { title: string; lines?: number; className?: string }) {
+  return (
+    <Panel title={title} className={className}>
+      <LoadingBlock label={`Loading ${title.toLowerCase()}…`} lines={lines} />
+    </Panel>
+  );
+}
 
 export default function OverviewPage() {
-  const { value: o } = dataProvider.getOverview();
-  const regionData = o.byRegion.map((r) => ({ name: REGION_LABEL[r.region], value: r.usdM }));
+  const { value: tam, vintage = "WSTS" } = dataProvider.getTam();
+  const marketPrior = tam.trend.find((p) => p.year === tam.latestYear - 1)?.tamUsdM ?? tam.tamUsdM / (1 + tam.yoyGrowth);
+  const vintages = dataProvider.getForecast().value.vintages.map((v) => ({ vintage: v.vintage, value: v.proj2026 }));
 
   return (
-    <div className="mx-auto max-w-content space-y-6 px-4 py-5 xl:px-6 xl:py-6">
-      <PageHeader title="Market Overview" subtitle="Semiconductor market snapshot — WSTS Autumn 2025" />
-      <ShellBanner {...LEGACY["/overview"]} />
+    <PageBody>
+      <PageTitle title="Market Overview" subtitle="The chip market's size, direction and what is driving it, from WSTS and the latest filings" />
+      <Suspense fallback={<LoadingBlock label="Reading the latest filings…" lines={2} />}>
+        <Lead tam={tam} marketPrior={marketPrior} />
+      </Suspense>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <KpiCard label="Global TAM" value={formatUsdMillions(o.tamUsdM, { precise: true })} delta={o.yoyGrowth} deltaLabel="YoY" source="wsts" />
-        <KpiCard label="YoY Growth" value={formatPct(o.yoyGrowth)} source="wsts" />
-        <KpiCard label="2026 Forecast" value={formatUsdMillions(o.forecastNextYearUsdM, { precise: true })} delta={o.forecastNextYearUsdM / o.tamUsdM - 1} deltaLabel="vs 2025" source="wsts" />
-        <KpiCard label="Book-to-Bill" value={o.bookToBill.toFixed(2)} delta={0.02} deltaLabel="QoQ" source="mock" />
-        <KpiCard label="Avnet SOM" value={formatUsdMillions(o.somUsdM, { precise: true })} delta={0.238} deltaLabel="YoY" source="mock" />
-        <KpiCard label="SOM % of SAM" value={formatPct(o.somShareOfSam)} delta={0.013} deltaLabel="share Δ" source="mock" />
+      <MarketYears
+        tam={tam}
+        vintage={vintage}
+        supply={
+          <Suspense fallback={<LoadingBlock label="Loading supply-chain revenue…" lines={2} />}>
+            <SupplyFigure />
+          </Suspense>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <WhatCarried tam={tam} marketPrior={marketPrior} vintage={vintage} />
+        <Suspense fallback={<Loading title="This quarter in the filings" lines={7} className="xl:col-span-5" />}>
+          <ThisQuarter />
+        </Suspense>
       </div>
 
-      {/* what changed */}
-      <Card title="What Changed This Quarter" subtitle="The signals an exec should see first" source="mock">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {o.whatChanged.map((c) => {
-            const Arrow = c.dir > 0 ? ArrowUpRight : ArrowDownRight;
-            return (
-              <div key={c.label} className="flex items-start gap-2 rounded border border-line px-3 py-2.5">
-                <Arrow className={c.dir > 0 ? "h-4 w-4 shrink-0 text-avnet-greenDark" : "h-4 w-4 shrink-0 text-danger"} />
-                <div>
-                  <p className="font-display text-sm uppercase tracking-wide text-ink">{c.label}</p>
-                  <p className="text-2xs text-muted">{c.detail}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* segment momentum + book-to-bill */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <Card className="lg:col-span-3" title="Segment Momentum" subtitle="Each WSTS product category — 2019→2026 trend & YoY" source="wsts">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {o.segments.map((s) => {
-              const up = s.yoy >= 0;
-              return (
-                <div key={s.product} className="rounded border border-line px-3 py-2.5">
-                  <p className="text-2xs uppercase tracking-wider text-muted">{PRODUCT_LABEL[s.product]}</p>
-                  <div className="mt-0.5 flex items-baseline justify-between">
-                    <span className="font-display text-base tabular text-ink">{formatUsdMillions(s.usdM)}</span>
-                    <span className={up ? "text-2xs tabular text-avnet-greenDark" : "text-2xs tabular text-danger"}>
-                      {formatPctSigned(s.yoy, 0)}
-                    </span>
-                  </div>
-                  <div className="mt-1">
-                    <Sparkline data={s.series} color={AVNET.blueDark} width={140} height={24} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-        <Card className="lg:col-span-2" title="Book-to-Bill" subtitle="Orders vs. billings — 1.0 = balance" source="mock">
-          <BookToBillGauge value={o.bookToBill} trend={o.bookToBillTrend} />
-        </Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <ForecastCard vintages={vintages} year={tam.latestYear + 1} />
+        <RegionsCard tam={tam} vintage={vintage} />
+        <Suspense fallback={<Loading title="The backdrop" />}>
+          <Backdrop />
+        </Suspense>
       </div>
 
-      {/* news + region */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <Card className="lg:col-span-3" title="Market News" subtitle="Curated & source-attributed" source="mock">
-          <ul className="divide-y divide-line">
-            {o.news.map((n) => (
-              <li key={n.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                <span className="mt-0.5 rounded border border-line px-1.5 py-0.5 font-display text-2xs uppercase tracking-wider text-muted">
-                  {n.tag}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm text-ink">{n.title}</p>
-                  <p className="text-2xs text-muted">{n.outlet} · {n.date}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card className="lg:col-span-2" title="Market by Region" subtitle="2025 billings" source="wsts">
-          <MarketDonut data={regionData} />
-        </Card>
-      </div>
-    </div>
+      <Suspense fallback={<Loading title="What is being said" lines={4} />}>
+        <Stories />
+      </Suspense>
+
+      <p className="text-body-sm text-ink-muted">
+        Avnet&apos;s part of this market is on{" "}
+        <Link href="/tam" className={link}>
+          TAM, SAM and SOM
+        </Link>{" "}
+        and{" "}
+        <Link href="/market-share" className={link}>
+          Market Share
+        </Link>
+        ; its own business is on{" "}
+        <Link href="/performance" className={link}>
+          Performance Tracker
+        </Link>
+        .
+      </p>
+    </PageBody>
   );
 }
