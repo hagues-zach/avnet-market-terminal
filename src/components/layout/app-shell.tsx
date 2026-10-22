@@ -31,8 +31,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [open]);
 
+  // Both the shell and <main> are positioned, so absolutely positioned content
+  // (screen-reader text, popovers) stays inside the scrolling area instead of
+  // stretching the document past the shell and adding a second scrollbar.
   return (
-    <div className="flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
+    <div className="relative flex h-screen overflow-hidden print:block print:h-auto print:overflow-visible">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2 focus:text-body-sm focus:text-ink focus:shadow-overlay"
@@ -63,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col print:block" inert={open || undefined}>
         <AppTopbar onMenu={() => setOpen(true)} menuOpen={open} />
-        <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto bg-canvas focus:outline-none print:overflow-visible print:bg-surface">
+        <main id="main" tabIndex={-1} className="relative flex-1 overflow-y-auto bg-canvas focus:outline-none print:overflow-visible print:bg-surface">
           {children}
         </main>
       </div>
