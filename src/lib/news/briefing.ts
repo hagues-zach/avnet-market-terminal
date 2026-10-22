@@ -171,6 +171,13 @@ export function ago(publishedAt: string, fetchedAt: string): string {
   return `${Math.round(mins / (60 * 24))}d ago`;
 }
 
+/** "Oct 22 at 03:10 UTC": the same on the server and in the browser, so it never mismatches. */
+export function stamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "n/a";
+  return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} at ${d.toISOString().slice(11, 16)} UTC`;
+}
+
 export const RELEVANCE_WORD: Record<Relevance, string> = {
   high: "High",
   medium: "Useful",

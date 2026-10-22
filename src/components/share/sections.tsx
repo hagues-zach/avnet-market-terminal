@@ -46,7 +46,7 @@ export function ShareKpis() {
       <KpiTile
         label="Mapped billings"
         value={`$${mappedBillings.toFixed(1)}B`}
-        note={`of a $${mappedMarket}B market`}
+        note={`of a $${mappedMarket.toFixed(0)}B market`}
         source={{ status: "mock" }}
       />
     </>
@@ -115,7 +115,7 @@ export function WhiteSpaceCard() {
             <div className="flex items-baseline justify-between gap-3 text-body-sm">
               <span className="truncate text-ink">{s.segment}</span>
               <span className="whitespace-nowrap tabular-nums text-ink">
-                ${s.tam}B market <span className="text-ink-muted">· {(s.share * 100).toFixed(1)}% share</span>
+                ${s.tam}B market, <span className="text-ink-muted">{(s.share * 100).toFixed(1)}% share</span>
               </span>
             </div>
             <div className="mt-1 h-2" aria-hidden>

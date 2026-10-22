@@ -7,7 +7,7 @@ import type { CompanyEarnings, Metric, Quarter } from "@/lib/data/live/earnings-
 import { getSegmentHistory, type MemberSeries, type SeriesPoint } from "@/lib/data/live/segment-history";
 import { getMoves } from "@/lib/line-cards/moves";
 import { scorecard, strengths, talkingPoint, tally, verdict, type ScoreRow, type Side } from "@/lib/competitive/compare";
-import { DASH, format, longDate } from "@/components/earnings/format";
+import { NA, format, longDate } from "@/components/earnings/format";
 import { Chip } from "@/components/ui/chip";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { EmptyState, ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
@@ -53,7 +53,7 @@ function Marker({ side }: { side: Side }) {
 }
 
 function gapText(row: Pick<ScoreRow, "kind">, gap: number | undefined): string {
-  if (gap === undefined) return DASH;
+  if (gap === undefined) return NA;
   if (row.kind === "usd") return `${gap.toFixed(2)}×`;
   const sign = gap >= 0 ? "+" : "−";
   return row.kind === "days" ? `${sign}${Math.round(Math.abs(gap))}` : `${sign}${(Math.abs(gap) * 100).toFixed(1)} pts`;
@@ -152,9 +152,9 @@ export async function Overview() {
                   <td className={cn("px-3 py-1.5 text-right tabular-nums text-ink", r.leads === "Arrow" && "font-semibold")}>
                     {format(r.kind, r.arrow)}
                   </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{r.caveat ? DASH : gapText(r, r.gap)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{r.caveat ? NA : gapText(r, r.gap)}</td>
                   <td className="px-3 py-1.5 text-left text-ink">{r.leads ?? <span className="text-ink-muted">n/a</span>}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">{r.caveat ? DASH : gapText(r, r.gapYearAgo)}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">{r.caveat ? NA : gapText(r, r.gapYearAgo)}</td>
                 </tr>
               ))}
             </tbody>
@@ -374,7 +374,7 @@ const TRENDS: { title: string; metric: Metric; unit: Unit }[] = [
 
 const REGIONS = ["Americas", "EMEA", "Asia"] as const;
 const regionOf = (key: string) => (/Americas/.test(key) ? "Americas" : /EMEA|Europe/.test(key) ? "EMEA" : /Asia/.test(key) ? "Asia" : undefined);
-const share = (v: number | undefined) => (v === undefined ? DASH : `${Math.round(v * 100)}%`);
+const share = (v: number | undefined) => (v === undefined ? NA : `${Math.round(v * 100)}%`);
 
 /** Server component: trends and regions, folded under the comparison. */
 export async function MoreMeasures() {
@@ -446,12 +446,12 @@ export async function MoreMeasures() {
                       <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">
                         {share(x?.revenue !== undefined && totals.avnet ? x.revenue / totals.avnet : undefined)}
                       </td>
-                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{x?.yoy === undefined ? DASH : format("growth", x.yoy)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{x?.yoy === undefined ? NA : format("growth", x.yoy)}</td>
                       <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("usd", y?.revenue)}</td>
                       <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">
                         {share(y?.revenue !== undefined && totals.arrow ? y.revenue / totals.arrow : undefined)}
                       </td>
-                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{y?.yoy === undefined ? DASH : format("growth", y.yoy)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums text-ink">{y?.yoy === undefined ? NA : format("growth", y.yoy)}</td>
                     </tr>
                   );
                 })}

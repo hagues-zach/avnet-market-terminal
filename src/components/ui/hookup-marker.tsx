@@ -37,7 +37,11 @@ export function HookupMarker({ ids }: { ids: string[] }) {
               ))}
             </ul>
             {h.fields && <p className="mt-1 text-micro text-ink-muted">Fields: {h.fields.join(", ")}</p>}
-            {h.replaceIn && <p className="mt-0.5 text-micro text-ink-muted">Replace the mock in {h.replaceIn}</p>}
+            {h.replaceIn && (
+              <p className="mt-0.5 text-micro text-ink-muted">
+                Replace the mock in <code className="break-all font-mono">{h.replaceIn}</code>
+              </p>
+            )}
           </div>
         ))}
         <Link href="/data-hookups" className="inline-block text-micro underline underline-offset-2 hover:text-ink-muted">

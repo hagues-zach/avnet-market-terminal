@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import type { Angle } from "@/lib/ai/news-angles";
 import type { ArticleKind, LiveArticle } from "@/lib/data/live/shared";
-import { avnetExposure, dayGroup, entityOf, profiledCompanies, qbrHref, summarize, topics, topStories } from "./briefing";
+import { avnetExposure, dayGroup, entityOf, profiledCompanies, qbrHref, stamp, summarize, topics, topStories } from "./briefing";
 
 const FETCHED = "2026-10-21T12:00:00Z";
 const hoursAgo = (h: number) => new Date(Date.parse(FETCHED) - h * 3_600_000).toISOString();
@@ -144,5 +144,9 @@ const rate = (pairs: [LiveArticle, Angle["relevance"]][]): Record<string, Angle>
   assert.equal(dayGroup("2026-10-16T08:00:00Z", FETCHED), "Earlier this week");
   assert.equal(dayGroup("2026-10-10T08:00:00Z", FETCHED), "Older");
 }
+
+// Times read as words, the same anywhere.
+assert.equal(stamp("2026-10-22T03:10:44Z"), "Oct 22 at 03:10 UTC");
+assert.equal(stamp("not a date"), "n/a");
 
 console.log("briefing: all tests passed");

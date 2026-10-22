@@ -1,10 +1,12 @@
 import { ExternalLink } from "lucide-react";
 import { getRevenueMix, type Breakdown } from "@/lib/data/live/revenue-mix";
-import { Card } from "@/components/ui/card";
+import { Panel } from "@/components/ui/panel";
+import { LoadingBlock } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
-import { DASH, format, longDate } from "./format";
+import { NA, format, longDate } from "./format";
 
 const TITLE = "Revenue mix";
+const LABEL = "mb-1.5 font-display text-label uppercase text-ink-muted";
 
 function BreakdownTable({ breakdown, isAvnet }: { breakdown: Breakdown; isAvnet: boolean }) {
   const { items } = breakdown;
@@ -12,7 +14,7 @@ function BreakdownTable({ breakdown, isAvnet }: { breakdown: Breakdown; isAvnet:
   const hasMargin = items.some((i) => i.margin !== undefined);
   return (
     <div>
-      <h3 className="mb-1.5 font-display text-2xs uppercase tracking-widest text-muted">{breakdown.title}</h3>
+      <h3 className={LABEL}>{breakdown.title}</h3>
       <table className="w-full text-xs">
         <thead className="sr-only">
           <tr>
@@ -31,20 +33,20 @@ function BreakdownTable({ breakdown, isAvnet }: { breakdown: Breakdown; isAvnet:
               </th>
               <td className="py-1">
                 <div className="relative flex h-6 items-center justify-end">
-                  {/* Avnet Green only ever represents Avnet. */}
+                  {/* Avnet Green only ever represents Avnet; anyone else's one-colour bars are grey. */}
                   <span
                     aria-hidden
-                    className={cn("absolute inset-y-0.5 left-0 rounded-sm", isAvnet ? "bg-avnet-green/30" : "bg-blue-dark/20")}
+                    className={cn("absolute inset-y-0.5 left-0", isAvnet ? "bg-viz-avnet/40" : "bg-viz-other")}
                     style={{ width: `${Math.max(0, (item.value / max) * 100)}%` }}
                   />
                   <span className="relative tabular text-ink">{format("usd", item.value)}</span>
                 </div>
               </td>
-              <td className="w-14 py-1.5 pl-2 text-right tabular text-muted">{item.share === undefined ? DASH : `${Math.round(item.share * 100)}%`}</td>
-              <td className="w-16 py-1.5 pl-2 text-right tabular text-ink">{item.yoy === undefined ? DASH : format("growth", item.yoy)}</td>
+              <td className="w-14 py-1.5 pl-2 text-right tabular text-muted">{item.share === undefined ? NA : `${Math.round(item.share * 100)}%`}</td>
+              <td className="w-16 py-1.5 pl-2 text-right tabular text-ink">{item.yoy === undefined ? NA : format("growth", item.yoy)}</td>
               {hasMargin && (
                 <td className="w-16 py-1.5 pl-2 text-right tabular text-muted" title="Segment operating margin">
-                  {item.margin === undefined ? DASH : `${(item.margin * 100).toFixed(1)}% m`}
+                  {item.margin === undefined ? NA : `${(item.margin * 100).toFixed(1)}% m`}
                 </td>
               )}
             </tr>
@@ -64,12 +66,12 @@ export async function RevenueMix({ company }: { company: string }) {
     mix.periodEnd && mix.periodKind ? `${mix.periodKind === "year" ? "Fiscal year" : "Quarter"} ended ${longDate(mix.periodEnd)}` : undefined;
 
   return (
-    <Card
+    <Panel
       title={TITLE}
       subtitle={
         empty
           ? mix.company.name
-          : `${mix.company.name} · ${period} · bar is revenue, then share of total revenue and change on the same period a year earlier`
+          : `${mix.company.name}, ${period}. The bar is revenue, then its share of total revenue and the change on the same period a year earlier.`
       }
       actions={
         mix.url && (
@@ -97,7 +99,7 @@ export async function RevenueMix({ company }: { company: string }) {
             ))}
             {mix.customers.length > 0 && (
               <div>
-                <h3 className="mb-1.5 font-display text-2xs uppercase tracking-widest text-muted">Largest customers</h3>
+                <h3 className={LABEL}>Largest customers</h3>
                 <table className="w-full text-xs">
                   <thead className="sr-only">
                     <tr>
@@ -126,18 +128,14 @@ export async function RevenueMix({ company }: { company: string }) {
           </p>
         </>
       )}
-    </Card>
+    </Panel>
   );
 }
 
 export function RevenueMixFallback() {
   return (
-    <Card title={TITLE} subtitle="Reading the latest filing document from SEC EDGAR.">
-      <div className="space-y-2" role="status" aria-label="Loading revenue mix">
-        {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="h-4 animate-pulse rounded bg-canvas" />
-        ))}
-      </div>
-    </Card>
+    <Panel title={TITLE} subtitle="Reading the latest filing document from SEC EDGAR.">
+      <LoadingBlock label="Loading the revenue mix…" lines={5} />
+    </Panel>
   );
 }

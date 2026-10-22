@@ -40,13 +40,11 @@ export default function LoginPage() {
 
         <form
           onSubmit={onSubmit}
-          className="rounded-card border border-line bg-surface p-6 shadow-card"
+          className="rounded-sm border border-hairline bg-surface p-6"
         >
           <div className="mb-1 flex items-center gap-2">
-            <Lock className="h-4 w-4 text-avnet-greenDark" />
-            <h1 className="font-display text-sm uppercase tracking-wide text-ink">
-              Password Required
-            </h1>
+            <Lock className="h-4 w-4 text-ink" strokeWidth={1.5} aria-hidden />
+            <h1 className="font-display text-card-title text-ink">Password required</h1>
           </div>
           <p className="mb-4 text-xs text-muted">
             This is a private internal demo. Enter the password to continue.
@@ -72,7 +70,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !password}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded bg-avnet-green px-4 py-2 font-display text-sm uppercase tracking-wide text-white transition-colors duration-200 hover:bg-avnet-greenDark disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-4 flex h-control w-full items-center justify-center gap-2 bg-primary px-4 font-body text-button text-primary-fg transition-colors duration-200 hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -84,9 +82,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-2xs text-gray-medium">
-          Avnet · internal demo — mock data
-        </p>
+        <p className="mt-4 text-center text-caption text-ink-muted">Avnet internal demo. Avnet&apos;s own figures are mock until hooked up.</p>
       </div>
     </main>
   );

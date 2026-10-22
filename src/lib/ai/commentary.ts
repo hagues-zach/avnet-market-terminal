@@ -3,6 +3,7 @@ import { z } from "zod";
 import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
 import { DATA_USER_AGENT, fetchSec } from "@/lib/data/live/revenue-mix";
 import { readCache, writeCache } from "./cache";
+import { plainDeep } from "./dashes";
 import { aiConfigured, claude, describeError, MODEL } from "./claude";
 
 // Management commentary: what a company said in its latest earnings press
@@ -134,7 +135,7 @@ export async function cachedCommentary(company: Company): Promise<{ digest: Dige
     .filter(([accession]) => accession.startsWith(prefix))
     .map(([, v]) => v)
     .sort((a, b) => b.filed.localeCompare(a.filed));
-  return hits[0] ?? null;
+  return hits[0] ? { ...hits[0], digest: plainDeep(hits[0].digest) } : null;
 }
 
 export async function getCommentary(slug: string): Promise<Commentary> {
@@ -152,7 +153,7 @@ export async function getCommentary(slug: string): Promise<Commentary> {
 
   const cached = await readCache<Stored>(CACHE);
   const hit = cached[release.accession];
-  if (hit) return { ...base, status: "ok", digest: hit.digest };
+  if (hit) return { ...base, status: "ok", digest: plainDeep(hit.digest) };
   if (!aiConfigured()) return { ...base, status: "off", message: "AI synthesis is off. Set ANTHROPIC_API_KEY to turn it on." };
   if (release.text.length > MAX_CHARS) {
     return { ...base, status: "unavailable", message: "The exhibit is far longer than a press release, so it was not sent for analysis." };
@@ -171,7 +172,7 @@ export async function getCommentary(slug: string): Promise<Commentary> {
     const digest = response.parsed_output;
     cached[release.accession] = { digest, filed: release.filed, releaseUrl: release.url };
     await writeCache(CACHE, cached);
-    return { ...base, status: "ok", digest };
+    return { ...base, status: "ok", digest: plainDeep(digest) };
   } catch (error) {
     return { ...base, status: "unavailable", message: describeError(error) };
   }

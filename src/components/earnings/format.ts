@@ -11,10 +11,11 @@ export interface Row {
   kind: Kind;
 }
 
-export const DASH = "—";
+/** A missing value. */
+export const NA = "n/a";
 
 export function format(kind: Kind, v: number | undefined): string {
-  if (v === undefined) return DASH;
+  if (v === undefined) return NA;
   switch (kind) {
     case "usd":
       return `${v < 0 ? "−" : ""}${formatUsdMillions(Math.abs(v) / 1e6, { precise: true })}`;
@@ -29,8 +30,12 @@ export function format(kind: Kind, v: number | undefined): string {
   }
 }
 
-export const longDate = (d: string) =>
-  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+/** "Oct 28", with the year only when it isn't this one ("Jan 26, 2027"). */
+export function longDate(d: string, thisYear = new Date().getUTCFullYear()): string {
+  const x = new Date(`${d}T00:00:00Z`);
+  const year = x.getUTCFullYear() === thisYear ? {} : { year: "numeric" as const };
+  return x.toLocaleDateString("en-US", { month: "short", day: "numeric", ...year, timeZone: "UTC" });
+}
 
 /** `/earnings` link that keeps whichever of company/group isn't being changed. */
 export function earningsHref(company: string, group: string): string {

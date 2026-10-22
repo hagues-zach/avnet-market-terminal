@@ -47,7 +47,7 @@ export const PRODUCT_LABEL: Record<ProductCategory, string> = {
   optoelectronics: "Optoelectronics",
   sensors: "Sensors",
   analog: "Analog",
-  micro: "Micro (MPU/MCU/DSP)",
+  micro: "Micro (MPU, MCU, DSP)",
   logic: "Logic",
   memory: "Memory",
 };

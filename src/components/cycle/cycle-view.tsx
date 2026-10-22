@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCycle, type CompanySeries, type GroupPoint, type GroupSeries, type StageSeries } from "@/lib/data/live/cycle";
 import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
 import { PERFORMANCE, fmtM, fmtPct } from "@/lib/shells/mock-avnet";
-import { DASH, earningsHref, format } from "@/components/earnings/format";
+import { NA, earningsHref, format } from "@/components/earnings/format";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { KpiTile } from "@/components/ui/kpi-tile";
@@ -13,7 +13,7 @@ import { Spark } from "./spark";
 import { cn } from "@/lib/utils";
 
 const at = (points: GroupPoint[], label: string) => points.find((p) => p.label === label);
-const growthText = (v: number | undefined) => (v === undefined ? DASH : format("growth", v));
+const growthText = (v: number | undefined) => (v === undefined ? NA : format("growth", v));
 const pts = (v: number) => `${Math.abs(v * 100).toFixed(1)} pts`;
 const days = (v: number) => `${Math.round(Math.abs(v))}d`;
 const diff = (a: number | undefined, b: number | undefined) => (a === undefined || b === undefined ? undefined : a - b);
@@ -86,13 +86,13 @@ export async function CycleView() {
         />
         <KpiTile
           label="Companies growing"
-          value={supplyNow?.growing === undefined ? DASH : `${Math.round(supplyNow.growing * 100)}%`}
+          value={supplyNow?.growing === undefined ? NA : `${Math.round(supplyNow.growing * 100)}%`}
           delta={growingChange !== undefined ? { value: growingChange, display: pts(growingChange), period: "on prior qtr" } : undefined}
           source={{ status: "live", label: "SEC" }}
         />
         <KpiTile
           label="Distributor inventory"
-          value={distDays === undefined ? DASH : `${Math.round(distDays)} days`}
+          value={distDays === undefined ? NA : `${Math.round(distDays)} days`}
           note="median"
           delta={distChange !== undefined ? { value: distChange, display: days(distChange), period: "YoY", invert: true } : undefined}
           source={{ status: "live", label: "SEC" }}
@@ -179,7 +179,7 @@ function CompanyLine({ company, latest, yearAgo, marker }: { company: CompanySer
         <span className="tabular-nums text-ink">{growthText(now?.growth)}</span>
       </div>
       <p className="mt-0.5 text-caption text-ink-muted">
-        Inventory {now?.inventoryDays === undefined ? DASH : `${Math.round(now.inventoryDays)} days`}
+        Inventory {now?.inventoryDays === undefined ? NA : `${Math.round(now.inventoryDays)} days`}
         {change !== undefined && ` (${change >= 0 ? "+" : "−"}${days(change)} YoY)`}, margin {format("pct", now?.operatingMargin)}
       </p>
     </li>
@@ -228,7 +228,7 @@ function Chain({
               </Measure>
               <Measure label="Inventory days">
                 <span className="text-body-strong tabular-nums text-ink">
-                  {now?.inventoryDays === undefined ? DASH : Math.round(now.inventoryDays)}
+                  {now?.inventoryDays === undefined ? NA : Math.round(now.inventoryDays)}
                 </span>
                 {daysChange !== undefined && <Delta value={daysChange} display={days(daysChange)} period="YoY" invert />}
               </Measure>
@@ -378,7 +378,7 @@ function ScoreRows({ groups, latest, prior, yearAgo }: { groups: GroupSeries[]; 
               </Link>
             </th>
             <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">
-              {now?.reporting ?? 0}/{g.companies}
+              {now?.reporting ?? 0} of {g.companies}
             </td>
             <td className="px-3 py-1.5 text-right tabular-nums text-ink">{growthText(now?.growth)}</td>
             <td className="px-3 py-1.5">
@@ -386,15 +386,15 @@ function ScoreRows({ groups, latest, prior, yearAgo }: { groups: GroupSeries[]; 
             </td>
             <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">{growthText(before?.growth)}</td>
             <td className="px-3 py-1.5 text-right tabular-nums text-ink">
-              {now?.growing === undefined ? DASH : `${Math.round(now.growing * 100)}%`}
+              {now?.growing === undefined ? NA : `${Math.round(now.growing * 100)}%`}
             </td>
             <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("pct", now?.operatingMargin)}</td>
             <td className="px-3 py-1.5 text-right">
-              {margin === undefined ? <span className="text-ink-muted">{DASH}</span> : <Delta value={margin} display={pts(margin)} />}
+              {margin === undefined ? <span className="text-ink-muted">{NA}</span> : <Delta value={margin} display={pts(margin)} />}
             </td>
             <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("days", now?.inventoryDays)}</td>
             <td className="px-3 py-1.5 text-right">
-              {inv === undefined ? <span className="text-ink-muted">{DASH}</span> : <Delta value={inv} display={days(inv)} invert />}
+              {inv === undefined ? <span className="text-ink-muted">{NA}</span> : <Delta value={inv} display={days(inv)} invert />}
             </td>
           </tr>
         );

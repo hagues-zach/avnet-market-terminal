@@ -101,7 +101,7 @@ async function fromFiler({ supplier, cik }: Filer): Promise<LiveArticle[]> {
       id: `sec-${accession}`,
       kind: "filing",
       title,
-      summary: `${body.name ?? supplier} · Form ${form} · accession ${accession}`,
+      summary: `${body.name ?? supplier}, Form ${form}, accession ${accession}`,
       outlet: "SEC EDGAR",
       url: `https://www.sec.gov/Archives/edgar/data/${cik}/${accession.replace(/-/g, "")}/${r.primaryDocument[i]}`,
       publishedAt: new Date(t).toISOString(),

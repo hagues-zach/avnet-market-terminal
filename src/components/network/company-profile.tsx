@@ -7,7 +7,7 @@ import { COHORT_LABELS, ROLE_SINGULAR, roleOf, type Company, type CompanyEarning
 import { getRevenueMix, type RevenueMix } from "@/lib/data/live/revenue-mix";
 import { getCommentary, type Digest } from "@/lib/ai/commentary";
 import { getCarriers } from "@/lib/line-cards/analysis";
-import { AVNET } from "@/lib/colors";
+import { companyColor } from "@/lib/colors";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Chip, DataChip } from "@/components/ui/chip";
@@ -177,7 +177,7 @@ export async function ProfileOverview({ company }: { company: Company }) {
   const v = q.values;
   const lines = glance(earnings, mix);
   // Avnet Green only ever represents Avnet.
-  const color = company.slug === "avnet" ? AVNET.green : AVNET.blueDark;
+  const color = companyColor(company.slug);
   const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
   const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
   const footer = <SourceLine source={`${company.name}'s SEC filings`} asOf={`quarter ended ${longDate(q.end)}`} />;

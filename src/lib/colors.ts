@@ -30,6 +30,9 @@ export const VIZ = {
   benchmark: AVNET.grayMedium, // "All other" or benchmark as a line
 } as const;
 
+/** One company's own one-colour series: Avnet Green for Avnet, Dark Blue for Arrow, grey for everyone else. */
+export const companyColor = (slug: string): string => (slug === "avnet" ? VIZ.avnet : slug === "arrow" ? VIZ.arrow : VIZ.other);
+
 /**
  * Non-Avnet series order, validated for adjacent pairs (bars, stacks, lines):
  * worst colour-blind ΔE 22.4, worst normal-vision ΔE 26.0. Slot 0 is Dark Blue, which
