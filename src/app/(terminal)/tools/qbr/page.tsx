@@ -35,7 +35,7 @@ export default async function QbrPage({ searchParams }: { searchParams: Promise<
           company ? (
             <>
               <PrintButton />
-              <ButtonLink href={`/tools/deck?company=${company.slug}`} variant="primary">
+              <ButtonLink href={`/tools/deck?company=${company.slug}&from=qbr`} variant="primary">
                 <Presentation className="h-4 w-4" strokeWidth={1.5} aria-hidden />
                 Export to deck
               </ButtonLink>
