@@ -6,7 +6,7 @@
 //   playwright-cli -s=base run-code --filename=scripts/baseline-screenshots.js
 // Writes docs/design/baseline/<route>-<width>.png. Add new routes to the list.
 async page => {
-  const routes = ['/start','/news','/overview','/cycle','/signals','/learn','/learn/sic-mosfets','/network','/network/avnet','/earnings','/competitive','/line-cards','/performance','/market-share','/tam','/supply-chain','/design-pipeline','/customers','/tools/qbr','/tools/deck','/tools/leads','/forecast','/tools/mapping','/copilot','/export','/data-hookups','/design-kit'];
+  const routes = ['/start','/news','/overview','/cycle','/signals','/learn','/learn/sic-mosfets','/network','/network/avnet','/earnings','/competitive','/line-cards','/performance','/market-share','/tam','/supply-chain','/design-pipeline','/customers','/tools/qbr','/tools/deck','/tools/leads','/forecast','/tools/mapping','/copilot','/data-hookups','/design-kit'];
   const out = [];
   for (const r of routes) {
     const errs = [];

@@ -3,6 +3,7 @@
 import { Suspense, use, useId, useState } from "react";
 import Link from "next/link";
 import { VIEWS, goalSeek, lead, money, path, pct, project, type Assumptions, type MarketView, type SegmentInput } from "@/lib/scenario/model";
+import { deckHref } from "@/lib/deck/outline";
 import { DataChip } from "@/components/ui/chip";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -456,8 +457,15 @@ export function ScenarioModeler({
       </div>
 
       <p className="flex flex-wrap items-center gap-2 text-body-sm text-ink-muted">
+        {uniform !== null && !p.rows.some((r) => r.edited) ? (
+          <Link href={deckHref({ from: "scenario", scenario: { years: a.years, view: a.view, share: uniform } })} className={link}>
+            Send to Pitch Deck Builder
+          </Link>
+        ) : (
+          <span>Set one share change for every segment, with forecast growth, to send this scenario to a deck.</span>
+        )}
         <DataChip status="planned" />
-        Saving, comparing scenarios and sending one to Pitch Deck Builder arrive with the database (step 4.1).
+        Saving and comparing scenarios arrive with the database (step 4.1).
       </p>
       <p className="text-caption text-ink-muted">
         Billings {inYears(a.years)} are each segment&apos;s market at the horizon times Avnet&apos;s share, which moves evenly to the change set

@@ -9,11 +9,4 @@ export const LEGACY: Record<string, { title: string; purpose: string; prd: strin
     personas: ["executives", "strategy"],
     hookups: ["wsts", "gartner-forecast"],
   },
-  "/export": {
-    title: "Export Center",
-    purpose: "Assemble Avnet-branded exports from the app's views. Superseded in part by the Pitch Deck Builder.",
-    prd: "Superapp plan step 7",
-    personas: ["executives", "sellers"],
-    hookups: ["tam-sam-som", "billings"],
-  },
 };

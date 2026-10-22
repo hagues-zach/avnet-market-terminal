@@ -37,6 +37,7 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
         actions={
           <>
             <ButtonLink href={earningsHref(company.slug, "all")}>Full earnings view</ButtonLink>
+            {role !== "avnet" && <ButtonLink href={`/tools/deck?company=${company.slug}&from=profile`}>Build a pitch</ButtonLink>}
             {role !== "avnet" && (
               <ButtonLink href={`/tools/qbr?company=${company.slug}`} variant="primary">
                 <BookOpenCheck className="h-4 w-4" strokeWidth={1.5} aria-hidden />

@@ -5,7 +5,6 @@ import {
   Building2,
   ClipboardList,
   DollarSign,
-  FileDown,
   Gauge,
   GitBranch,
   Home,
@@ -82,7 +81,6 @@ const ALL_NAV: NavItem[] = [
   { label: "Scenario Modeler", href: "/forecast", icon: TrendingUp, built: true, pillar: "tools", mock: true },
   { label: "Code Mapping", href: "/tools/mapping", icon: Network, built: true, pillar: "tools", mock: true },
   { label: "Ask the Terminal", href: "/copilot", icon: Sparkles, built: true, pillar: "tools", mock: true },
-  { label: "Export Center", href: "/export", icon: FileDown, built: true, pillar: "tools", mock: true },
 
   { label: "Data Hookups", href: "/data-hookups", icon: Plug, built: true, pillar: "admin" },
 ];
