@@ -122,6 +122,21 @@ interface Stored {
   releaseUrl: string;
 }
 
+/**
+ * The latest digest already cached for a company, without reading SEC or calling
+ * Claude. Accession numbers start with the filer's CIK, so the cache can be
+ * searched by company. Null when nothing is cached.
+ */
+export async function cachedCommentary(company: Company): Promise<{ digest: Digest; filed: string; releaseUrl: string } | null> {
+  const cached = await readCache<Stored>(CACHE);
+  const prefix = String(company.cik).padStart(10, "0");
+  const hits = Object.entries(cached)
+    .filter(([accession]) => accession.startsWith(prefix))
+    .map(([, v]) => v)
+    .sort((a, b) => b.filed.localeCompare(a.filed));
+  return hits[0] ?? null;
+}
+
 export async function getCommentary(slug: string): Promise<Commentary> {
   const company = COMPANIES.find((c) => c.slug === slug) ?? COMPANIES[0];
   const declaredAgent = process.env.SEC_USER_AGENT;

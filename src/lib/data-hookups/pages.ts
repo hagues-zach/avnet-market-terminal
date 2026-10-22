@@ -73,6 +73,12 @@ export const PAGE_HOOKUPS: PageHookups[] = [
     files: ["src/components/scenario/modeler.tsx"],
   },
   { href: "/tools/mapping", title: "Code Mapping", ids: ["code-map", "material-master"], files: ["src/app/(terminal)/tools/mapping/page.tsx"] },
-  { href: "/copilot", title: "Ask the Terminal", ids: ["billings", "wsts", "tam-sam-som"], files: [], from: { legacy: "/copilot" } },
+  {
+    href: "/copilot",
+    title: "Ask the Terminal",
+    ids: ["billings", "bookings", "backlog"],
+    // Only the Avnet's business answer is mock; its marker ids are set in the answerer.
+    files: ["src/components/ask/answer-view.tsx", "src/lib/ask/answer.ts"],
+  },
   { href: "/export", title: "Export Center", ids: ["tam-sam-som", "billings"], files: [], from: { legacy: "/export" } },
 ];

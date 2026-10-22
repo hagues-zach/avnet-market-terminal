@@ -9,13 +9,6 @@ export const LEGACY: Record<string, { title: string; purpose: string; prd: strin
     personas: ["executives", "strategy"],
     hookups: ["wsts", "gartner-forecast"],
   },
-  "/copilot": {
-    title: "Ask the Terminal",
-    purpose: "Natural-language questions answered from the app's data, with sources. Will use Claude over the live and hooked-up data.",
-    prd: "PRD persona 5 and section 10.2",
-    personas: ["analysts", "everyone"],
-    hookups: ["billings", "wsts", "tam-sam-som"],
-  },
   "/export": {
     title: "Export Center",
     purpose: "Assemble Avnet-branded exports from the app's views. Superseded in part by the Pitch Deck Builder.",
