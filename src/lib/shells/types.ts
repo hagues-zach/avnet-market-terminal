@@ -1,10 +1,11 @@
-import type { ChartRow, Unit } from "@/components/charts/cycle-charts";
 import type { Pillar } from "@/components/layout/nav";
 
-// Shell pages are described as data and drawn by one renderer
-// (src/components/shell/shell-page.tsx). Each is a deliberate placeholder: the
-// layout and the questions it answers are settled, the visual design is not.
-// Design passes (docs/superapp-plan.md) replace sections with bespoke components.
+// Shell pages were described as data and drawn by one renderer until each had
+// its design pass; the specs stay as the record of what each section answers
+// (Start Here still reads its KPI spec). The renderer was retired in step 2.23.
+
+export type Unit = "pct" | "pctWhole" | "days" | "usd" | "index" | "level";
+export type ChartRow = { label: string } & Record<string, string | number | undefined>;
 
 interface Base {
   title: string;

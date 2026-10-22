@@ -89,15 +89,7 @@ export interface TamSummary {
   productTrend: { year: number; values: Partial<Record<ProductCategory, UsdMillions>> }[];
 }
 
-// ---- Market Overview (exec cockpit) ----
-
-export interface NewsItem {
-  id: string;
-  title: string;
-  outlet: string;
-  tag: string;
-  date: string;
-}
+// ---- News (mock) ----
 
 export interface NewsArticle {
   id: string;
@@ -106,33 +98,6 @@ export interface NewsArticle {
   outlet: string;
   tag: string;
   date: string;
-}
-
-export interface SegmentMomentum {
-  product: ProductCategory;
-  usdM: UsdMillions;
-  yoy: number;
-  series: number[]; // trailing trend for sparkline
-}
-
-export interface MarketChange {
-  label: string;
-  detail: string;
-  dir: 1 | -1;
-}
-
-export interface OverviewSummary {
-  tamUsdM: UsdMillions;
-  yoyGrowth: number;
-  forecastNextYearUsdM: UsdMillions;
-  somUsdM: UsdMillions;
-  somShareOfSam: number;
-  bookToBill: number;
-  bookToBillTrend: number[];
-  whatChanged: MarketChange[];
-  segments: SegmentMomentum[];
-  byRegion: { region: Region; usdM: UsdMillions }[];
-  news: NewsItem[];
 }
 
 // ---- Forecast & Scenario ----

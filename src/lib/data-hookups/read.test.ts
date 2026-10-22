@@ -6,7 +6,6 @@ import { HOOKUPS, PILLAR_NAMES, type Hookup } from "@/lib/hookups";
 import { NAV } from "@/components/layout/nav";
 import * as specs from "@/lib/shells/specs";
 import type { ShellSpec } from "@/lib/shells/types";
-import { LEGACY } from "@/lib/shells/legacy";
 import { CONNECTION_ORDER } from "./order";
 import { PAGE_HOOKUPS } from "./pages";
 import { byCloseness, lead, matches, nextStep, readPages, readSteps, unscheduled, widestStep } from "./read";
@@ -132,14 +131,13 @@ const markerIds = (file: string) => {
 const specIds = (name: string) => ((specs as Record<string, ShellSpec>)[name]?.sections ?? []).flatMap((s) => s.hookups);
 for (const p of PAGE_HOOKUPS) {
   const found = new Set(p.files.flatMap((f) => [...markerIds(f)]));
-  if (p.from && "spec" in p.from) {
+  if (p.from) {
     // Start Here shows only its KPI section's marker; shell pages show every section's.
     const spec = (specs as Record<string, ShellSpec>)[p.from.spec];
     assert.ok(spec, p.from.spec);
     const shown = p.href === "/start" ? (spec.sections.find((s) => s.kind === "kpis")?.hookups ?? []) : specIds(p.from.spec);
     shown.forEach((x) => found.add(x));
   }
-  if (p.from && "legacy" in p.from) LEGACY[p.from.legacy].hookups.forEach((x) => found.add(x));
   assert.deepEqual([...found].sort(), [...p.ids].sort(), `${p.href}: ids match what the page shows`);
 }
 
