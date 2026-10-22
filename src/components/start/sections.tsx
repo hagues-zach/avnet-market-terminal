@@ -143,9 +143,7 @@ export async function FeedCard({ role }: { role: Role }) {
                 {it.why && <p className="mt-0.5 line-clamp-2 text-caption text-ink-muted">{it.why}</p>}
               </div>
               <div className="w-28 shrink-0 text-right text-caption text-ink-muted">
-                <div className="truncate" title={it.source}>
-                  {it.source}
-                </div>
+                <div>{it.source}</div>
                 <div>{shortDate(it.date)}</div>
               </div>
             </li>

@@ -17,8 +17,8 @@ const inter = Inter({
 export const viewport: Viewport = { themeColor: "#FFFFFF" };
 
 export const metadata: Metadata = {
-  title: "Avnet · Market Intelligence Terminal",
-  description: "Live semiconductor TAM & market intelligence — Avnet",
+  title: "Avnet Market Intelligence Terminal",
+  description: "Semiconductor market intelligence for Avnet sellers, engineers and leaders, from live public data and Avnet's own.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

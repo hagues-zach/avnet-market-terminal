@@ -2,6 +2,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { LiveArticle } from "@/lib/data/live/shared";
 import { readCache, writeCache } from "./cache";
+import { plainDashes } from "./dashes";
 import { aiConfigured, claude, describeError, MODEL } from "./claude";
 
 // "Why it matters": for each story in the Market News feed, one sentence on what
@@ -65,7 +66,7 @@ export async function getNewsAngles(articles: LiveArticle[]): Promise<Angles> {
   const cached = await readCache<Angle>(CACHE);
   const eligible = articles.filter((a) => KINDS.has(a.kind));
   const byId: Record<string, Angle> = {};
-  for (const a of eligible) if (cached[a.id]) byId[a.id] = cached[a.id];
+  for (const a of eligible) if (cached[a.id]) byId[a.id] = { ...cached[a.id], angle: plainDashes(cached[a.id].angle) };
 
   if (!aiConfigured()) return { byId, status: "off", message: "AI synthesis is off. Set ANTHROPIC_API_KEY to turn it on." };
   const todo = eligible.filter((a) => !cached[a.id]).slice(0, MAX_PER_CALL);
@@ -90,7 +91,7 @@ export async function getNewsAngles(articles: LiveArticle[]): Promise<Angles> {
       const angle = item.angle.trim();
       if (!article || !angle) continue;
       const entry: Angle = { relevance: item.relevance, angle };
-      byId[article.id] = entry;
+      byId[article.id] = { ...entry, angle: plainDashes(angle) };
       cached[article.id] = entry;
     }
     await writeCache(CACHE, cached);

@@ -510,9 +510,9 @@ Picked up in steps 1.3, 1.5 and 1.6:
 3. ~~Yellow text on the source chip and hookup marker.~~ Done in step 1.6: both draw from the new kit.
 4. ~~The typed "/" before card headings.~~ Removed: the brand kit dropped the slash mark.
 5. ~~Card shadow and 8px corners.~~ Done in step 1.6: every card is flat with 2px corners.
-6. Charts hard-code `#E3E5E8`, `#EEF0F2` and a 6px tooltip radius. The shared `CHART` tokens exist (step 1.3); each chart moves to them, with solid gridlines, in its phase 2 pass.
+6. Charts hard-code `#E3E5E8`, `#EEF0F2` and a 6px tooltip radius. The shared `CHART` tokens exist (step 1.3); each chart moves to them, with solid gridlines, in its phase 2 pass. Done for every page but Market Overview after the polish pass (the company revenue charts moved over, unused charts deleted); Market Overview's donut and gauge go in step 2.23.
 8. ~~`endmarket-bars.tsx` colours one series of bars by index.~~ Done in step 2.5: the chart is replaced by one-colour bars.
-9. `book-to-bill-gauge.tsx` (Market Overview) draws market data in Avnet Green and shows the figure as green text on white. Use ink for the figure and a neutral or status colour for the gauge.
+9. (Step 2.23) `book-to-bill-gauge.tsx` (Market Overview) draws market data in Avnet Green and shows the figure as green text on white. Use ink for the figure and a neutral or status colour for the gauge.
 10. ~~Chart legends (for example the stacked area on TAM) draw label text in the series colour.~~ Done for TAM in step 2.5 (the stacked area is gone); check any remaining legends in later passes.
 11. ~~The TAM methodology paragraph shows "MOCK" as yellow text.~~ Done in step 2.5: the method note uses `DataChip`.
 12. ~~Treemap labels were white on light fills.~~ Done in step 1.6: `labelOn()` in `src/lib/colors.ts` picks black or white per fill.

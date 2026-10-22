@@ -8,12 +8,12 @@ import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel } from "@/components/ui/panel";
 import { EmptyState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
-import { DASH, earningsHref, format } from "./format";
+import { NA, earningsHref, format } from "./format";
 
 const utc = (d: string) => new Date(`${d}T00:00:00Z`);
 const dayLabel = (d: string) => utc(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 const shortDate = (d: string) => utc(d).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-const pct = (v: number | undefined) => (v === undefined ? DASH : `${(v * 100).toFixed(1)}%`);
+const pct = (v: number | undefined) => (v === undefined ? NA : `${(v * 100).toFixed(1)}%`);
 const SHORT_TIMING: Record<Timing, string> = { before: "Before open", during: "Market hours", after: "After close" };
 const TH = "h-control whitespace-nowrap px-2 font-display text-label font-normal uppercase text-ink-muted";
 
@@ -52,7 +52,7 @@ function SoonRows({ title, events, group, current }: { title: string; events: Re
           <th scope="row" className="px-2 py-1.5 text-left font-normal">
             <CompanyLink event={e} group={group} current={current} />
           </th>
-          <td className="max-w-[10rem] truncate px-2 py-1.5 text-ink-muted" title={COHORT_LABELS[e.company.cohort]}>
+          <td className="px-2 py-1.5 text-ink-muted">
             {COHORT_LABELS[e.company.cohort]}
           </td>
           <td className="whitespace-nowrap px-2 py-1.5 text-ink-muted">{e.timing ? SHORT_TIMING[e.timing] : ""}</td>
@@ -91,7 +91,7 @@ export async function SeasonOverview({ company, group }: { company: string; grou
         <KpiTile label="Reporting this week" value={String(s.thisWeek.length)} note={s.due.length ? `${s.due.length} overdue` : "estimated dates"} />
         <KpiTile
           label="Next for Avnet"
-          value={s.next.avnet ? shortDate(s.next.avnet.date) : DASH}
+          value={s.next.avnet ? shortDate(s.next.avnet.date) : NA}
           note={s.next.avnet?.status === "estimated" ? "estimated" : undefined}
           asOf={next("Arrow", s.next.arrow)}
         />
@@ -188,7 +188,7 @@ export async function SeasonOverview({ company, group }: { company: string; grou
                             <span className="sr-only"> for {e.company.name} (opens SEC EDGAR)</span>
                           </a>
                         ) : (
-                          DASH
+                          NA
                         )}
                       </td>
                     </tr>

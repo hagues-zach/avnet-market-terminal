@@ -251,8 +251,8 @@ function BarList({ items }: { items: { name: string; value: number; growth: numb
     <ul className="space-y-3">
       {sorted.map((i) => (
         <li key={i.name}>
-          <div className="flex items-baseline justify-between gap-3 text-body-sm">
-            <span className="truncate text-ink" title={i.name}>{i.name}</span>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-body-sm">
+            <span className="text-ink">{i.name}</span>
             <span className="flex items-baseline gap-3 whitespace-nowrap tabular-nums text-ink">
               {formatUsdMillions(i.value)} <span className="text-ink-muted">{pct(i.value / total)}</span>
               <Delta value={i.growth} />

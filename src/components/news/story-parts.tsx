@@ -6,7 +6,7 @@ import { ChevronDown, ExternalLink } from "lucide-react";
 import type { Angle } from "@/lib/ai/news-angles";
 import type { LiveArticle } from "@/lib/data/live/shared";
 import type { Company } from "@/lib/data/live/earnings-model";
-import { ago, entityOf, qbrHref, RELEVANCE_WORD } from "@/lib/news/briefing";
+import { ago, entityOf, qbrHref, RELEVANCE_WORD, stamp } from "@/lib/news/briefing";
 import { Chip } from "@/components/ui/chip";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +47,7 @@ export function Byline({ article, fetchedAt, className }: { article: LiveArticle
   return (
     <span className={cn("whitespace-nowrap text-caption text-ink-muted", className)}>
       {article.outlet},{" "}
-      <time dateTime={article.publishedAt} title={article.publishedAt.slice(0, 16).replace("T", " ") + " UTC"}>
+      <time dateTime={article.publishedAt} title={stamp(article.publishedAt)}>
         {ago(article.publishedAt, fetchedAt)}
       </time>
     </span>

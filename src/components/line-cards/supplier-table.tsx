@@ -122,9 +122,7 @@ export function SupplierTable({
                     {s.carriedBy.includes(d.slug) ? (
                       <Check className={cn("mx-auto h-3.5 w-3.5", d.slug === home ? "text-ink" : "text-ink")} aria-label={`On ${d.name}'s line card`} />
                     ) : (
-                      <span className="text-gray-light" aria-label={`Not on ${d.name}'s line card`}>
-                        ·
-                      </span>
+                      <span className="sr-only">Not on {d.name}&apos;s line card</span>
                     )}
                   </td>
                 ))}

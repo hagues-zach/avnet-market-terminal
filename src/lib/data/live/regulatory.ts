@@ -55,7 +55,7 @@ export async function getRegulatory(): Promise<LiveArticle[]> {
       id: `fr-${doc.document_number}`,
       kind: "regulatory",
       title: doc.title.replace(/\s+/g, " ").trim(),
-      summary: [doc.type, agencies[agencies.length - 1], abstract].filter(Boolean).join(" · "),
+      summary: [doc.type, agencies[agencies.length - 1], abstract].filter(Boolean).join(". "),
       outlet: "Federal Register",
       url: doc.html_url,
       publishedAt: `${doc.publication_date}T00:00:00.000Z`,

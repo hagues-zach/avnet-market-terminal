@@ -3,6 +3,7 @@
 // only ever read from the cache; nothing here calls Claude.
 import { cachedCommentary } from "@/lib/ai/commentary";
 import { readCache } from "@/lib/ai/cache";
+import { plainDashes } from "@/lib/ai/dashes";
 import type { Angle } from "@/lib/ai/news-angles";
 import { MEASURES, scorecard, tally, verdict, type Kind } from "@/lib/competitive/compare";
 import { getCompanyNews } from "@/lib/data/live/company-news";
@@ -243,7 +244,7 @@ async function news(question: string, c?: Company, topic?: string): Promise<Answ
     outlet: a.outlet,
     date: day(a.publishedAt.slice(0, 10), thisYear()),
     url: a.url,
-    angle: angles[a.id]?.angle,
+    angle: angles[a.id] ? plainDashes(angles[a.id].angle) : undefined,
   }));
   const subject = c?.name ?? (topic ? topic : "the market");
   return {
