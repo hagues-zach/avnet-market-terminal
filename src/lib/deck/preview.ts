@@ -3,6 +3,8 @@
 // Server-only. Claude text is only read from the cache; nothing calls Claude.
 import { answer } from "@/lib/ask/answer";
 import { day, type Answer } from "@/lib/ask/sentences";
+import { getLeads } from "@/lib/leads/data";
+import { groupLabel, inSentence, lead as leadsLead, techName } from "@/lib/leads/rank";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
 import { avnetBusinessMock } from "@/components/network/company-profile";
 import { lead as scenarioLead, money, pct, project, type Assumptions } from "@/lib/scenario/model";
@@ -228,9 +230,23 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Pro
         source: MOCK_SOURCE,
         period: "Latest quarter",
       };
-    case "leads":
+    case "leads": {
+      const p = s.primer!;
+      const top = (await getLeads(p)).slice(0, 5);
+      return {
+        headline: `Who buys ${techName(p)}`,
+        text: leadsLead(top, p),
+        columns: ["Company", "Growth", "Why"],
+        facts: top.map((l) => ({
+          label: `${l.company.name}, ${inSentence(groupLabel(l.group))}`,
+          values: [l.growth === undefined ? "n/a" : pct(l.growth, 1, true), (l.reasons.find((r) => r.kind !== "growth") ?? l.reasons[0]).text],
+        })),
+        source: "SEC filings, Market News",
+        period: top[0]?.quarter,
+      };
+    }
     case "sources":
-      // Leads aren't built yet; the sources slide is drawn from the outline in the browser.
+      // The sources slide is drawn from the outline in the browser.
       return { headline: slide(id).title, source: "This deck" };
   }
 }
@@ -239,7 +255,7 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Pro
 export async function previewsFor(s: Start): Promise<Partial<Record<SlideId, Preview>>> {
   let companyAnswer: Promise<Answer> | undefined;
   const company = () => (companyAnswer ??= answer(`How is ${s.company!.name} doing?`));
-  const ids = SLIDES.map((x) => x.id).filter((id) => id !== "sources" && id !== "leads" && (id === "cover" || available(id, s)));
+  const ids = SLIDES.map((x) => x.id).filter((id) => id !== "sources" && (id === "cover" || available(id, s)));
   const done = await Promise.all(
     ids.map(async (id) => {
       try {

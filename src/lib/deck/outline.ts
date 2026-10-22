@@ -93,7 +93,7 @@ export const SLIDES: Slide[] = [
     hookups: ["billings", "wsts", "gartner-forecast", "ipe-forecast", "code-map"],
   },
   { id: "pipeline", title: "Design pipeline", group: "Avnet performance", from: "Design Pipeline", hookups: ["drms", "billings"] },
-  { id: "leads", title: "A lead list", group: "Avnet performance", from: "Lead Finder", hookups: [], planned: "2.22" },
+  { id: "leads", title: "Who buys it", group: "Network", from: "Lead Finder", hookups: ["sec", "news"], needs: "primer" },
   { id: "sources", title: "Sources", from: "This deck", hookups: [] },
 ];
 
@@ -112,9 +112,15 @@ export function statusOf(s: Slide, register: Hookup[] = HOOKUPS): SlideStatus {
 
 /* ---------- Where a deck starts ---------- */
 
-export type From = "profile" | "qbr" | "learn" | "scenario";
+export type From = "profile" | "qbr" | "learn" | "scenario" | "leads";
 
-const FROM_PAGE: Record<From, string> = { profile: "Company Profile", qbr: "QBR Prep", learn: "the Learning Center", scenario: "Scenario Modeler" };
+const FROM_PAGE: Record<From, string> = {
+  profile: "Company Profile",
+  qbr: "QBR Prep",
+  learn: "the Learning Center",
+  scenario: "Scenario Modeler",
+  leads: "Lead Finder",
+};
 
 export interface ScenarioStart {
   years: number;
@@ -214,7 +220,7 @@ export function deckHref(s: {
 /* ---------- Outlines ---------- */
 
 const ORDER: Record<Audience, SlideId[]> = {
-  supplier: ["cover", "company", "commentary", "linecard", "share", "arrow", "pipeline", "cycle", "sources"],
+  supplier: ["cover", "company", "commentary", "linecard", "leads", "share", "arrow", "pipeline", "cycle", "sources"],
   customer: ["cover", "company", "commentary", "technology", "news", "account", "supply", "sources"],
   internal: ["cover", "company", "cycle", "economy", "arrow", "performance", "share", "scenario", "sources"],
 };
@@ -232,7 +238,7 @@ export function available(id: SlideId, s: Pick<Start, "company" | "primer">): bo
 /** Why a slide can't be added, or null when it can. */
 export function unavailableReason(id: SlideId, s: Pick<Start, "company" | "primer">): string | null {
   const x = slide(id);
-  if (x.planned) return `Arrives with Lead Finder (step ${x.planned})`;
+  if (x.planned) return `Arrives in step ${x.planned}`;
   if (available(id, s)) return null;
   return x.needs === "primer" ? "Needs a company with a primer" : x.needs === "subject" ? "Needs a company or a technology" : "Needs a company";
 }
@@ -292,7 +298,7 @@ export function hrefOf(id: SlideId, s: Pick<Start, "company" | "primer" | "scena
     case "pipeline":
       return "/design-pipeline";
     case "leads":
-      return "/tools/leads";
+      return s.primer ? `/tools/leads?primer=${s.primer.slug}` : "/tools/leads";
     default:
       return null;
   }

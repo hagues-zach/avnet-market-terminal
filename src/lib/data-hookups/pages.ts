@@ -86,7 +86,13 @@ export const PAGE_HOOKUPS: PageHookups[] = [
     // Every slide lists the sources it reads; a mock slide's preview shows them in its marker.
     files: ["src/lib/deck/outline.ts", "src/components/deck/builder.tsx"],
   },
-  { href: "/tools/leads", title: "Lead Finder", ids: ["customer-master", "account-data"], files: [], from: { spec: "LEADS_SPEC" } },
+  {
+    href: "/tools/leads",
+    title: "Lead Finder",
+    ids: ["billings", "backlog", "drms", "quotes", "customer-master"],
+    // Each lead's business reuses the profile's mock business and its ids.
+    files: ["src/components/leads/finder.tsx", "src/components/network/company-profile.tsx"],
+  },
   {
     href: "/forecast",
     title: "Scenario Modeler",
