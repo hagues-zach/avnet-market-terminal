@@ -45,7 +45,7 @@ A slide is **a view that already exists in the app**, with the page it comes fro
 | Avnet's business | Performance Tracker | `billings`, `bookings`, `backlog` | Mock | Fiscal quarter |
 | A scenario | Scenario Modeler | `billings`, `wsts`, `gartner-forecast`, `ipe-forecast`, `code-map` | Mock | To the horizon |
 | Design pipeline | Design Pipeline | `drms`, `billings` | Mock | Fiscal quarter |
-| A lead list | Lead Finder | n/a | Planned (2.22 and 3.6) | n/a |
+| Who buys it (the lead list, built in 2.22) | Lead Finder | `sec`, `news` | Live | Latest quarter |
 
 Every deck also has a **cover** (title, audience, date) and a **sources** slide (every source and period in the deck, and which slides are mock), added by the rules, not chosen.
 

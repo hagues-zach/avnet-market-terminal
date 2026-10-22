@@ -42,8 +42,13 @@ const PATTERNS: Record<string, RegExp> = {
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-export async function getCompanyNews(company: Company, limit = 8): Promise<LiveArticle[]> {
+/** The stories in an already-loaded feed that name the company. */
+export function newsFor(company: Company, articles: LiveArticle[], limit = 8): LiveArticle[] {
   const pattern = PATTERNS[company.slug] ?? new RegExp(`\\b${escape(company.name)}\\b`, "i");
-  const { articles } = await getLiveNews();
   return articles.filter((a) => pattern.test(`${a.title} ${a.summary}`)).slice(0, limit);
+}
+
+export async function getCompanyNews(company: Company, limit = 8): Promise<LiveArticle[]> {
+  const { articles } = await getLiveNews();
+  return newsFor(company, articles, limit);
 }

@@ -153,6 +153,9 @@ export default async function PrimerPage({ params }: { params: Promise<{ slug: s
               <Link href={`/tools/deck?primer=${p.slug}&from=learn`} className={link}>
                 Build a pitch
               </Link>
+              <Link href={`/tools/leads?primer=${p.slug}`} className={link}>
+                Find leads
+              </Link>
               <Link href="/line-cards" className={link}>
                 Who carries these suppliers
               </Link>

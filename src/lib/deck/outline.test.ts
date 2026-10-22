@@ -45,7 +45,7 @@ assert.equal(statusOf(slide("company")), "live");
 assert.equal(statusOf(slide("cycle")), "live");
 assert.equal(statusOf(slide("share")), "mock");
 assert.equal(statusOf(slide("pipeline")), "mock");
-assert.equal(statusOf(slide("leads")), "planned");
+assert.equal(statusOf(slide("leads")), "live", "the lead list ranks on SEC filings and news");
 assert.equal(statusOf(slide("technology")), "live", "written content with no data source is live");
 const allLive = HOOKUPS.map((h) => ({ ...h, status: "live" as const }));
 assert.equal(statusOf(slide("share"), allLive), "live", "a slide turns live with its hookups");
@@ -69,6 +69,11 @@ assert.equal(fromLearn.audience, "customer");
 assert.equal(fromLearn.primer?.slug, "sic-mosfets");
 assert.equal(startedFrom(fromLearn), "Started from the Learning Center for SiC MOSFETs.");
 
+const fromLeads = parseStart(q("/tools/deck?company=tesla&primer=sic-mosfets&from=leads"));
+assert.equal(fromLeads.audience, "customer");
+assert.equal(fromLeads.primer?.slug, "sic-mosfets", "the technology from Lead Finder wins over the company's own");
+assert.equal(startedFrom(fromLeads), "Started from Lead Finder for Tesla.");
+
 const fromScenario = parseStart(q("/tools/deck?from=scenario&horizon=3&view=upside&share=0.5"));
 assert.deepEqual(fromScenario.scenario, { years: 3, view: "upside", share: 0.5 });
 assert.equal(startedFrom(fromScenario), "Started from Scenario Modeler.");
@@ -86,6 +91,7 @@ const sources: [string, RegExp][] = [
   ["src/app/(terminal)/network/[slug]/page.tsx", /\/tools\/deck\?company=\$\{company\.slug\}&from=profile/],
   ["src/app/(terminal)/learn/[slug]/page.tsx", /\/tools\/deck\?primer=\$\{p\.slug\}&from=learn/],
   ["src/components/scenario/modeler.tsx", /deckHref\(\{ from: "scenario"/],
+  ["src/components/leads/finder.tsx", /\/tools\/deck\?company=\$\{c\.slug\}&primer=\$\{p\.slug\}&from=leads/],
 ];
 for (const [file, re] of sources) assert.match(readFileSync(file, "utf8"), re, `${file} links into the deck`);
 assert.equal(parseStart(q("/tools/deck?company=microchip&from=profile")).from, "profile");
@@ -104,7 +110,7 @@ assert.equal(deckHref({}), "/tools/deck");
 
 // ---- Outlines ----
 const titles = (xs: SlideId[]) => xs.join(" ");
-assert.equal(titles(outline(fromQbr)), "cover company commentary linecard share arrow pipeline cycle sources");
+assert.equal(titles(outline(fromQbr)), "cover company commentary linecard leads share arrow pipeline cycle sources");
 assert.equal(
   titles(outline(parseStart(q("/tools/deck?company=jabil")))),
   "cover company commentary news account supply sources",
@@ -123,8 +129,8 @@ for (const a of AUDIENCES) {
   assert.equal(o[0], "cover");
   assert.equal(o[o.length - 1], "sources");
 }
-assert.equal(available("leads", fromQbr), false);
-assert.equal(unavailableReason("leads", fromQbr), "Arrives with Lead Finder (step 2.22)");
+assert.equal(available("leads", fromQbr), true, "a supplier with a primer gets a lead list");
+assert.equal(unavailableReason("leads", parseStart({})), "Needs a company with a primer");
 assert.equal(unavailableReason("company", parseStart({})), "Needs a company");
 assert.equal(unavailableReason("cycle", parseStart({})), null);
 assert.equal(unavailableReason("news", parseStart({})), "Needs a company or a technology");
@@ -139,7 +145,7 @@ assert.deepEqual(move(["cover", "cycle"], "cover", -1), ["cover", "cycle"]);
 // ---- The lead ----
 assert.equal(
   lead(fromQbr, outline(fromQbr)),
-  "A supplier pitch for Microchip in nine slides: five on live data and two on mock, with a cover and sources.",
+  "A supplier pitch for Microchip in 10 slides: six on live data and two on mock, with a cover and sources.",
 );
 assert.equal(
   lead(parseStart({}), outline(parseStart({}))),
@@ -149,10 +155,7 @@ assert.equal(lead(fromLearn, outline(fromLearn)), "A customer pitch on SiC MOSFE
 assert.equal(lead(fromQbr, ["cycle"]), "One slide: Where the cycle is, on live data.");
 assert.equal(lead(fromQbr, ["cover", "sources"]), "A supplier pitch for Microchip in two slides: just a cover and sources.");
 assert.equal(lead(fromQbr, []), "A supplier pitch for Microchip, with no slides yet. Add one from the library.");
-assert.equal(
-  lead(fromQbr, outline(fromQbr), allLive),
-  "A supplier pitch for Microchip in nine slides: seven on live data, with a cover and sources.",
-);
+assert.equal(lead(fromQbr, outline(fromQbr), allLive), "A supplier pitch for Microchip in 10 slides: eight on live data, with a cover and sources.");
 assert.equal(deckName({ audience: "internal", company: microchip }), "An internal review with Microchip");
 assert.equal(count(9), "nine");
 assert.equal(count(12), "12");
