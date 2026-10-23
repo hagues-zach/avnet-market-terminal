@@ -104,3 +104,11 @@ Real answers, checked in the browser on 2026-10-21: "Microchip's revenue was $1.
 Corrections from the mockups: no version badge, engine name, Feedback or Export buttons or claims about audits; no "Q:" prefixes or middle dots; suggestions only for questions that route; figures and measures from the real scorecard.
 
 Checks: tests and typecheck pass. Audit: the form is a labelled search with a name, autocomplete off and a placeholder ending in an ellipsis; one primary button; the figures table scrolls in a focusable region with a caption; external story links say they open the source; nothing on the page is below 4.5:1 contrast; no console errors. Keyboard: type a question and press Enter, Tab moves through every control with the 2px green focus ring. No horizontal scroll or truncation at 1440px or 1280px, with the Avnet against Arrow answer open. Baseline screenshots in `docs/design/baseline/copilot-1440.png` and `copilot-1280.png` (the page before a question), status 200, no console errors, no overflow.
+
+## Step 3.2: Claude behind the answerers
+
+- **Routing.** A question the rules route gets its rule answer, instantly and free, with "Ask Claude instead" (`?claude=1`) in the footer. A question they can't route goes to Claude. With no API key the page stays as designed above, with the Planned line naming the key.
+- **Tools.** Claude's nine tools are the answerers themselves (`src/lib/ask/claude.ts`). A company is chosen by slug from the app's list, so Claude can't name a company the app doesn't cover. Each tool returns the answerer's sentence and figures.
+- **Provenance.** Sources, page links and hookup markers are the union of the answerers that ran (`src/lib/ask/compose.ts`), never taken from Claude's text. Under Claude's two to four sentences, each answerer's figures appear as that answerer wrote them, captioned with its subject, period and sentence.
+- **Honesty.** Claude is told to use only figures from tool results, to call Avnet's own figures mock, and to say what the app can't answer. When it called no tool, the answer shows "Not in the app's data" with the closest questions.
+- **Cost.** Opus 5.5 at medium effort, at most six requests per answer, with server-side refusal fallback. Answers are kept per question per day, in memory and under `.cache/ai`.
