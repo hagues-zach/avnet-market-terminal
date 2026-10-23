@@ -103,6 +103,8 @@ export function AnswerView({ a, claudeOn }: { a: Answer; claudeOn: boolean }) {
   const mock = a.sources.some((s) => s.status === "mock");
   const byClaude = a.intent === "claude";
   const routed = !byClaude && a.intent !== "none";
+  // An analysis answer is a lead sentence, then paragraphs; everything else is one block.
+  const [lead, ...rest] = a.depth === "analysis" ? a.text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean) : [a.text];
   return (
     <article aria-labelledby="answer-text" className="rounded-sm border border-hairline bg-surface">
       <header className="flex items-baseline justify-between gap-3 border-b border-hairline px-4 py-2">
@@ -115,9 +117,16 @@ export function AnswerView({ a, claudeOn }: { a: Answer; claudeOn: boolean }) {
           {byClaude && !a.error && <p>Written by Claude from the app&apos;s data. The figures below are the app&apos;s own.</p>}
         </div>
         <h2 id="answer-text" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-pretty text-xl leading-snug text-ink">
-          <span className="min-w-0 break-words">{a.text}</span>
+          <span className="min-w-0 break-words">{lead}</span>
           {mock && <DataChip status="mock" />}
         </h2>
+        {rest.length > 0 && (
+          <div className="max-w-prose space-y-2 text-body text-ink">
+            {rest.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        )}
         {a.hookups && <HookupMarker ids={a.hookups} />}
 
         {byClaude ? (

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
 import { cacheKey, compose } from "./compose";
-import { ANSWERERS, aliases, findCompany, route, suggest } from "./route";
+import { ANSWERERS, aliases, depth, findCompany, route, suggest } from "./route";
 import {
   type Answer,
   CANT,
@@ -127,6 +127,42 @@ const visible = [
 ];
 for (const t of visible) assert.ok(!/[/·—–]/.test(t), t);
 
+// Questions that name a company but ask something the rules can't answer go to Claude,
+// not to the company's figures; "stock" as in shares is not a line card question.
+for (const q of [
+  "What will Avnet's stock price be?",
+  "Is Arrow's stock up?",
+  "What is Avnet's market share in China?",
+  "Who are Avnet's ten biggest customers in Germany?",
+  "Should I be worried about Microchip's margins?",
+  "How did Texas Instruments and Analog Devices compare last quarter?",
+])
+  assert.equal(route(q), null, q);
+for (const [q, slug] of [
+  ["How is Microchip doing?", "microchip"],
+  ["Microchip", "microchip"],
+  ["onsemi results", "onsemi"],
+  ["When does TI report next?", "texas-instruments"],
+  ["What were Nvidia's margins last quarter?", "nvidia"],
+] as const)
+  assert.equal(route(q)?.company?.slug, slug, q);
+assert.equal(route("Who stocks Lattice?")?.intent, "linecard");
+
+// Two topics, or judgement, go to Claude as analysis; a fact Claude looks up is recall.
+for (const q of [
+  "Is supply tightening and how is Microchip doing?",
+  "Where is the cycle and how are we doing against Arrow?",
+  "What should I tell a customer worried about chip prices and lead times?",
+  "Give me talking points for an onsemi QBR",
+  "Why is Avnet growing faster than Arrow?",
+]) {
+  assert.equal(route(q), null, q);
+  assert.equal(depth(q), "analysis", q);
+}
+for (const q of ["Which chip makers report earnings next?", "Anything new on Nvidia this week?", "What will Avnet's stock price be?", "What's the weather in Phoenix?"])
+  assert.equal(depth(q), "recall", q);
+assert.equal(route("What's the latest on Arrow?")?.intent, "news", "news on a company is one topic");
+
 // Step 3.2: a Claude answer takes its sources, links and markers from the answerers that ran.
 const part = (over: Partial<Answer>): Answer => ({ intent: "cycle", question: "q", subject: "S", text: "t", sources: [], links: [], ...over });
 const sec = { status: "live" as const, label: "SEC filings" };
@@ -137,7 +173,7 @@ const both = compose("Is supply tightening and how is Avnet's business?", "Suppl
   part({ intent: "cycle", subject: "The cycle", period: "On a year ago", sources: [sec], links: [{ href: "/supply-chain", label: "Supply Chain" }], hookups: ["backlog"] }),
 ]);
 assert.equal(both.intent, "claude");
-assert.equal(both.subject, "Supply, Avnet's business and The cycle");
+assert.equal(both.subject, "Supply, Avnet's business and the cycle");
 assert.equal(both.period, undefined, "mixed periods are left to each part");
 assert.deepEqual(both.sources, [sec, mockSrc]);
 assert.deepEqual(both.links.map((l) => l.href), ["/supply-chain", "/performance"]);

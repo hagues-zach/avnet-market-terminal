@@ -9,6 +9,8 @@ import type { Answer } from "./sentences";
 const unique = <T>(items: T[], key: (t: T) => string) => [...new Map(items.map((t) => [key(t), t])).values()];
 
 function joinNames(names: string[]): string {
+  // "The cycle" starts a header but reads "the cycle" after another subject.
+  names = names.map((n, i) => (i > 0 ? n.replace(/^The /, "the ") : n));
   if (names.length <= 1) return names[0] ?? "";
   return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 }

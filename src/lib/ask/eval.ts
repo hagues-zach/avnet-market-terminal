@@ -2,8 +2,8 @@
 // Needs the dev server (npm run dev) and a funded ANTHROPIC_API_KEY; each answer
 // comes from the dev-only /api/ask-eval route, uncached. Costs well under a dollar.
 //
-//   npx tsx src/lib/ask/eval.ts                                   Haiku 5.5
-//   npx tsx src/lib/ask/eval.ts claude-haiku-5-5 claude-sonnet-5-5   both, side by side
+//   npx tsx src/lib/ask/eval.ts                                   as the page runs: Haiku for recall, Sonnet for analysis
+//   npx tsx src/lib/ask/eval.ts claude-haiku-5-5 claude-sonnet-5-5   one model for every question, side by side
 //
 // Checks per answer, all automatic: the tools it needed ran; every number in
 // Claude's text appears in the answerers' results; unanswerable questions are
@@ -50,6 +50,8 @@ const PRICES: Record<string, [number, number, number, number]> = {
 };
 
 interface Usage {
+  model: string;
+  depth: "recall" | "analysis";
   requests: number;
   input: number;
   cacheRead: number;
@@ -90,13 +92,17 @@ function grade(c: Case, r: Result): string[] {
     fails.push("read a change on a year ago as year-old data");
   if (/[/·]/.test(a.text)) fails.push("slash or middle dot");
   if (/^\s*([-*•]|\d+\.)\s|\*\*|^#/m.test(a.text)) fails.push("list, bold or heading");
+  // Recall is two to four sentences; analysis three paragraphs of about 150 words (the check allows 180).
   const sentences = a.text.split(/(?<=[.!?])\s+/).filter(Boolean).length;
-  if (sentences > 5) fails.push(`${sentences} sentences`);
+  const paragraphs = a.text.split(/\n\s*\n/).filter((p) => p.trim()).length;
+  if (r.usage.depth === "recall" && sentences > 5) fails.push(`${sentences} sentences for a recall answer`);
+  const words = a.text.split(/\s+/).filter(Boolean).length;
+  if (r.usage.depth === "analysis" && (words > 180 || paragraphs > 3)) fails.push(`${words} words in ${paragraphs} paragraphs for an analysis answer`);
   return fails;
 }
 
-const cost = (model: string, u: Usage) => {
-  const [i, o, cr, cw] = PRICES[model];
+const cost = (u: Usage) => {
+  const [i, o, cr, cw] = PRICES[u.model];
   return (u.input * i + u.output * o + u.cacheRead * cr + u.cacheWrite * cw) / 1e6;
 };
 
@@ -114,13 +120,15 @@ async function run(model: string) {
     if (!res.ok) throw new Error(`${res.status} from ${BASE}/api/ask-eval. Is the dev server running?`);
     const r = (await res.json()) as Result;
     const fails = grade(c, r);
-    const d = cost(model, r.usage);
+    const d = cost(r.usage);
     dollars += d;
     ms += r.ms;
     if (!fails.length) passed += 1;
     console.log(`\n${fails.length ? "FAIL" : "pass"} [${c.kind}] ${c.q}`);
-    console.log(`  tools: ${r.usage.tools.join(", ") || "none"}; ${r.usage.requests} requests; ${(d * 100).toFixed(3)}¢; ${(r.ms / 1000).toFixed(1)}s`);
-    console.log(`  ${r.answer.text.replace(/\n/g, " ")}`);
+    console.log(
+      `  ${r.usage.depth} on ${r.usage.model}; tools: ${r.usage.tools.join(", ") || "none"}; ${r.usage.requests} requests; ${(d * 100).toFixed(3)}¢; ${(r.ms / 1000).toFixed(1)}s`,
+    );
+    console.log(`  ${r.answer.text.replace(/\n+/g, " ¶ ")}`);
     for (const f of fails) console.log(`  ! ${f}`);
   }
   const n = CASES.length;
@@ -131,8 +139,8 @@ async function run(model: string) {
 async function main() {
   const models = process.argv.slice(2);
   const summary = [];
-  for (const m of models.length ? models : ["claude-haiku-5-5"]) {
-    if (!PRICES[m]) throw new Error(`Unknown model ${m}`);
+  for (const m of models.length ? models : ["auto"]) {
+    if (m !== "auto" && !PRICES[m]) throw new Error(`Unknown model ${m}`);
     summary.push(await run(m));
   }
   console.log("\nSummary");
