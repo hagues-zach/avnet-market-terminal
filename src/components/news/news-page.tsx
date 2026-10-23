@@ -107,7 +107,7 @@ export function NewsPage({ data, anglesPromise }: { data: LiveNews; anglesPromis
         <span className="font-semibold text-ink">{plural(summary.regulatory, "regulatory notice")}</span>.
       </p>
 
-      <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+      <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
         <TopStories top={top} angles={angles} fetchedAt={fetchedAt} />
         <Topics byFacet={byFacet} selected={filters.facets} onSelect={selectTopic} />
       </div>
