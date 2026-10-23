@@ -13,6 +13,23 @@ const tick = { fontSize: CHART.tickFontSize, fill: CHART.tick };
 const TOOLTIP = { ...CHART.tooltip, padding: "6px 8px" };
 const pct = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v * 100).toFixed(1)}%`;
 
+/**
+ * With fill, the chart grows to the space its panel leaves (height becomes the
+ * minimum), so a chart beside a taller panel fills the row instead of leaving a
+ * gap above the footer. The absolute inner box keeps the chart from feeding its
+ * own size back into the row height. The panel body needs bodyClassName="flex flex-col".
+ */
+function Frame({ fill, height, children }: { fill?: boolean; height: number; children: React.ReactElement }) {
+  if (!fill) return <ResponsiveContainer width="100%" height={height}>{children}</ResponsiveContainer>;
+  return (
+    <div className="relative flex-1" style={{ minHeight: height }}>
+      <div className="absolute inset-0">
+        <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 function Empty({ height }: { height: number }) {
   return (
     <p className="flex items-center justify-center text-body-sm text-ink-muted" style={{ height }}>
@@ -22,11 +39,19 @@ function Empty({ height }: { height: number }) {
 }
 
 /** Supply-chain growth by quarter, one colour, with each quarter's phase written under its label. */
-export function GrowthBars({ rows, height = 260 }: { rows: { label: string; growth?: number; phase: string | null }[]; height?: number }) {
+export function GrowthBars({
+  rows,
+  height = 260,
+  fill,
+}: {
+  rows: { label: string; growth?: number; phase: string | null }[];
+  height?: number;
+  fill?: boolean;
+}) {
   if (!rows.some((r) => r.growth !== undefined)) return <Empty height={height} />;
   const byLabel = new Map(rows.map((r) => [r.label, r.phase]));
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <Frame fill={fill} height={height}>
       <BarChart data={rows} margin={{ ...MARGIN, bottom: 18 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
         <XAxis
@@ -64,7 +89,7 @@ export function GrowthBars({ rows, height = 260 }: { rows: { label: string; grow
           <LabelList dataKey="growth" position="top" formatter={(v: number) => pct(v)} style={{ fontSize: CHART.tickFontSize, fill: CHART.label }} />
         </Bar>
       </BarChart>
-    </ResponsiveContainer>
+    </Frame>
   );
 }
 
@@ -76,16 +101,19 @@ export function InventoryLines({
   series,
   short = {},
   height = 240,
+  fill,
 }: {
   rows: ({ label: string } & Record<string, number | string | undefined>)[];
   series: string[];
   /** Shorter names for the end-of-line labels. */
   short?: Record<string, string>;
   height?: number;
+  fill?: boolean;
 }) {
   if (!rows.some((r) => series.some((s) => typeof r[s] === "number"))) return <Empty height={height} />;
   const lastIndex = (s: string) => rows.reduce((last, r, i) => (typeof r[s] === "number" ? i : last), -1);
   // Keep end labels at least 13px apart: work out each line's end in pixels, then push neighbours apart.
+  // With fill the plot can only be taller than this, which only widens the gaps.
   const values = rows.flatMap((r) => series.map((s) => r[s]).filter((v): v is number => typeof v === "number"));
   const lo = Math.min(...values);
   const hi = Math.max(...values);
@@ -101,7 +129,7 @@ export function InventoryLines({
     nudge[e.s] = y - e.y;
   });
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <Frame fill={fill} height={height}>
       <LineChart data={rows} margin={{ ...MARGIN, right: 124 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
         <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
@@ -142,7 +170,7 @@ export function InventoryLines({
           );
         })}
       </LineChart>
-    </ResponsiveContainer>
+    </Frame>
   );
 }
 

@@ -1,8 +1,7 @@
 import { cache } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { getCycle } from "@/lib/data/live/cycle";
-import { COMPANIES, isDemand } from "@/lib/data/live/earnings-model";
+import { CHIP_MAKERS, getCycle } from "@/lib/data/live/cycle";
 import { ENDMARKET_LABEL, PRODUCT_LABEL, REGION_LABEL, type TamSummary } from "@/lib/data/types";
 import { formatUsdMillions } from "@/lib/format";
 import { VIZ } from "@/lib/colors";
@@ -21,7 +20,6 @@ import { TrendMini } from "./trend-mini";
 // The forecast check is live SEC data.
 
 const cycleData = cache(getCycle);
-const SUPPLY_COMPANIES = COMPANIES.filter((c) => !isDemand(c.cohort)).length;
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 /* ---------- The funnel ---------- */
@@ -179,7 +177,9 @@ export async function ForecastCard({ t }: { t: TamSummary }) {
   let reported: { label: string; growth: number } | null = null;
   try {
     const cycle = await cycleData();
-    const p = [...cycle.supply].reverse().find((x) => x.growth !== undefined);
+    // Chip makers only: WSTS counts semiconductor sales, so distributors, contract
+    // manufacturers, passives and equipment would mix in revenue it never sees.
+    const p = [...cycle.chipMakers].reverse().find((x) => x.growth !== undefined);
     reported = p ? { label: p.label, growth: p.growth! } : null;
   } catch {
     return (
@@ -191,7 +191,7 @@ export async function ForecastCard({ t }: { t: TamSummary }) {
   const forecast = t.forecastNextYearUsdM / t.tamUsdM - 1;
   const gap = reported ? reported.growth - forecast : 0;
   const rows = [
-    { label: `Reported, ${reported ? shortQuarter(reported.label) : "latest quarter"}`, value: reported?.growth, note: `${SUPPLY_COMPANIES} supply-chain companies, revenue on a year ago` },
+    { label: `Reported, ${reported ? shortQuarter(reported.label) : "latest quarter"}`, value: reported?.growth, note: `${CHIP_MAKERS.length} chip makers, combined revenue on a year ago` },
     { label: `WSTS forecast for ${t.latestYear + 1}`, value: forecast, note: "World market growth, published forecast" },
   ];
   const max = Math.max(...rows.map((r) => Math.abs(r.value ?? 0)), 0.01);

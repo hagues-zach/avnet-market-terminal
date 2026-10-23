@@ -67,6 +67,18 @@ export const STAGES: { id: StageId; name: string; detail: string; cohorts: Cohor
   { id: "equipment", name: "Equipment & design", detail: "Fab equipment, packaging, design software", cohorts: ["equipment", "software"] },
 ];
 
+/**
+ * The companies whose sales WSTS counts: chip makers selling semiconductors.
+ * Distributors resell the same chips, contract manufacturers and passives are
+ * not semiconductors, and equipment and design software sit upstream, so none
+ * of them belong in a comparison with the WSTS market. Hard-drive makers and
+ * optical-module makers are left out too: their products hold chips but are not
+ * chips themselves.
+ */
+const CHIP_COHORTS: Cohort[] = ["manufacturer", "platform", "connectivity", "memory"];
+const NOT_CHIP_SALES = new Set(["western-digital", "seagate", "coherent", "lumentum"]);
+export const CHIP_MAKERS = COMPANIES.filter((c) => CHIP_COHORTS.includes(c.cohort) && !NOT_CHIP_SALES.has(c.slug));
+
 export interface StageSeries {
   id: StageId;
   name: string;
@@ -89,6 +101,8 @@ export interface Cycle {
   groups: GroupSeries[];
   /** All supply-chain groups combined (customer groups excluded). */
   supply: GroupPoint[];
+  /** Chip makers only (CHIP_MAKERS), the like-for-like comparison with the WSTS market. */
+  chipMakers: GroupPoint[];
   /** The phase each quarter was in, by the same rule as `phase`. */
   phases: (Phase | null)[];
   stages: StageSeries[];
@@ -184,6 +198,8 @@ export async function getCycle(): Promise<Cycle> {
     return { cohort, companies: members.length, points: labels.map((l) => point(l, members)) };
   });
   const supply = labels.map((l) => point(l, supplyMembers));
+  const chipMembers = CHIP_MAKERS.map((c) => byLabel.get(c.slug) ?? new Map());
+  const chipMakers = labels.map((l) => point(l, chipMembers));
   const stages: StageSeries[] = STAGES.map((stage) => {
     const members = membersOf((c) => stage.cohorts.includes(c));
     return { id: stage.id, name: stage.name, detail: stage.detail, companies: members.length, points: labels.map((l) => point(l, members)) };
@@ -228,6 +244,7 @@ export async function getCycle(): Promise<Cycle> {
     latest,
     groups,
     supply,
+    chipMakers,
     phases: supply.map((_, i) => (supply[i].growth === undefined ? null : phaseOf(supply.slice(0, i + 1)))),
     stages,
     avnet: company("avnet"),

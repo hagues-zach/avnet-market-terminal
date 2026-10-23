@@ -84,9 +84,13 @@ export function TrendCard() {
       subtitle={`Up ${pts(latestTrend - yearAgoTrend)} on a year ago, across all mapped segments`}
       actions={<DataChip status="mock" />}
       footer={<SourceLine source="Avnet billings ÷ mapped market size" asOf={SHARE_TREND[SHARE_TREND.length - 1].label} />}
+      bodyClassName="flex flex-col"
     >
-      <div className="h-52">
-        <LabelledLines data={data} series={[{ key: "share", name: "Avnet", color: VIZ.avnet }]} rightMargin={88} />
+      {/* Fills the height the white-space list beside it sets; the absolute box keeps the chart out of that sizing. */}
+      <div className="relative min-h-52 flex-1">
+        <div className="absolute inset-0">
+          <LabelledLines data={data} series={[{ key: "share", name: "Avnet", color: VIZ.avnet }]} rightMargin={88} />
+        </div>
       </div>
     </Panel>
   );

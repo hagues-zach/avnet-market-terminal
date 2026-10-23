@@ -108,25 +108,28 @@ export async function CycleView() {
 
       <Chain stages={stages} avnet={avnet} arrow={arrow} latest={latest} prior={prior} yearAgo={yearAgo} labels={labels} />
 
-      <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+      <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
         <Panel
           className="xl:col-span-8"
           title="How we got here"
           subtitle="Supply-chain revenue growth on a year ago, by calendar quarter, with the phase each quarter was in"
           footer={<SourceLine source="SEC filings" asOf={latest} />}
+          bodyClassName="flex flex-col"
         >
-          <GrowthBars rows={supply.map((p, i) => ({ label: p.label, growth: p.growth, phase: phases[i] }))} />
+          <GrowthBars fill rows={supply.map((p, i) => ({ label: p.label, growth: p.growth, phase: phases[i] }))} />
         </Panel>
         <OrderBook />
       </div>
 
-      <div className="grid items-start gap-4 xl:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid gap-4 xl:grid-cols-2 [&>*]:min-w-0">
         <Panel
           title="Inventory in the chain"
           subtitle="Median days of inventory, by calendar quarter"
           footer={<SourceLine source="SEC filings" asOf={latest} />}
+          bodyClassName="flex flex-col"
         >
           <InventoryLines
+            fill
             series={["Manufacturers", "Distributors", "Contract manufacturers"]}
             short={{ "Contract manufacturers": "Contract mfrs" }}
             rows={labels.map((label) => ({
