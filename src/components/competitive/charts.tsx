@@ -36,11 +36,14 @@ export function PairLines({
   unit,
   height = 180,
   names = { avnet: "Avnet", arrow: "Arrow" },
+  fill,
 }: {
   rows: PairRow[];
   unit: Unit;
   height?: number;
   names?: { avnet: string; arrow: string };
+  /** Grow to the space the parent flex column leaves; height becomes the minimum. */
+  fill?: boolean;
 }) {
   if (!rows.some((r) => r.avnet !== undefined || r.arrow !== undefined)) {
     return (
@@ -51,7 +54,8 @@ export function PairLines({
   }
   const last = (k: "avnet" | "arrow") => rows.reduce((l, r, i) => (r[k] === undefined ? l : i), -1);
   const ends = { avnet: last("avnet"), arrow: last("arrow") };
-  // Push the two end labels apart when the lines finish close together.
+  // Push the two end labels apart when the lines finish close together. With fill the plot
+  // can only be taller than height, which only widens the gap.
   const a = rows[ends.avnet]?.avnet;
   const b = rows[ends.arrow]?.arrow;
   const values = rows.flatMap((r) => [r.avnet, r.arrow]).filter((v): v is number => v !== undefined);
@@ -60,39 +64,46 @@ export function PairLines({
   const apart = a !== undefined && b !== undefined && Math.abs(px) < 13 ? (13 - Math.abs(px)) / 2 : 0;
   const offset = { avnet: (a ?? 0) >= (b ?? 0) ? -apart : apart, arrow: (a ?? 0) >= (b ?? 0) ? apart : -apart };
 
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={rows} margin={{ top: 12, right: 92, left: 4, bottom: 0 }}>
-        <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
-        <YAxis tickFormatter={AXIS[unit]} tick={tick} axisLine={false} tickLine={false} width={44} domain={["auto", "auto"]} />
-        <Tooltip contentStyle={{ ...CHART.tooltip, padding: "6px 8px" }} formatter={(v: number, n: string) => [VALUE[unit](v), n]} />
-        {(["avnet", "arrow"] as const).map((k) => (
-          <Line
-            key={k}
-            type="monotone"
+  const chart = (
+    <LineChart data={rows} margin={{ top: 12, right: 92, left: 4, bottom: 0 }}>
+      <CartesianGrid stroke={CHART.grid} vertical={false} />
+      <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+      <YAxis tickFormatter={AXIS[unit]} tick={tick} axisLine={false} tickLine={false} width={44} domain={["auto", "auto"]} />
+      <Tooltip contentStyle={{ ...CHART.tooltip, padding: "6px 8px" }} formatter={(v: number, n: string) => [VALUE[unit](v), n]} />
+      {(["avnet", "arrow"] as const).map((k) => (
+        <Line
+          key={k}
+          type="monotone"
+          dataKey={k}
+          name={names[k]}
+          stroke={k === "avnet" ? VIZ.avnet : VIZ.arrow}
+          strokeWidth={k === "avnet" ? CHART.lineWidthLight : CHART.lineWidth}
+          dot={false}
+          activeDot={CHART.activeDot}
+          connectNulls
+          isAnimationActive={false}
+        >
+          <LabelList
             dataKey={k}
-            name={names[k]}
-            stroke={k === "avnet" ? VIZ.avnet : VIZ.arrow}
-            strokeWidth={k === "avnet" ? CHART.lineWidthLight : CHART.lineWidth}
-            dot={false}
-            activeDot={CHART.activeDot}
-            connectNulls
-            isAnimationActive={false}
-          >
-            <LabelList
-              dataKey={k}
-              content={({ x, y, index, value }) =>
-                index === ends[k] && typeof value === "number" ? (
-                  <text x={Number(x) + 8} y={Number(y) + offset[k]} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
-                    {names[k].split(" ")[0]} {VALUE[unit](value)}
-                  </text>
-                ) : null
-              }
-            />
-          </Line>
-        ))}
-      </LineChart>
-    </ResponsiveContainer>
+            content={({ x, y, index, value }) =>
+              index === ends[k] && typeof value === "number" ? (
+                <text x={Number(x) + 8} y={Number(y) + offset[k]} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
+                  {names[k].split(" ")[0]} {VALUE[unit](value)}
+                </text>
+              ) : null
+            }
+          />
+        </Line>
+      ))}
+    </LineChart>
+  );
+  if (!fill) return <ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer>;
+  // The absolute inner box keeps the chart from feeding its own size back into the row height.
+  return (
+    <div className="relative flex-1" style={{ minHeight: height }}>
+      <div className="absolute inset-0">
+        <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
+      </div>
+    </div>
   );
 }

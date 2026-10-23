@@ -27,7 +27,7 @@ export default function CompetitivePage() {
       <Suspense fallback={<SectionFallback title="What Arrow's management said last quarter" />}>
         <ManagementSaid />
       </Suspense>
-      <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+      <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
         <Suspense fallback={<SectionFallback title="Franchise moves, last 12 months" className="xl:col-span-5" />}>
           <Moves />
         </Suspense>

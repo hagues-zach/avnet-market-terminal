@@ -309,8 +309,10 @@ export async function ChainInventory() {
           </Link>
         </>
       }
+      bodyClassName="flex flex-col"
     >
       <InventoryLines
+        fill
         series={["Manufacturers", "Distributors", "Contract manufacturers"]}
         short={{ "Contract manufacturers": "Contract mfrs" }}
         rows={cycle.labels.map((label) => ({
@@ -465,7 +467,7 @@ export function OrderBook() {
         Avnet&apos;s order book
       </h2>
       <HookupMarker ids={["backlog", "bookings"]} />
-      <div className="grid items-start gap-4 xl:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid gap-4 xl:grid-cols-2 [&>*]:min-w-0">
         <Panel
           title="Backlog"
           subtitle={`Open orders at quarter end. ${latest.quarter}: $${(latest.backlog / 1000).toFixed(1)}B`}

@@ -344,20 +344,22 @@ export async function Components() {
       title="Components against components"
       subtitle={`${names.avnet} against ${names.arrow}, the like-for-like businesses`}
       footer={<SourceLine source="Segment figures in 10-Q and 10-K filings" asOf={latest} />}
+      bodyClassName="flex flex-col gap-4"
     >
       {!latest ? (
         <ErrorState title="Segment detail could not be read from the filings" source="SEC EDGAR" detail={sa.error ?? sb.error} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
+        <>
+          {/* Stacked, each taking half the height the franchise list beside it sets. */}
+          <div className="flex flex-1 flex-col">
             <h3 className="font-display text-card-title text-ink">Revenue</h3>
-            <PairLines rows={rows((p) => p?.revenue)} unit="usd" names={names} />
+            <PairLines fill height={160} rows={rows((p) => p?.revenue)} unit="usd" names={names} />
           </div>
-          <div>
+          <div className="flex flex-1 flex-col">
             <h3 className="font-display text-card-title text-ink">Segment operating margin</h3>
-            <PairLines rows={rows((p) => p?.operatingMargin)} unit="pct" names={names} />
+            <PairLines fill height={160} rows={rows((p) => p?.operatingMargin)} unit="pct" names={names} />
           </div>
-        </div>
+        </>
       )}
     </Panel>
   );

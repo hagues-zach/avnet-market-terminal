@@ -26,7 +26,7 @@ export default function SupplyChainPage() {
       <Suspense fallback={<SectionFallback title="By category" />}>
         <ByCategory />
       </Suspense>
-      <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+      <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
         <Suspense fallback={<SectionFallback title="Inventory in the chain" className="xl:col-span-7" />}>
           <ChainInventory />
         </Suspense>
@@ -34,7 +34,7 @@ export default function SupplyChainPage() {
           <Prices />
         </Suspense>
       </div>
-      <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+      <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
         <Suspense fallback={<SectionFallback title="What suppliers are saying" className="xl:col-span-7" />}>
           <SuppliersSaying />
         </Suspense>
