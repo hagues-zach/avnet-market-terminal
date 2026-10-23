@@ -102,13 +102,76 @@ export function findCompany(question: string): Company | undefined {
 
 const has = (q: string, re: RegExp) => re.test(q);
 
+// What a company question can ask and still get the company answer (its quarter,
+// margins and next earnings). Anything else about a company ("its market share in
+// China", "its biggest customers") is a question the rules can't answer, so it goes
+// to Claude rather than getting the company's figures as if they answered it.
+const OVERVIEW = new Set(
+  (
+    "how is are was were did does do doing done going the a an about tell me us on what whats what's latest last recent this " +
+    "quarter quarterly results result revenue revenues sales growth growing margin margins gross operating earnings numbers figures " +
+    "financials performance performing perform update overview look looking like company profile quick read give of for its their " +
+    "next when report reports reporting it and"
+  ).split(" "),
+);
+
+/** True when the question only names the company plus overview words. */
+function overviewOnly(q: string, c: Company): boolean {
+  let rest = ` ${q.replace(/'s\b/g, "")} `;
+  for (const a of aliases(c)) rest = rest.split(` ${a} `).join(" ");
+  return rest
+    .split(" ")
+    .filter(Boolean)
+    .every((w) => OVERVIEW.has(w));
+}
+
+// Asking for judgement rather than a figure: these go to Claude, which can weigh
+// several answerers' results, instead of getting one rule-written sentence.
+const ANALYSIS =
+  /\b(why|should|explain|talking points?|advise|advice|recommend|implications?|means?|worried|worry|risks?|impact|affect(s|ing)?|hurt(s|ing)?|help(s|ing)?|tell (a|my|the) (customer|client|team|boss))\b/;
+
+const TOPICS: RegExp[] = [
+  /\b(billings|bookings|backlog|book to bill|book-to-bill)\b/,
+  /\b(earnings season|who (has )?reported|who reports|earnings calendar|reports next)\b/,
+  /\b(cycle|upturn|downturn|expansion|contraction|recovery)\b/,
+  /\b(supply|lead times?|shortages?|tight|tightening|easing|allocation)\b/,
+  /\b(economy|economic|macro|rates?|inflation|dollar|currency|production)\b/,
+  /\b(news|latest|headlines?|stories|story|happening|announced)\b/,
+];
+
+/** How many topics a question asks about: the topics above, plus Arrow or a company asked alongside one. */
+function topicCount(q: string, company?: Company): number {
+  // News on a company is one topic: the company is what the news is about.
+  const topics = TOPICS.filter((re) => re.test(q)).length;
+  const aboutNews = TOPICS[5].test(q);
+  const arrowAsked = !aboutNews && /\barrow\b/.test(q);
+  const companyAsked = !aboutNews && topics > 0 && company !== undefined && !["avnet", "arrow"].includes(company.slug);
+  return topics + (arrowAsked ? 1 : 0) + (companyAsked ? 1 : 0);
+}
+
+/**
+ * For a question Claude answers: "analysis" when it asks for judgement or spans two
+ * topics (a stronger model, a fuller answer), otherwise "recall" (a fast model, a
+ * few sentences of fact).
+ */
+export function depth(question: string): "recall" | "analysis" {
+  const q = clean(question);
+  return ANALYSIS.test(q) || topicCount(q, findCompany(question)) > 1 ? "analysis" : "recall";
+}
+
 export function route(question: string): Routed | null {
   const q = clean(question);
   if (!q) return null;
   const company = findCompany(question);
 
-  // Line cards: "who carries X", "is X on Avnet's line card".
-  if (has(q, /\b(carr(y|ies)|line ?cards?|stocks?|franchised?|distributes)\b/)) {
+  // The rules answer one topic with facts. Judgement, or two topics in one question
+  // (a topic and a company, or Arrow and another topic), goes to Claude.
+  if (ANALYSIS.test(q) || topicCount(q, company) > 1) return null;
+
+  // Line cards: "who carries X", "is X on Avnet's line card". "Stock" here means
+  // holding parts, not shares: "Avnet's stock price" and "Arrow's stock is up" don't count.
+  const stockShares = has(q, /\bstocks?\s+(price|prices|market|markets|shares?|chart|value|valuation|performance|up|down|is|was)\b/);
+  if (has(q, /\b(carr(y|ies)|line ?cards?|franchised?|distributes)\b/) || (!stockShares && has(q, /\bstocks?\b/))) {
     const after = q.match(/\b(?:carr(?:y|ies)|stocks?|distributes)\s+(.+?)\??$/)?.[1];
     const name = company?.name ?? after?.replace(/^(the|a)\s+/, "");
     if (name) return { intent: "linecard", company, name };
@@ -136,7 +199,7 @@ export function route(question: string): Routed | null {
   if (has(q, /\b(cycle|upturn|downturn|expansion|contraction|recovery)\b/)) return { intent: "cycle" };
   if (has(q, /\b(supply|lead times?|shortages?|tight|tightening|easing|allocation)\b/)) return { intent: "supply" };
   if (has(q, /\b(economy|economic|macro|rates?|inflation|dollar|currency|production)\b/)) return { intent: "economy" };
-  if (company) return { intent: "company", company };
+  if (company && overviewOnly(q, company)) return { intent: "company", company };
   return null;
 }
 

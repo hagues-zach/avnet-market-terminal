@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { aiConfigured } from "@/lib/ai/claude";
 import { answer } from "@/lib/ask/answer";
+import { askClaude } from "@/lib/ask/claude";
 import { ANSWERERS, route } from "@/lib/ask/route";
 import { PageBody } from "@/components/layout/page-body";
 import { DataChip } from "@/components/ui/chip";
@@ -13,21 +15,25 @@ import { cn } from "@/lib/utils";
 // Ask the Terminal (PRD 10.2): a question goes to the answerer that covers it
 // (src/lib/ask), and the answer comes back from the app's own data with its
 // sources and page. The question lives in the URL (?q=), so answers can be shared.
-// Claude answers free questions with the same answerers in step 3.2.
+// Questions the rules can't route go to Claude (step 3.2), which answers with the
+// same answerers as tools; "Ask Claude instead" (?claude=1) sends a routed one too.
 
 export const dynamic = "force-dynamic";
 
 const link = "text-ink underline-offset-2 hover:underline";
 const ask = (q: string) => `/copilot?q=${encodeURIComponent(q)}`;
 
-async function Answered({ q }: { q: string }) {
-  return <AnswerView a={await answer(q)} />;
+async function Answered({ q, byClaude }: { q: string; byClaude: boolean }) {
+  return <AnswerView a={await (byClaude ? askClaude(q) : answer(q))} claudeOn={aiConfigured()} />;
 }
 
 export default async function AskPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const raw = (await searchParams).q;
+  const params = await searchParams;
+  const raw = params.q;
   const q = (Array.isArray(raw) ? raw[0] : raw)?.trim().slice(0, 200) ?? "";
   const intent = q ? route(q)?.intent : undefined;
+  const claudeOn = aiConfigured();
+  const byClaude = Boolean(q) && claudeOn && (!intent || params.claude === "1");
   const next = ANSWERERS.filter((a) => a.intent !== intent).slice(0, 3);
 
   return (
@@ -57,17 +63,30 @@ export default async function AskPage({ searchParams }: { searchParams: Promise<
             Ask
           </button>
         </div>
-        <p className="mt-2 text-caption text-ink-muted">Answers are written by rules from the app&apos;s live data. Nothing is generated.</p>
+        <p className="mt-2 text-caption text-ink-muted">
+          {claudeOn
+            ? "Answers come from the app's live data. Questions the rules can't match go to Claude, which reads the same data."
+            : "Answers are written by rules from the app's live data. Nothing is generated."}
+        </p>
       </form>
 
       {q && (
         <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
           <div className="space-y-3 xl:col-span-8">
             <Suspense
-              key={q}
-              fallback={<LoadingBlock label="Reading the app's data… The first answer after a restart can take a minute." lines={6} />}
+              key={`${q} ${byClaude}`}
+              fallback={
+                <LoadingBlock
+                  label={
+                    byClaude
+                      ? "Claude is reading the app's data… This can take half a minute."
+                      : "Reading the app's data… The first answer after a restart can take a minute."
+                  }
+                  lines={6}
+                />
+              }
             >
-              <Answered q={q} />
+              <Answered q={q} byClaude={byClaude} />
             </Suspense>
             <p className="flex flex-wrap gap-x-4 gap-y-1 text-body-sm">
               <span className="text-ink-muted">Ask next:</span>
@@ -104,11 +123,13 @@ export default async function AskPage({ searchParams }: { searchParams: Promise<
         </ul>
       </section>
 
-      <p className="flex flex-wrap items-center gap-2 text-body-sm text-ink-muted">
-        <DataChip status="planned" />
-        Free questions answered by Claude, with the same sources, arrive in step 3.2. Claude text already written for the app (earnings summaries, why
-        a story matters) is quoted where it exists and labelled as Claude&apos;s.
-      </p>
+      {!claudeOn && (
+        <p className="flex flex-wrap items-center gap-2 text-body-sm text-ink-muted">
+          <DataChip status="planned" />
+          Claude answers free questions from the same data once ANTHROPIC_API_KEY is set. Claude text already written for the app (earnings
+          summaries, why a story matters) is quoted where it exists and labelled as Claude&apos;s.
+        </p>
+      )}
     </PageBody>
   );
 }

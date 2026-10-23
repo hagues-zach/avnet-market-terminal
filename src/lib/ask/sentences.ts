@@ -18,7 +18,8 @@ export interface Story {
 }
 
 export interface Answer {
-  intent: Intent | "none";
+  /** "claude" when Claude wrote the answer from the answerers' results (step 3.2). */
+  intent: Intent | "none" | "claude";
   question: string;
   subject: string;
   /** "Q2 2026", or a date. */
@@ -35,6 +36,10 @@ export interface Answer {
   claude?: { label: string; text: string; date?: string };
   note?: string;
   suggestions?: Answerer[];
+  /** For a Claude answer: "analysis" is a lead sentence and up to two paragraphs; "recall" a few sentences. */
+  depth?: "recall" | "analysis";
+  /** For a Claude answer: each answerer it called, with that answer's figures and stories. */
+  parts?: Answer[];
   /** Set when the data couldn't be loaded. */
   error?: boolean;
 }

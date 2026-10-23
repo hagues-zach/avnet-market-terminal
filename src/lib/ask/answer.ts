@@ -1,6 +1,7 @@
 // Ask the Terminal answerers: each reads the app's own data and returns an
 // Answer with its sources and the page it came from. Server-only. Claude text is
-// only ever read from the cache; nothing here calls Claude.
+// only ever read from the cache; nothing here calls Claude. The answerers are
+// exported so src/lib/ask/claude.ts can hand them to Claude as tools.
 import { cachedCommentary } from "@/lib/ai/commentary";
 import { readCache } from "@/lib/ai/cache";
 import { plainDashes } from "@/lib/ai/dashes";
@@ -49,7 +50,7 @@ const failed = (question: string, subject: string, source: string, href: string,
   error: true,
 });
 
-async function company(question: string, c: Company): Promise<Answer> {
+export async function company(question: string, c: Company): Promise<Answer> {
   const [rows, next, commentary] = await Promise.all([
     getPeerRows(),
     getNextRelease(c.slug).catch(() => null),
@@ -92,7 +93,7 @@ async function company(question: string, c: Company): Promise<Answer> {
 const fmt = (kind: Kind, v?: number) =>
   v === undefined ? "n/a" : kind === "usd" ? usd(v) : kind === "growth" ? pctOf(v, true) : kind === "pct" ? pctOf(v) : String(Math.round(v));
 
-async function arrow(question: string): Promise<Answer> {
+export async function arrow(question: string): Promise<Answer> {
   const [a, b] = await Promise.all([getCompanyEarnings("avnet"), getCompanyEarnings("arrow")]);
   const qa = new Map(a.quarters.map((q) => [q.calendarLabel, q]));
   const qb = new Map(b.quarters.map((q) => [q.calendarLabel, q]));
@@ -119,7 +120,7 @@ async function arrow(question: string): Promise<Answer> {
   };
 }
 
-async function cycle(question: string): Promise<Answer> {
+export async function cycle(question: string): Promise<Answer> {
   const c = await getCycle();
   const p = c.supply.find((x) => x.label === c.latest);
   const at = (points: { label: string; growth?: number }[]) => points.find((x) => x.label === c.latest)?.growth;
@@ -149,7 +150,7 @@ async function signalsData() {
 
 const WAY = { up: "rising", down: "falling", flat: "flat" } as const;
 
-async function economy(question: string): Promise<Answer> {
+export async function economy(question: string): Promise<Answer> {
   const { signals } = await signalsData();
   if (!signals.length) return failed(question, "The economy", "the public data sources", "/signals", "Economic Signals");
   const changes: Changes = Object.fromEntries(signals.map((s) => [s.key, yearChange(s)?.value]));
@@ -173,7 +174,7 @@ async function economy(question: string): Promise<Answer> {
 const DIRECTION = { tighter: "Tighter", looser: "Looser", flat: "Flat" } as const;
 const SIGNAL_NAMES = { utilisation: "Fab utilisation", prices: "Chip prices", inventory: "Inventory in the chain" } as const;
 
-async function supply(question: string): Promise<Answer> {
+export async function supply(question: string): Promise<Answer> {
   const [{ by }, c] = await Promise.all([signalsData(), getCycle().catch(() => null)]);
   const util = by(SIGNAL_KEYS.utilisation);
   const prices = by(SIGNAL_KEYS.semiPrices);
@@ -205,7 +206,7 @@ async function supply(question: string): Promise<Answer> {
   };
 }
 
-async function earnings(question: string): Promise<Answer> {
+export async function earnings(question: string): Promise<Answer> {
   const [rows, cal] = await Promise.all([getPeerRows(), getEarningsCalendar()]);
   const s = season(rows, cal.events, cal.today);
   const upcoming = [...s.thisWeek, ...s.nextWeek].filter((e) => e.status === "estimated").slice(0, 5);
@@ -229,7 +230,7 @@ async function earnings(question: string): Promise<Answer> {
   };
 }
 
-async function news(question: string, c?: Company, topic?: string): Promise<Answer> {
+export async function news(question: string, c?: Company, topic?: string): Promise<Answer> {
   let articles: LiveArticle[];
   if (c) articles = await getCompanyNews(c, 3);
   else {
@@ -264,7 +265,7 @@ async function news(question: string, c?: Company, topic?: string): Promise<Answ
   };
 }
 
-async function lineCard(question: string, name: string, c?: Company): Promise<Answer> {
+export async function lineCard(question: string, name: string, c?: Company): Promise<Answer> {
   const r = await getCarriers(c?.name ?? name);
   const display = c?.name ?? name.replace(/\b\w/g, (m) => m.toUpperCase());
   return {
@@ -280,7 +281,7 @@ async function lineCard(question: string, name: string, c?: Company): Promise<An
   };
 }
 
-function avnet(question: string): Answer {
+export function avnet(question: string): Answer {
   const latest = PERFORMANCE[PERFORMANCE.length - 1];
   const yearAgo = PERFORMANCE[PERFORMANCE.length - 5];
   return {
