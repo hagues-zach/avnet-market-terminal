@@ -204,6 +204,16 @@ export async function writeTalkingPoints(brief: Brief, setup: BriefSetup): Promi
   }
 }
 
+/**
+ * The talking points QBR Prep saved for this company, meeting and focus this week on
+ * this filing, or null. Reads only: the Pitch Deck Builder uses it so a deck from
+ * QBR Prep carries the same points without another call to Claude.
+ */
+export async function cachedTalkingPoints(slug: string, meeting: string, focus: string, filed: string | undefined): Promise<TalkingPoints | null> {
+  const key = pointsKey(slug, meeting, focus, filed, new Date());
+  return memory.get(key) ?? (await readCache<TalkingPoints>(CACHE))[key] ?? null;
+}
+
 /** Talking points for the brief, from the cache when this company, meeting and focus were written this week on the same filing. */
 export async function getTalkingPoints(brief: Brief, setup: BriefSetup): Promise<TalkingPoints> {
   if (!aiConfigured()) return { status: "off", points: [], questions: [], message: "Claude writes talking points for the meeting once ANTHROPIC_API_KEY is set." };

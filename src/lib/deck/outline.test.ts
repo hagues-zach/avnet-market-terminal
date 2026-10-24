@@ -110,7 +110,15 @@ assert.equal(deckHref({}), "/tools/deck");
 
 // ---- Outlines ----
 const titles = (xs: SlideId[]) => xs.join(" ");
-assert.equal(titles(outline(fromQbr)), "cover company commentary linecard leads share arrow pipeline cycle sources");
+assert.equal(titles(outline(fromQbr)), "cover company commentary linecard leads share arrow pipeline cycle talking sources", "a QBR deck closes on its talking points");
+// The talking points slide needs a deck started from QBR Prep, and the start keeps the meeting and focus.
+assert.ok(!outline(parseStart(q("/tools/deck?company=microchip&from=profile"))).includes("talking"));
+assert.equal(unavailableReason("talking", parseStart(q("/tools/deck?company=microchip"))), "Needs a deck started from QBR Prep");
+const withFocus = parseStart(q("/tools/deck?company=apple&from=qbr&focus=lead%20times"));
+assert.deepEqual(withFocus.qbr, { meeting: "customer", focus: "lead times" }, "a customer's meeting by default");
+const roundQbr = parseStart(q(deckHref({ company: "microchip", from: "qbr", qbr: { meeting: "supplier", focus: "pricing in Japan" } })));
+assert.deepEqual(roundQbr.qbr, { meeting: "supplier", focus: "pricing in Japan" });
+assert.equal(parseStart(q("/tools/deck?company=microchip&focus=x")).qbr, undefined, "no QBR without from=qbr");
 assert.equal(
   titles(outline(parseStart(q("/tools/deck?company=jabil")))),
   "cover company commentary news account supply sources",
@@ -145,7 +153,7 @@ assert.deepEqual(move(["cover", "cycle"], "cover", -1), ["cover", "cycle"]);
 // ---- The lead ----
 assert.equal(
   lead(fromQbr, outline(fromQbr)),
-  "A supplier pitch for Microchip in 10 slides: six on live data and two on mock, with a cover and sources.",
+  "A supplier pitch for Microchip in 11 slides: seven on live data and two on mock, with a cover and sources.",
 );
 assert.equal(
   lead(parseStart({}), outline(parseStart({}))),
@@ -155,7 +163,7 @@ assert.equal(lead(fromLearn, outline(fromLearn)), "A customer pitch on SiC MOSFE
 assert.equal(lead(fromQbr, ["cycle"]), "One slide: Where the cycle is, on live data.");
 assert.equal(lead(fromQbr, ["cover", "sources"]), "A supplier pitch for Microchip in two slides: just a cover and sources.");
 assert.equal(lead(fromQbr, []), "A supplier pitch for Microchip, with no slides yet. Add one from the library.");
-assert.equal(lead(fromQbr, outline(fromQbr), allLive), "A supplier pitch for Microchip in 10 slides: eight on live data, with a cover and sources.");
+assert.equal(lead(fromQbr, outline(fromQbr), allLive), "A supplier pitch for Microchip in 11 slides: nine on live data, with a cover and sources.");
 assert.equal(deckName({ audience: "internal", company: microchip }), "An internal review with Microchip");
 assert.equal(count(9), "nine");
 assert.equal(count(12), "12");
