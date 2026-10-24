@@ -1,8 +1,13 @@
-// Pitch Deck Builder previews: each slide's headline, sentence and figures,
+// Pitch Deck Builder previews: each slide's headline, sentence, figures and chart,
 // from the Ask the Terminal answerers (live) and the shared mock model of Avnet.
-// Server-only. Claude text is only read from the cache; nothing calls Claude.
+// The same previews fill the exported PowerPoint (src/lib/deck/pptx.ts), so the
+// screen and the file agree. Server-only. Claude text is only read from the
+// cache; nothing calls Claude.
 import { answer } from "@/lib/ask/answer";
-import { day, type Answer } from "@/lib/ask/sentences";
+import { day, quarterName, type Answer } from "@/lib/ask/sentences";
+import { getCompanyEarnings } from "@/lib/data/live/earnings";
+import { getCycle } from "@/lib/data/live/cycle";
+import { cachedTalkingPoints } from "@/lib/qbr/talking-points";
 import { getLeads } from "@/lib/leads/data";
 import { groupLabel, inSentence, lead as leadsLead, techName } from "@/lib/leads/rank";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
@@ -20,6 +25,7 @@ import {
   segmentWords,
   shareHeadline,
   slide,
+  type Chart,
   type Preview,
   type SlideId,
   type Start,
@@ -59,6 +65,28 @@ function fromAnswer(a: Answer, headline?: string): Preview {
   };
 }
 
+/** The company's revenue over its last eight quarters, as columns. */
+async function revenueChart(slug: string, name: string): Promise<Chart | undefined> {
+  const quarters = (await getCompanyEarnings(slug)).quarters.filter((q) => q.values.revenue !== undefined).slice(-8);
+  if (quarters.length < 2) return undefined;
+  return {
+    kind: "column",
+    format: "usd",
+    series: [{ name: `${name} revenue`, who: "company", points: quarters.map((q) => ({ label: quarterName(q.calendarLabel), value: q.values.revenue! })) }],
+  };
+}
+
+/** Supply-chain revenue growth on a year ago, by quarter, as a line. */
+async function cycleChart(): Promise<Chart | undefined> {
+  const points = (await getCycle()).supply.filter((p) => p.growth !== undefined).slice(-8);
+  if (points.length < 2) return undefined;
+  return {
+    kind: "line",
+    format: "pct",
+    series: [{ name: "Supply-chain revenue growth on a year ago", who: "market", points: points.map((p) => ({ label: quarterName(p.label), value: p.growth! })) }],
+  };
+}
+
 async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Promise<Preview> {
   const name = s.company?.name;
   switch (id) {
@@ -71,7 +99,7 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Pro
     case "company": {
       const a = await company();
       const growth = pctValue(a.facts?.find((f) => f.label === "Growth on a year ago")?.values[0]);
-      return fromAnswer(a, companyHeadline(name!, growth));
+      return { ...fromAnswer(a, companyHeadline(name!, growth)), chart: await revenueChart(s.company!.slug, name!).catch(() => undefined) };
     }
     case "commentary": {
       const a = await company();
@@ -120,17 +148,21 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Pro
       return {
         ...p,
         facts: a.facts?.slice(0, 4),
-        bars:
+        chart:
           av !== undefined && ar !== undefined
-            ? [
-                { label: "Avnet", value: av, display: g!.values[0], who: "avnet" },
-                { label: "Arrow", value: ar, display: g!.values[1], who: "arrow" },
-              ]
+            ? {
+                kind: "bar",
+                format: "pct",
+                series: [
+                  { name: "Avnet", who: "avnet", points: [{ label: "Revenue growth on a year ago", value: av }] },
+                  { name: "Arrow", who: "arrow", points: [{ label: "Revenue growth on a year ago", value: ar }] },
+                ],
+              }
             : undefined,
       };
     }
     case "cycle":
-      return fromAnswer(await answer("Where is the cycle?"));
+      return { ...fromAnswer(await answer("Where is the cycle?")), chart: await cycleChart().catch(() => undefined) };
     case "economy":
       return fromAnswer(await answer("What is the economy doing?"));
     case "supply":
@@ -243,6 +275,29 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Pro
         })),
         source: "SEC filings, Market News",
         period: top[0]?.quarter,
+      };
+    }
+    case "talking": {
+      const q = s.qbr!;
+      const filed = (await getCompanyEarnings(s.company!.slug)).latestFiling?.filed;
+      const t = await cachedTalkingPoints(s.company!.slug, q.meeting, q.focus, filed);
+      if (!t || t.status !== "ok")
+        return {
+          headline: `Talking points for ${name}`,
+          text: "No talking points are saved for this meeting yet. Open QBR Prep for it to have Claude write them; the export leaves this slide out until then.",
+          source: "QBR Prep",
+          error: true,
+        };
+      return {
+        headline: q.focus ? `Talking points for ${name}, on ${q.focus}` : `Talking points for ${name}`,
+        // Three of each fit a slide; the full set stays on QBR Prep.
+        groups: [
+          { title: "Talking points", lines: t.points.slice(0, 3).map((x) => x.text) },
+          { title: "Questions to ask", lines: t.questions.slice(0, 3).map((x) => x.text) },
+        ],
+        claude: { label: "Written by Claude for QBR Prep from the brief", date: t.writtenAt ? day(t.writtenAt, thisYear()) : undefined },
+        source: "QBR Prep, written by Claude",
+        period: t.writtenAt ? day(t.writtenAt, thisYear()) : undefined,
       };
     }
     case "sources":

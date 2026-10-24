@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, use, useId, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Download } from "lucide-react";
+import { Bar, BarChart, Cell, LabelList, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import {
   AUDIENCES,
   GROUPS,
   SLIDES,
   addSlide,
   available,
+  count,
   deckHref,
   hrefOf,
   isFrame,
@@ -22,6 +24,7 @@ import {
   statusOf,
   unavailableReason,
   type Audience,
+  type Chart,
   type Preview,
   type SlideId,
   type Start,
@@ -31,11 +34,13 @@ import { Button } from "@/components/ui/button";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { LoadingBlock } from "@/components/ui/states";
+import { AVNET, VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 
 // Pitch Deck Builder: the deck in words, the outline beside a preview of the
-// selected slide, what an export needs, then every slide the app can make.
-// Choosing, ordering and previewing work now; the export is Planned for 3.3.
+// selected slide, the PowerPoint download, then every slide the app can make.
+// The download (step 3.3) is built on the server from the same previews, so the
+// file matches what is shown here, charts included.
 
 const LABEL = "font-display text-label uppercase text-ink-muted";
 const link = "text-ink underline underline-offset-2 hover:text-ink-muted";
@@ -85,6 +90,23 @@ export function DeckBuilder({
     setOff([]);
     setSelected(focus);
   };
+  const content = included.filter((id) => !isFrame(id));
+  const mockCount = content.filter((id) => statusOf(slide(id)) === "mock").length;
+  const exportHref = `/api/deck/export?${new URLSearchParams({
+    ...Object.fromEntries(
+      new URLSearchParams(
+        deckHref({
+          audience: start.audience,
+          company: start.company?.slug,
+          primer: start.primer?.slug,
+          from: start.from,
+          scenario: start.scenario,
+          qbr: start.qbr,
+        }).split("?")[1] ?? "",
+      ),
+    ),
+    slides: content.join(","),
+  })}`;
   const toggle = (id: SlideId) => setOff((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]));
   const add = (id: SlideId) => {
     setIds((x) => addSlide(x, id));
@@ -242,16 +264,16 @@ export function DeckBuilder({
 
           <section aria-labelledby={`${uid}-export`} className="rounded-sm border border-hairline bg-surface px-4 py-3">
             <h2 id={`${uid}-export`} className="font-display text-card-title text-ink">
-              What a finished export needs
+              Export
             </h2>
-            <ul className="mt-2 space-y-1 text-body-sm text-ink">
-              <li>The Avnet PowerPoint template, with the slash mark removed from its masters</li>
-              <li>PowerPoint and PDF export from that template, one layout per slide</li>
-              <li>Mock slides marked in the file until their data is hooked up</li>
-            </ul>
-            <p className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline pt-3 text-body-sm text-ink-muted">
-              <DataChip status="planned" />
-              Export to PowerPoint and PDF arrives in step 3.3.
+            <p className="mt-1 text-body-sm text-ink">
+              An editable PowerPoint in Avnet&apos;s layout: a cover, {count(content.length)} {content.length === 1 ? "slide" : "slides"} and the sources,
+              with native charts you can restyle.
+              {mockCount > 0 && ` ${capital(count(mockCount))} ${mockCount === 1 ? "slide uses" : "slides use"} mock data and ${mockCount === 1 ? "says" : "say"} so in the footer.`}
+            </p>
+            <DownloadButton href={exportHref} disabled={content.length === 0} />
+            <p className="mt-2 text-caption text-ink-muted">
+              A slide whose data can&apos;t be loaded is left out of the file. For a PDF, save the deck as PDF from PowerPoint.
             </p>
           </section>
         </div>
@@ -374,8 +396,66 @@ function PreviewPane({
   );
 }
 
+const COLOR = { avnet: VIZ.avnet, arrow: VIZ.arrow, company: AVNET.grayDark, market: VIZ.benchmark } as const;
+
+function fmt(format: Chart["format"], v: number): string {
+  if (format === "pct") return `${v < 0 ? "−" : ""}${Math.abs(v * 100).toFixed(1)}%`;
+  return Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : `$${Math.round(v / 1e6)}M`;
+}
+
+/** The slide's chart as the exported file draws it: bars for a comparison, columns or a line over time. */
+function PreviewChart({ c }: { c: Chart }) {
+  const label = (v: unknown) => fmt(c.format, Number(v));
+  const tick = { fontSize: 10, fill: "#6B7075" };
+  if (c.kind === "bar") {
+    const rows = c.series.map((s) => ({ name: s.name, value: s.points[0]?.value ?? 0, who: s.who }));
+    return (
+      <div className="h-24" role="img" aria-label={rows.map((r) => `${r.name} ${label(r.value)}`).join(", ")}>
+        <p className="text-micro text-ink-muted">{c.series[0]?.points[0]?.label}</p>
+        <ResponsiveContainer width="100%" height="85%">
+          <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 48, bottom: 0, left: 0 }}>
+            <XAxis type="number" hide domain={[0, "dataMax"]} />
+            <YAxis type="category" dataKey="name" width={44} tick={tick} axisLine={false} tickLine={false} />
+            <Bar dataKey="value" barSize={12} isAnimationActive={false}>
+              {rows.map((r) => (
+                <Cell key={r.name} fill={COLOR[r.who]} />
+              ))}
+              <LabelList dataKey="value" position="right" formatter={label} style={{ fontSize: 10, fill: "#000" }} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+  const s = c.series[0];
+  const rows = s.points.map((p) => ({ name: p.label, value: p.value }));
+  return (
+    <div className="h-32" role="img" aria-label={`${s.name}: ${rows.map((r) => `${r.name} ${label(r.value)}`).join(", ")}`}>
+      <ResponsiveContainer width="100%" height="100%">
+        {c.kind === "line" ? (
+          <LineChart data={rows} margin={{ top: 16, right: 16, bottom: 0, left: 16 }}>
+            <XAxis dataKey="name" tick={tick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+            <Line dataKey="value" stroke={COLOR[s.who]} strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false}>
+              <LabelList dataKey="value" position="top" formatter={label} style={{ fontSize: 9, fill: "#000" }} />
+            </Line>
+          </LineChart>
+        ) : (
+          <BarChart data={rows} margin={{ top: 16, right: 0, bottom: 0, left: 0 }}>
+            <XAxis dataKey="name" tick={tick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+            <Bar dataKey="value" fill={COLOR[s.who]} isAnimationActive={false}>
+              <LabelList dataKey="value" position="top" formatter={label} style={{ fontSize: 9, fill: "#000" }} />
+            </Bar>
+          </BarChart>
+        )}
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function SlideBody({ p }: { p: Preview }) {
-  const max = p.bars ? Math.max(...p.bars.map((b) => Math.abs(b.value)), 0.0001) : 1;
+  // Column headers either name every column or only the value columns; line them up either way.
+  const width = (p.facts?.[0]?.values.length ?? 0) + 1;
+  const headers = p.columns ? (p.columns.length === width ? p.columns : ["", ...p.columns]) : undefined;
   return (
     <div className="mt-2 space-y-3">
       <p className="text-pretty font-display text-section-title leading-tight text-ink xl:text-[22px]">{p.headline}</p>
@@ -387,30 +467,17 @@ function SlideBody({ p }: { p: Preview }) {
       )}
       {p.text && <p className="max-w-[62ch] text-pretty text-body-sm text-ink">{p.text}</p>}
       {p.error && <p className="text-caption text-ink-muted">Some figures couldn&apos;t be loaded; they read n/a.</p>}
-      {p.bars && (
-        <div className="space-y-1.5" role="img" aria-label={p.bars.map((b) => `${b.label} ${b.display}`).join(", ")}>
-          <p className="text-micro text-ink-muted">Revenue growth on a year ago</p>
-          {p.bars.map((b) => (
-            <div key={b.label} className="flex items-center gap-2 text-caption">
-              <span className="w-12 shrink-0 text-ink-muted">{b.label}</span>
-              <span
-                className={cn("h-3", b.who === "avnet" ? "bg-viz-avnet" : "bg-viz-arrow")}
-                style={{ width: `${(Math.abs(b.value) / max) * 60}%` }}
-              />
-              <span className="tabular-nums text-ink">{b.display}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {!p.bars && p.facts && p.facts.length > 0 && (
+      <div className={cn(p.chart && p.facts?.length ? "grid grid-cols-[3fr_2fr] items-start gap-4" : "space-y-3")}>
+      {p.chart && <PreviewChart c={p.chart} />}
+      {p.facts && p.facts.length > 0 && (
         <table className="w-full max-w-md border-collapse text-caption">
           <caption className="sr-only">The figures on this slide{p.period ? `, ${p.period}` : ""}.</caption>
-          {p.columns && (
+          {headers && (
             <thead>
               <tr className="border-b border-hairline">
-                {p.columns.map((c, i) => (
+                {headers.map((c, i) => (
                   <th
-                    key={c}
+                    key={`${c}-${i}`}
                     scope="col"
                     className={cn("py-1 font-display text-label font-normal uppercase text-ink-muted", i ? "text-right" : "text-left")}
                   >
@@ -436,6 +503,21 @@ function SlideBody({ p }: { p: Preview }) {
           </tbody>
         </table>
       )}
+      </div>
+      {p.groups && p.groups.length > 0 && (
+        <div className="grid grid-cols-2 gap-4">
+          {p.groups.map((g) => (
+            <div key={g.title}>
+              <p className="font-display text-label uppercase text-ink-muted">{g.title}</p>
+              <ol className="mt-1 list-decimal space-y-1 pl-4 text-micro text-ink">
+                {g.lines.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      )}
       {p.lines && p.lines.length > 0 && (
         <ul className="space-y-0.5 text-caption text-ink">
           {p.lines.map((l) => (
@@ -443,6 +525,41 @@ function SlideBody({ p }: { p: Preview }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Builds the deck on the server and saves it; says plainly when it can't. */
+function DownloadButton({ href, disabled }: { href: string; disabled: boolean }) {
+  const [state, setState] = useState<{ busy: boolean; error?: string }>({ busy: false });
+  const download = async () => {
+    setState({ busy: true });
+    try {
+      const res = await fetch(href);
+      if (!res.ok) throw new Error((await res.text()) || "The deck couldn't be built just now.");
+      const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "Avnet deck.pptx";
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+      setState({ busy: false });
+    } catch (e) {
+      setState({ busy: false, error: e instanceof Error ? e.message : "The deck couldn't be built just now." });
+    }
+  };
+  return (
+    <div className="mt-3">
+      <Button variant="primary" onClick={download} disabled={disabled || state.busy} aria-busy={state.busy}>
+        <Download className="h-4 w-4" strokeWidth={1.5} aria-hidden />
+        {state.busy ? "Building the deck…" : "Download PowerPoint"}
+      </Button>
+      <p aria-live="polite" className="mt-1.5 text-caption text-negative empty:hidden">
+        {state.error}
+      </p>
     </div>
   );
 }

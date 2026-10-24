@@ -32,6 +32,7 @@ export type SlideId =
   | "scenario"
   | "pipeline"
   | "leads"
+  | "talking"
   | "sources";
 
 export type Group = "Network" | "Knowledge" | "Avnet performance";
@@ -46,8 +47,8 @@ export interface Slide {
   from: string;
   /** Every source it reads, from src/lib/hookups.ts. */
   hookups: string[];
-  /** A company, a primer, or either (news is on a company or a technology). */
-  needs?: "company" | "primer" | "subject";
+  /** A company, a primer, either (news is on a company or a technology), or a deck started from QBR Prep. */
+  needs?: "company" | "primer" | "subject" | "qbr";
   /** The build plan step that makes it, for a slide whose page isn't built. */
   planned?: string;
 }
@@ -94,6 +95,8 @@ export const SLIDES: Slide[] = [
   },
   { id: "pipeline", title: "Design pipeline", group: "Avnet performance", from: "Design Pipeline", hookups: ["drms", "billings"] },
   { id: "leads", title: "Who buys it", group: "Network", from: "Lead Finder", hookups: ["sec", "news"], needs: "primer" },
+  // Claude's talking points for the QBR the deck started from, read from QBR Prep's saved copy.
+  { id: "talking", title: "Talking points and questions", group: "Network", from: "QBR Prep", hookups: ["sec"], needs: "qbr" },
   { id: "sources", title: "Sources", from: "This deck", hookups: [] },
 ];
 
@@ -139,6 +142,8 @@ export interface Start {
   /** A one-slide deck: one view exported on its own. */
   single?: SlideId;
   scenario: ScenarioStart;
+  /** The QBR a deck started from (?from=qbr&meeting=supplier&focus=...), to find its talking points. */
+  qbr?: { meeting: "supplier" | "customer"; focus: string };
   /** Anything in the URL that couldn't be used, said plainly. */
   notes: string[];
 }
@@ -183,7 +188,15 @@ export function parseStart(q: Params): Start {
   const asked = one(q.audience);
   const audience: Audience =
     asked === "supplier" || asked === "customer" || asked === "internal" ? asked : company ? audienceFor(company) : named ? "customer" : "internal";
-  return { audience, company, primer: named ?? primerFor(company), from, single, scenario, notes };
+  const meeting = one(q.meeting);
+  const qbr =
+    from === "qbr" && company
+      ? {
+          meeting: meeting === "supplier" || meeting === "customer" ? meeting : roleOf(company) === "customer" ? ("customer" as const) : ("supplier" as const),
+          focus: (one(q.focus) ?? "").slice(0, 200),
+        }
+      : undefined;
+  return { audience, company, primer: named ?? primerFor(company), from, single, scenario, qbr, notes };
 }
 
 /** "Started from QBR Prep for Microchip.", or null for a deck started here. */
@@ -201,6 +214,7 @@ export function deckHref(s: {
   from?: From;
   slide?: SlideId;
   scenario?: ScenarioStart;
+  qbr?: Start["qbr"];
 }): string {
   const q = new URLSearchParams();
   if (s.company) q.set("company", s.company);
@@ -208,6 +222,10 @@ export function deckHref(s: {
   if (s.audience) q.set("audience", s.audience);
   if (s.slide) q.set("slide", s.slide);
   if (s.from) q.set("from", s.from);
+  if (s.qbr) {
+    q.set("meeting", s.qbr.meeting);
+    if (s.qbr.focus) q.set("focus", s.qbr.focus);
+  }
   if (s.scenario) {
     q.set("horizon", String(s.scenario.years));
     q.set("view", s.scenario.view);
@@ -226,9 +244,10 @@ const ORDER: Record<Audience, SlideId[]> = {
 };
 
 /** Whether a slide can be made for this start: its company or primer is known, and its page is built. */
-export function available(id: SlideId, s: Pick<Start, "company" | "primer">): boolean {
+export function available(id: SlideId, s: Pick<Start, "company" | "primer"> & Partial<Pick<Start, "from">>): boolean {
   const x = slide(id);
   if (x.planned) return false;
+  if (x.needs === "qbr") return Boolean(s.company && s.from === "qbr");
   if (x.needs === "company") return Boolean(s.company);
   if (x.needs === "primer") return Boolean(s.primer);
   if (x.needs === "subject") return Boolean(s.company || s.primer);
@@ -236,17 +255,20 @@ export function available(id: SlideId, s: Pick<Start, "company" | "primer">): bo
 }
 
 /** Why a slide can't be added, or null when it can. */
-export function unavailableReason(id: SlideId, s: Pick<Start, "company" | "primer">): string | null {
+export function unavailableReason(id: SlideId, s: Pick<Start, "company" | "primer"> & Partial<Pick<Start, "from">>): string | null {
   const x = slide(id);
   if (x.planned) return `Arrives in step ${x.planned}`;
   if (available(id, s)) return null;
+  if (x.needs === "qbr") return "Needs a deck started from QBR Prep";
   return x.needs === "primer" ? "Needs a company with a primer" : x.needs === "subject" ? "Needs a company or a technology" : "Needs a company";
 }
 
 /** The slides a start opens with, in order. One view on its own when the URL names a slide. */
 export function outline(s: Start): SlideId[] {
   if (s.single && available(s.single, s)) return [s.single];
-  return ORDER[s.audience].filter((id) => available(id, s));
+  const ids = ORDER[s.audience].filter((id) => available(id, s));
+  // A deck from QBR Prep closes on the meeting's talking points, before the sources.
+  return available("talking", s) ? [...ids.slice(0, -1), "talking", ...ids.slice(-1)] : ids;
 }
 
 /** Add a slide before the sources slide, or at the end. */
@@ -267,9 +289,16 @@ export function move(ids: SlideId[], id: SlideId, dir: -1 | 1): SlideId[] {
 }
 
 /** The page a slide opens on. Cover and sources have none. */
-export function hrefOf(id: SlideId, s: Pick<Start, "company" | "primer" | "scenario">): string | null {
+export function hrefOf(id: SlideId, s: Pick<Start, "company" | "primer" | "scenario"> & Partial<Pick<Start, "qbr">>): string | null {
   const c = s.company?.slug;
   switch (id) {
+    case "talking": {
+      if (!c) return "/tools/qbr";
+      const q = new URLSearchParams({ company: c });
+      if (s.qbr) q.set("meeting", s.qbr.meeting);
+      if (s.qbr?.focus) q.set("focus", s.qbr.focus);
+      return `/tools/qbr?${q}`;
+    }
     case "company":
     case "commentary":
       return c ? `/network/${c}` : "/network";
@@ -372,16 +401,27 @@ export const PRIMER_SEGMENT: Record<string, string> = {
 /* ---------- Previews ---------- */
 
 /** What a slide shows: a headline, a sentence, its figures, and where they came from. */
+export type SeriesWho = "avnet" | "arrow" | "company" | "market";
+
+export interface Chart {
+  /** bar: horizontal bars (a comparison); column: bars over time; line: a rate over time. */
+  kind: "bar" | "column" | "line";
+  format: "usd" | "pct";
+  series: { name: string; who: SeriesWho; points: { label: string; value: number }[] }[];
+}
+
 export interface Preview {
   headline: string;
   text?: string;
   /** Column headers for multi-value figures (the first column is the label). */
   columns?: string[];
   facts?: { label: string; values: string[] }[];
-  /** Avnet against Arrow as two trackless bars. */
-  bars?: { label: string; value: number; display: string; who: "avnet" | "arrow" }[];
+  /** A chart drawn the same way in the preview and, natively, in the exported deck. */
+  chart?: Chart;
   /** Short lines: stories, uses, sources. */
   lines?: string[];
+  /** Side-by-side lists, each with its heading: talking points beside questions to ask. */
+  groups?: { title: string; lines: string[] }[];
   /** Text Claude wrote earlier and the app cached. */
   claude?: { label: string; date?: string };
   source: string;
