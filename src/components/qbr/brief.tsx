@@ -1,22 +1,16 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { getCompanyEarnings } from "@/lib/data/live/earnings";
-import { getRevenueMix } from "@/lib/data/live/revenue-mix";
-import { getCompanyNews } from "@/lib/data/live/company-news";
-import { getCycle } from "@/lib/data/live/cycle";
-import { roleOf } from "@/lib/data/live/earnings-model";
-import { getCommentary } from "@/lib/ai/commentary";
-import { getCarriers } from "@/lib/line-cards/analysis";
-import { getMoves } from "@/lib/line-cards/moves";
-import { MEETING_LABELS, type Setup } from "@/lib/qbr/setup";
-import { avnetBusinessMock, glance, yearAgo } from "@/components/network/company-profile";
+import { gatherBrief, type BriefSetup } from "@/lib/qbr/gather";
+import { MEETING_LABELS } from "@/lib/qbr/setup";
 import { format, longDate } from "@/components/earnings/format";
 import { Panel } from "@/components/ui/panel";
-import { Chip, DataChip, type DataStatus } from "@/components/ui/chip";
+import { DataChip, type DataStatus } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { LoadingBlock, Skeleton } from "@/components/ui/states";
 import { Outline } from "./outline";
+import { TalkingPoints, TalkingPointsFallback } from "./talking-points";
 
 const link = "text-ink underline-offset-2 hover:underline";
 const short = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(iso));
@@ -45,33 +39,10 @@ function Figure({ label, value, delta }: { label: string; value: string; delta?:
   );
 }
 
-export async function QbrBrief({ setup }: { setup: Setup & { company: NonNullable<Setup["company"]> } }) {
+export async function QbrBrief({ setup }: { setup: BriefSetup }) {
   const { company, meeting, date, focus } = setup;
-  const supplier = roleOf(company) === "supplier";
-  const [earnings, mix, commentary, news, cycle, carriers, moves] = await Promise.all([
-    getCompanyEarnings(company.slug),
-    getRevenueMix(company.slug),
-    getCommentary(company.slug),
-    getCompanyNews(company, 4).catch(() => []),
-    getCycle().catch(() => null),
-    supplier ? getCarriers(company.name).catch(() => null) : Promise.resolve(null),
-    supplier ? getMoves().catch(() => null) : Promise.resolve(null),
-  ]);
-
-  const q = earnings.quarters[earnings.quarters.length - 1];
-  const p = q ? yearAgo(earnings.quarters, q) : undefined;
-  const v = q?.values ?? {};
-  const lines = glance(earnings, mix);
-  const digest = commentary.digest;
-  const name = company.name.toLowerCase();
-  const companyMoves = (moves?.moves ?? []).filter((m) => m.title.toLowerCase().includes(name) || m.supplier?.toLowerCase().includes(name)).slice(0, 3);
-  const business = avnetBusinessMock(company);
-  const gm = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
-  const inv = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
-  const onAvnet = carriers?.hasHome ? carriers.carriers.some((c) => c.slug === "avnet") : null;
-
-  // The summary carries the headline fact and the backdrop; each section then adds something new.
-  const summary = [lines[0], cycle?.phase ? `The semiconductor cycle is in ${cycle.phase.toLowerCase()}.` : undefined].filter(Boolean).join(" ");
+  const brief = await gatherBrief(setup);
+  const { supplier, earnings, commentary, digest, news, cycle, carriers, companyMoves, business, q, v, lines, gm, inv, onAvnet, summary } = brief;
 
   const sections = [
     { id: "quarter", label: "The quarter in brief" },
@@ -257,20 +228,11 @@ export async function QbrBrief({ setup }: { setup: Setup & { company: NonNullabl
             id="talking"
             n={6}
             title="Talking points"
-            takeaway={digest?.takeaways.length ? "From the latest earnings release, as written by Claude." : undefined}
-            source="Talking points and questions written for this meeting and its focus come next (plan step 3.1)."
+            takeaway={`For this ${MEETING_LABELS[meeting].toLowerCase()}${focus ? `, with the focus on ${focus}` : ""}.`}
           >
-            {digest?.takeaways.length ? (
-              <ul className="list-disc space-y-1.5 pl-5 text-body text-ink marker:text-ink-muted">
-                {digest.takeaways.map((t) => (
-                  <li key={t}>
-                    {t} <Chip className="ml-1 align-middle">Commentary</Chip>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-body text-ink-muted">No talking points yet: the release hasn&apos;t been summarised.</p>
-            )}
+            <Suspense key={`${company.slug}-${meeting}-${focus}`} fallback={<TalkingPointsFallback />}>
+              <TalkingPoints brief={brief} setup={setup} />
+            </Suspense>
           </Section>
         </div>
       </article>
