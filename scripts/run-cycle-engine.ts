@@ -50,7 +50,8 @@ function main() {
     }
     return { ...card, label: s.label, source: s.source, guess: s.guess, tested: true };
   });
-  const placed = (p: string) => cards.filter((c) => c.placement === p).map((c) => c.key);
+  // Series whose data stopped (SEAJ bookings) are tested but never join an index.
+  const placed = (p: string) => cards.filter((c) => c.placement === p && !by(c.key).backtestOnly).map((c) => c.key);
 
   // The five indexes.
   const membership: Record<string, string[]> = {
@@ -126,7 +127,7 @@ function main() {
   const manifest = JSON.parse(readFileSync(path.join(process.cwd(), "data", "cycle", "manifest.json"), "utf8"));
   const output = {
     generated: new Date().toISOString().slice(0, 10),
-    history: { fetched: manifest.fetched, vintage: manifest.vintage, note: manifest.note },
+    history: { fetched: manifest.fetched, vintage: manifest.vintage, note: manifest.note, failed: manifest.failed ?? [], manual: manifest.manual ?? [] },
     reference: {
       source: ref.source,
       series: ref.series,
@@ -156,6 +157,8 @@ function main() {
       eras: c.eras,
       stable: c.stable,
       correlation: c.correlation ? { lead: c.correlation.lead, r: round(c.correlation.r, 2) } : null,
+      lastMonth: rawSeries(by(c.key)).at(-1)?.month ?? null,
+      backtestOnly: Boolean(by(c.key).backtestOnly),
     })),
     indexes,
     aiGap: { index: aiGap.filter(([m]) => m >= "2010-01"), sec: secGap },

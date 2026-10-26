@@ -27,6 +27,14 @@ export interface CatalogSeries {
   ratio?: [string, string];
   /** From the history script's SEC roll-up instead of FRED. */
   sec?: "chips" | "exai" | "ai";
+  /** Japan-made semiconductor equipment from SEAJ (3-month averages). */
+  seaj?: "billings" | "bookings" | "bookToBill";
+  /** Korea's exports of integrated circuits (HS 8542) from UN Comtrade. */
+  comtrade?: "korea-8542";
+  /** Saved by hand to data/cycle/manual/<key>.csv, for sources that block downloads. */
+  manual?: true;
+  /** Tested against past cycles but never in an index: its data has stopped. */
+  backtestOnly?: true;
   frequency: "monthly" | "daily" | "quarterly";
   measure: Measure;
   /** Whether a rise is good news for the chip market. */
@@ -60,6 +68,13 @@ export const SERIES: CatalogSeries[] = [
   { key: "cli-us", label: "US leading indicator (OECD)", source: `${FRED}, OECD`, fred: "USALOLITOAASTSAM", frequency: "monthly", measure: "level", upIsGood: true, guess: "leading", backtest: true },
   { key: "exports-korea", label: "Korea exports", source: `${FRED}, OECD`, fred: "XTEXVA01KRM664S", frequency: "monthly", measure: "yoy", upIsGood: true, guess: "leading", backtest: true },
   { key: "exports-japan", label: "Japan exports", source: `${FRED}, OECD`, fred: "XTEXVA01JPM664S", frequency: "monthly", measure: "yoy", upIsGood: true, guess: "leading", backtest: true },
+  // Asia's chip pipeline, where the cycle turns first.
+  { key: "seaj-billings", label: "Japan chip equipment billings", source: "SEAJ, 3-month average", seaj: "billings", frequency: "monthly", measure: "yoy", upIsGood: true, guess: "leading", backtest: true },
+  { key: "seaj-bookings", label: "Japan chip equipment bookings (to March 2017)", source: "SEAJ, 3-month average; no longer published", seaj: "bookings", frequency: "monthly", measure: "yoy", upIsGood: true, guess: "leading", backtest: true, backtestOnly: true },
+  { key: "seaj-b2b", label: "Japan chip equipment book-to-bill (to March 2017)", source: "SEAJ; no longer published", seaj: "bookToBill", frequency: "monthly", measure: "level", upIsGood: true, guess: "leading", backtest: true, backtestOnly: true },
+  { key: "korea-chip-exports", label: "Korea chip exports", source: "UN Comtrade, Korea Customs, HS 8542; about 9 months behind", comtrade: "korea-8542", frequency: "monthly", measure: "yoy", upIsGood: true, guess: "leading", backtest: true },
+  { key: "taiwan-orders-electronics", label: "Taiwan export orders, electronic products", source: "Ministry of Economic Affairs, saved by hand", manual: true, frequency: "monthly", measure: "yoy", upIsGood: true, guess: "leading", backtest: true },
+  { key: "tsmc-revenue", label: "TSMC monthly revenue", source: "TSMC investor relations, saved by hand", manual: true, frequency: "monthly", measure: "yoy", upIsGood: true, guess: "leading", backtest: true },
   { key: "hy-spread", label: "High-yield credit spread", source: `${FRED}, ICE BofA`, fred: "BAMLH0A0HYM2", frequency: "daily", measure: "level", upIsGood: false, guess: "leading", backtest: false },
 
   // Cyclical: production, shipments and jobs in the core.
