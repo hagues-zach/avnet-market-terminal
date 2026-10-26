@@ -1,16 +1,16 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import PptxGenJS from "pptxgenjs";
+import type PptxGenJS from "pptxgenjs";
 import { plainDashes } from "@/lib/ai/dashes";
+import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
+import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
 import type { Chart, Preview, SeriesWho } from "./outline";
 
-// The Pitch Deck Builder's export (step 3.3): the previews on screen, written as an
-// editable PowerPoint. The Avnet layouts are drawn here rather than taken from the
-// old template, whose masters still carry the slash mark the brand kit dropped.
-// Charts are native PowerPoint charts from the same figures as the preview, so a
-// seller can restyle them and the numbers sit in the chart's own data sheet.
-// Server-only.
+// The Pitch Deck Builder's export (step 3.3): the previews on screen, written on
+// the Avnet FY27 PowerPoint template (src/lib/brand/pptx). Each slide uses one
+// of the template's layouts and fills its real placeholders: the cover, a title
+// and subhead over a chart or the figures, a basic slide for lines, two columns
+// for talking points, then the sources and the template's closing slide. Charts
+// are native PowerPoint charts from the same figures as the preview. Server-only.
 
 export interface DeckSlide {
   preview: Preview;
@@ -19,10 +19,7 @@ export interface DeckSlide {
   kind?: "cover" | "content" | "sources";
 }
 
-const W = 13.333; // LAYOUT_WIDE, inches
-const X = 0.6;
-const HEAD = "Arial Narrow";
-const BODY = "Arial";
+const BODY = "Arial"; // the template's theme font, headings and body
 const INK = AVNET.ink.slice(1);
 const MUTED = "6B7075";
 const LINE = "E3E5E8";
@@ -33,14 +30,25 @@ const COLOR: Record<SeriesWho, string> = {
   company: hex(AVNET.grayDark),
   market: hex(VIZ.benchmark),
 };
-/** Every string the deck shows goes through the app's no-dash rule. */
 const t = (s?: string) => plainDashes(s ?? "");
 
-async function logoData(): Promise<string> {
-  const png = await fs.readFile(path.join(process.cwd(), "public", "avnet-logo.png"));
-  return `image/png;base64,${png.toString("base64")}`;
-}
-const LOGO_RATIO = 411 / 1872;
+// The template's body levels: level 0 is a key statement (bold, green on most
+// layouts), level 1 the supporting points with the template's green square
+// bullets. Exports use those rather than their own styling.
+const STATEMENT = 0;
+const POINT = 1;
+/** A key statement reads well bold; past this length a sentence is set as plain text instead. */
+const SHORT = 120;
+
+// The template's content area: the body placeholders sit 0.5 inches in and run to
+// 9.5; the master's slide number sits at the foot on the left, so the footer runs
+// beside it.
+const LEFT = 0.5;
+const RIGHT = 9.5;
+const FOOT_Y = 5.27;
+const BOTTOM = 5.12;
+
+type Box = { x: number; y: number; w: number; h: number };
 
 function numberFormat(c: Chart): string {
   if (c.format === "pct") return "0.0%";
@@ -48,39 +56,38 @@ function numberFormat(c: Chart): string {
   return max >= 1e9 ? '$#,##0.00,,,"B"' : '$#,##0,,"M"';
 }
 
-function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: { x: number; y: number; w: number; h: number }) {
+function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: Box) {
   const data = c.series.map((s) => ({ name: t(s.name), labels: s.points.map((p) => t(p.label)), values: s.points.map((p) => p.value) }));
-  const type = c.kind === "line" ? pptx.ChartType.line : pptx.ChartType.bar;
-  slide.addChart(type, data, {
+  slide.addChart(c.kind === "line" ? pptx.ChartType.line : pptx.ChartType.bar, data, {
     ...box,
     barDir: c.kind === "bar" ? "bar" : "col",
     barGapWidthPct: 60,
     chartColors: c.series.map((s) => COLOR[s.who]),
-    lineSize: 2.5,
+    lineSize: 2,
     lineDataSymbol: "circle",
-    lineDataSymbolSize: 7,
+    lineDataSymbolSize: 6,
     showValue: true,
     dataLabelFormatCode: numberFormat(c),
     dataLabelFontFace: BODY,
-    dataLabelFontSize: 10,
+    dataLabelFontSize: 9,
     dataLabelColor: INK,
     dataLabelPosition: c.kind === "line" ? "t" : "outEnd",
     valAxisHidden: true,
     valGridLine: { style: "none" },
     catAxisLabelFontFace: BODY,
-    catAxisLabelFontSize: 10,
+    catAxisLabelFontSize: 9,
     catAxisLabelColor: MUTED,
     catAxisLineShow: c.kind !== "bar",
     showLegend: c.series.length > 1,
     legendPos: "b",
     legendFontFace: BODY,
-    legendFontSize: 10,
+    legendFontSize: 9,
   });
 }
 
 function addFacts(slide: PptxGenJS.Slide, p: Preview, box: { x: number; y: number; w: number }) {
   if (!p.facts?.length) return;
-  const head = { fontFace: HEAD, fontSize: 11, color: MUTED, bold: false };
+  const head = { fontFace: BODY, fontSize: 8, color: MUTED, bold: true };
   const rows: PptxGenJS.TableRow[] = [];
   if (p.columns?.length) {
     // Headers either name every column or only the value columns; line them up either way.
@@ -92,29 +99,32 @@ function addFacts(slide: PptxGenJS.Slide, p: Preview, box: { x: number; y: numbe
       { text: t(f.label), options: { color: MUTED } },
       ...f.values.map((v) => ({ text: t(v), options: { align: "right" as const, color: v === "n/a" ? MUTED : INK } })),
     ]);
-  slide.addTable(rows, {
-    ...box,
-    fontFace: BODY,
-    fontSize: 12,
-    color: INK,
-    border: { type: "solid", pt: 0.75, color: LINE },
-    margin: 0.06,
-    autoPage: false,
-  });
+  slide.addTable(rows, { ...box, fontFace: BODY, fontSize: 10, color: INK, border: { type: "solid", pt: 0.5, color: LINE }, margin: 0.05, autoPage: false });
 }
 
-function addFooter(slide: PptxGenJS.Slide, p: Preview, mock: boolean) {
-  slide.addShape("line", { x: X, y: 6.85, w: W - 2 * X, h: 0, line: { color: LINE, width: 0.75 } });
-  const where = `Source: ${t(p.source)}${p.period ? `, ${t(p.period)}` : ""}`;
-  slide.addText(where, { x: X, y: 6.92, w: mock ? 8.6 : 10, h: 0.35, fontFace: BODY, fontSize: 9, color: MUTED, valign: "middle", margin: 0 });
+/** Source, period and the Mock data tag, beside the template's slide number. */
+function addFooter(slide: PptxGenJS.Slide, p: Preview, mock: boolean, claude?: Preview["claude"]) {
+  if (claude)
+    slide.addText(`${t(claude.label)}${claude.date ? `, ${t(claude.date)}` : ""}. Check before quoting.`, {
+      x: LEFT,
+      y: FOOT_Y - 0.24,
+      w: 8,
+      h: 0.2,
+      fontFace: BODY,
+      fontSize: 8,
+      italic: true,
+      color: MUTED,
+      margin: 0,
+    });
+  slide.addText(`Source: ${t(p.source)}${p.period ? `, ${t(p.period)}` : ""}`, { x: LEFT, y: FOOT_Y, w: mock ? 7.6 : 9, h: 0.2, fontFace: BODY, fontSize: 8, color: MUTED, valign: "middle", margin: 0 });
   if (mock)
     slide.addText("Mock data", {
-      x: 9.35,
-      y: 6.95,
-      w: 1.2,
-      h: 0.28,
+      x: RIGHT - 1.0,
+      y: FOOT_Y,
+      w: 1.0,
+      h: 0.2,
       fontFace: BODY,
-      fontSize: 9,
+      fontSize: 8,
       bold: true,
       color: INK,
       fill: { color: hex(AVNET.yellow) },
@@ -124,87 +134,88 @@ function addFooter(slide: PptxGenJS.Slide, p: Preview, mock: boolean) {
     });
 }
 
-function content(pptx: PptxGenJS, d: DeckSlide) {
+/** Rough height of a sentence set at `size` points across `w` inches (Arial averages half an em). */
+const textHeight = (s: string, size: number, w: number) => Math.ceil((s.length * size * 0.5) / (w * 72)) * size * 1.25 / 72;
+
+function cover(p: Preview): TemplateSlide {
+  const l = chooseLayout("cover", p.headline);
+  return {
+    layout: l.n,
+    fill: { title: [t(p.headline)], "11": [t(p.text)], "13": ["Prepared with the Avnet Market Intelligence Terminal"] },
+    slideNumber: false,
+  };
+}
+
+function sources(p: Preview): TemplateSlide {
+  const l = chooseLayout("basic", p.headline);
+  const paras: Para[] = [
+    ...(p.text ? [{ text: t(p.text), level: STATEMENT, size: 12 }] : []),
+    ...(p.lines ?? []).map((x) => ({ text: t(x), level: POINT, size: 10 })),
+  ];
+  return { layout: l.n, fill: { title: [t(p.headline)], "10": paras }, draw: (s) => addFooter(s, p, false) };
+}
+
+function talking(d: DeckSlide): TemplateSlide {
   const p = d.preview;
-  const slide = pptx.addSlide({ masterName: "CONTENT" });
-  slide.addText(t(p.headline), { x: X, y: 0.4, w: 10.4, h: 0.95, fontFace: HEAD, fontSize: 30, color: INK, valign: "top", fit: "shrink", margin: 0 });
-  let y = 1.45;
-  const bottom = p.claude ? 6.3 : 6.65;
-  // A slide that is only its sentence (what management said, a technology) gives the sentence the room.
-  const textOnly = !p.chart && !p.facts?.length && !p.lines?.length;
-  if (p.text) {
-    const h = textOnly ? bottom - y - 0.3 : 0.95;
-    slide.addText(t(p.text), { x: X, y, w: textOnly ? 10.4 : 11.6, h, fontFace: BODY, fontSize: textOnly ? 22 : 15, color: INK, valign: "top", fit: "shrink", margin: 0, paraSpaceAfter: 8 });
-    y += 1.1;
-  }
-  if (p.chart) {
-    const facts = Boolean(p.facts?.length);
-    addChart(pptx, slide, p.chart, { x: X - 0.1, y, w: facts ? 7.4 : 12.2, h: bottom - y });
-    if (facts) addFacts(slide, p, { x: 8.2, y: y + 0.1, w: 4.5 });
-  } else if (p.facts?.length) {
-    addFacts(slide, p, { x: X, y, w: p.columns?.length ? 12.1 : 7.5 });
-  }
-  if (p.lines?.length) {
-    const top = p.facts?.length && !p.chart ? Math.min(bottom - 1.2, y + 0.45 * (p.facts.length + 1) + 0.3) : y;
-    slide.addText(
-      p.lines.map((l) => ({ text: t(l), options: { bullet: d.kind !== "sources", breakLine: true } })),
-      { x: X, y: top, w: 12.1, h: bottom - top, fontFace: BODY, fontSize: d.kind === "sources" ? 11 : 14, color: INK, valign: "top", paraSpaceAfter: 6, fit: "shrink", margin: 0 },
-    );
-  }
-  if (p.groups?.length) {
-    const gap = 0.4;
-    const w = (W - 2 * X - gap * (p.groups.length - 1)) / p.groups.length;
-    p.groups.forEach((g, i) => {
-      const x = X + i * (w + gap);
-      slide.addText(t(g.title).toUpperCase(), { x, y, w, h: 0.35, fontFace: HEAD, fontSize: 12, color: MUTED, margin: 0 });
-      slide.addText(
-        g.lines.map((l) => ({ text: t(l), options: { bullet: { type: "number" as const }, breakLine: true } })),
-        { x, y: y + 0.45, w, h: bottom - y - 0.5, fontFace: BODY, fontSize: 13, color: INK, valign: "top", paraSpaceAfter: 8, fit: "shrink", margin: 0 },
-      );
-    });
-  }
-  if (p.claude)
-    slide.addText(`${t(p.claude.label)}${p.claude.date ? `, ${t(p.claude.date)}` : ""}. Check before quoting.`, {
-      x: X,
-      y: 6.4,
-      w: 12,
-      h: 0.35,
-      fontFace: BODY,
-      fontSize: 10,
-      italic: true,
-      color: MUTED,
-      margin: 0,
-    });
-  addFooter(slide, p, d.mock);
+  const l = chooseLayout("two-column", p.headline);
+  // Each column: its heading as the template's statement, the points as its bullets.
+  const column = (g: { title: string; lines: string[] }): Para[] => [
+    { text: t(g.title), level: STATEMENT, size: 14 },
+    ...g.lines.map((x) => ({ text: t(x), level: POINT, size: 12, spaceAfter: 6 })),
+  ];
+  const [a, b] = p.groups!;
+  return {
+    layout: l.n,
+    fill: { title: [t(p.headline)], "10": column(a), ...(b ? { "15": column(b) } : {}) },
+    draw: (s) => addFooter(s, p, d.mock, p.claude),
+  };
 }
 
-function cover(pptx: PptxGenJS, d: DeckSlide, logo: string) {
-  const slide = pptx.addSlide({ masterName: "COVER" });
-  slide.addImage({ data: logo, x: X, y: 0.7, w: 2.6, h: 2.6 * LOGO_RATIO });
-  slide.addShape("rect", { x: X, y: 3.05, w: 1.2, h: 0.08, fill: { color: hex(AVNET.green) }, line: { color: hex(AVNET.green), width: 0 } });
-  slide.addText(t(d.preview.headline), { x: X, y: 3.35, w: 11.5, h: 1.6, fontFace: HEAD, fontSize: 44, color: INK, valign: "top", fit: "shrink", margin: 0 });
-  slide.addText(t(d.preview.text), { x: X, y: 5.0, w: 11.5, h: 0.6, fontFace: BODY, fontSize: 18, color: MUTED, margin: 0 });
+function content(d: DeckSlide): TemplateSlide {
+  const p = d.preview;
+  if (p.groups?.length) return talking(d);
+  // Lines or the sentence alone: a basic slide, the sentence then the lines as bullets.
+  if (!p.chart && !p.facts?.length) {
+    const l = chooseLayout("basic", p.headline);
+    const textOnly = !p.lines?.length;
+    const text = t(p.text);
+    // A short sentence is the slide's statement; a long one (what management said) is plain text.
+    const lead: Para[] = !text
+      ? []
+      : text.length <= SHORT
+        ? [{ text, level: STATEMENT, size: textOnly ? 20 : 14 }]
+        : [{ text, level: POINT, bullet: false, size: textOnly ? 18 : 13, spaceAfter: 10 }];
+    const paras: Para[] = [...lead, ...(p.lines ?? []).map((x) => ({ text: t(x), level: POINT, size: 13, spaceAfter: 4 }))];
+    return { layout: l.n, fill: { title: [t(p.headline)], "10": paras }, draw: (s) => addFooter(s, p, d.mock, p.claude) };
+  }
+  // A chart or figures: the sentence in the subhead, the chart and the figures drawn below it.
+  const l = chooseLayout("subhead", p.headline);
+  const sub = placeholder(l, "11")!;
+  const sentence = t(p.text);
+  const top = sub.y + (sentence ? textHeight(sentence, 13, sub.w) : 0) + 0.25;
+  const h = BOTTOM - (p.claude ? 0.25 : 0) - top;
+  return {
+    layout: l.n,
+    fill: { title: [t(p.headline)], ...(sentence ? { "11": [{ text: sentence, size: 13 }] } : {}) },
+    draw: (s, pptx) => {
+      if (p.chart && p.facts?.length) {
+        addChart(pptx, s, p.chart, { x: LEFT - 0.1, y: top, w: 5.2, h });
+        addFacts(s, p, { x: 5.6, y: top + 0.05, w: RIGHT - 5.6 });
+      } else if (p.chart) addChart(pptx, s, p.chart, { x: LEFT - 0.1, y: top, w: RIGHT - LEFT + 0.1, h });
+      else addFacts(s, p, { x: LEFT, y: top, w: p.columns?.length ? RIGHT - LEFT : 6 });
+      if (p.lines?.length)
+        s.addText(
+          p.lines.map((x) => ({ text: t(x), options: { bullet: true, breakLine: true } })),
+          { x: LEFT, y: top + 0.32 * ((p.facts?.length ?? 0) + 1) + 0.1, w: RIGHT - LEFT, h: 1.2, fontFace: BODY, fontSize: 11, color: INK, valign: "top", margin: 0 },
+        );
+      addFooter(s, p, d.mock, p.claude);
+    },
+  };
 }
 
-/** The deck as .pptx bytes. Slides are written in the order given. */
-export async function buildDeck(title: string, slides: DeckSlide[], logo?: string): Promise<Buffer> {
-  const pptx = new PptxGenJS();
-  pptx.layout = "LAYOUT_WIDE";
-  pptx.title = t(title);
-  pptx.company = "Avnet";
-  pptx.author = "Avnet Market Intelligence Terminal";
-  const image = logo ?? (await logoData());
-  const logoW = 1.45;
-  pptx.defineSlideMaster({ title: "COVER", background: { color: "FFFFFF" }, objects: [] });
-  pptx.defineSlideMaster({
-    title: "CONTENT",
-    background: { color: "FFFFFF" },
-    objects: [{ image: { data: image, x: W - X - logoW, y: 0.45, w: logoW, h: logoW * LOGO_RATIO } }],
-    slideNumber: { x: W - X - 0.6, y: 6.92, w: 0.6, h: 0.35, fontFace: BODY, fontSize: 9, color: MUTED, align: "right" },
-  });
-  for (const d of slides) {
-    if (d.kind === "cover") cover(pptx, d, image);
-    else content(pptx, d);
-  }
-  return (await pptx.write({ outputType: "nodebuffer" })) as Buffer;
+/** The deck as .pptx bytes, on the Avnet template: the slides given, then the template's closing slide. */
+export async function buildDeck(title: string, slides: DeckSlide[]): Promise<Buffer> {
+  const out: TemplateSlide[] = slides.map((d) => (d.kind === "cover" ? cover(d.preview) : d.kind === "sources" ? sources(d.preview) : content(d)));
+  out.push({ layout: chooseLayout("closing").n, slideNumber: false });
+  return buildFromTemplate(out, { title });
 }

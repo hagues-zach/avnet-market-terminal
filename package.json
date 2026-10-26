@@ -12,6 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
     "clsx": "^2.1.1",
+    "jszip": "3.10.1",
     "lucide-react": "^0.456.0",
     "next": "^15.2.3",
     "pptxgenjs": "4.0.1",
