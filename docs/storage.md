@@ -1,8 +1,12 @@
 # Storage
 
 Everything the app saves goes through `src/lib/store`. Today that is local files.
-When Avnet's provisioned database is ready, adding a database adapter there is the
-only change: no caller knows where its data lives.
+There are also adapters for Avnet's provisioned database, Databricks or Oracle
+(which one isn't decided yet). Switching is a setting: no caller knows where its
+data lives.
+
+**Both database adapters are tested against fakes only. Neither has been run
+against a real Databricks workspace or Oracle database yet.**
 
 ## The interface
 
@@ -29,8 +33,10 @@ interface Expiry<T> {
   write, so the namespace never grows without bound.
 - Writes never throw. A lost write only costs a repeat call to Claude next time.
 
-The adapter is chosen once in `src/lib/store/index.ts` from `STORE_ADAPTER`
-(default `file`), which exports `store` and `snapshots`.
+The adapter is chosen once in `src/lib/store/index.ts` from `STORE_ADAPTER`:
+`file` (the default), `databricks` or `oracle`. It exports `store` and `snapshots`.
+A missing setting for the chosen adapter stops the app at startup with an error
+naming the setting.
 
 ## The file adapter
 
@@ -40,7 +46,77 @@ files, so on a read-only or per-instance disk (Vercel) results still last for th
 life of the instance. Reads also go to the file, so another process's writes are
 seen. Writes to one namespace run one at a time within a process.
 
-Tests: `npx tsx src/lib/store/file.test.ts`.
+Tests: `npx tsx src/lib/store/file.test.ts` (the shared contract, then the file layout).
+
+## The database adapters
+
+`src/lib/store/sql.ts` holds both stores over a small `SqlClient`
+(`query(sql, params)` with `:name` parameters, returning rows as objects) and a
+dialect per database. `databricks.ts` and `oracle.ts` supply the client and the
+dialect.
+
+| | Databricks | Oracle |
+|---|---|---|
+| `STORE_ADAPTER` | `databricks` | `oracle` |
+| Client | `src/lib/databricks/client.ts`: the SQL Statement Execution REST API with plain fetch, no driver | `oracledb` in thin mode (pure JavaScript, no Instant Client), loaded with a dynamic import only when chosen |
+| Settings | `DATABRICKS_HOST`, `DATABRICKS_TOKEN`, `DATABRICKS_WAREHOUSE_ID`, and `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA` for where the tables are | `ORACLE_USER`, `ORACLE_PASSWORD`, `ORACLE_CONNECT_STRING`; the tables are in that user's schema |
+| Tables | Delta tables `store_kv` and `store_snapshots` | `STORE_KV` and `STORE_SNAPSHOTS` |
+| JSON values | `STRING` | `CLOB` with an `IS JSON` check, bound as a CLOB |
+| Table script | `db/migrations/databricks/001_store.sql` | `db/migrations/oracle/001_store.sql` |
+
+How they work:
+
+- **Writes** are `MERGE` upserts, 50 rows per statement, so `setMany` of many
+  entries is a few round trips.
+- **Expiry** stores the date `dateOf` gives each row in `entry_date` when it is
+  written, then runs one `DELETE` of the namespace's rows dated before the cutoff
+  or with no date. So a row written without an expiry is dropped by the
+  namespace's next expiring write. Callers that prune pass the same expiry on
+  every write, so this matches the file adapter for them.
+- **Memory in front**: like the file adapter, each process keeps what it wrote or
+  read, so a failed write still keeps its result for the life of the process.
+- **Errors**: key-value reads and writes never throw; they log a warning
+  (`store (databricks): write to ns failed: ...`) and carry on. Snapshot writes
+  throw, and so do snapshot reads, so an outage isn't mistaken for having no
+  snapshots.
+- **Statements** start with a comment naming them, such as `/* store kv.upsert */`,
+  which makes them easy to find in a warehouse's query history.
+
+The Databricks client is usable on its own (the Avnet data layer uses it):
+
+```ts
+import { databricksQuery } from "@/lib/databricks/client";
+
+const rows = await databricksQuery(
+  "SELECT region, SUM(units) AS units FROM sales WHERE day >= :from GROUP BY region",
+  { from: { type: "DATE", value: "2026-10-01" } },
+);
+```
+
+It posts the statement, polls while it is `PENDING` or `RUNNING` (60 seconds in
+all by default, then cancels it), follows result chunks, and converts values by
+column type: integers, decimals and doubles to numbers, booleans to booleans,
+`TIMESTAMP` to `Date`. `DATE` and `TIMESTAMP_NTZ` stay text, since neither has a
+time zone. Failures throw a `DatabricksError` with a `kind` (`settings`, `http`,
+`statement` or `timeout`), the statement state and the Databricks error code. The
+token is never logged or put in an error. `databricksClient()` wraps it as a
+`SqlClient`.
+
+Oracle needs `oracledb` in `serverExternalPackages` in `next.config.mjs`, so it is
+required from `node_modules` at run time and traced into a standalone build rather
+than bundled.
+
+Tests, all against fakes:
+
+- `npx tsx src/lib/store/sql.test.ts`: the shared contract for both dialects over
+  an in-memory fake database (`fake-sql.ts`, which carries out each statement by
+  the comment that names it), the generated SQL against saved copies in
+  `src/lib/store/sql-snapshots/`, batching, and the Oracle binds against a fake
+  `oracledb`. After a deliberate change to the SQL, rerun with
+  `UPDATE_SNAPSHOTS=1` and review the diff.
+- `npx tsx src/lib/databricks/client.test.ts`: the client against a fake fetch.
+
+The shared contract is `src/lib/store/contract.ts`. A new adapter should pass it.
 
 ## Namespaces today
 
@@ -74,11 +150,12 @@ interface SnapshotStore {
 
 A snapshot is about 8 to 36 KB. Distributor slugs and dates are checked by the caller.
 
-## Adding a database adapter
+## Adding another adapter
 
-1. Write `src/lib/store/<name>.ts` returning a `Store` (and a `SnapshotStore`).
+1. Write `src/lib/store/<name>.ts` returning a `Store` (and a `SnapshotStore`). For
+   another SQL database, this is a `SqlClient` and a `Dialect` for `sql.ts`.
 2. Add a `case` for it in `choose()` in `src/lib/store/index.ts` and set `STORE_ADAPTER`.
-3. Nothing else changes.
+3. Run `storeContract` from `src/lib/store/contract.ts` against it.
 
 What it must do:
 

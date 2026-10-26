@@ -1,56 +1,49 @@
-// The local file adapter: round trip, getAll, setMany, pruning and a read-only
-// filesystem. Run with: npx tsx src/lib/store/file.test.ts
+// The local file adapter: the shared store contract, then what's particular to
+// files (the JSON layout, pruning entries another process wrote, a read-only
+// filesystem). Run with: npx tsx src/lib/store/file.test.ts
 import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { storeContract } from "./contract";
 import { fileStore } from "./file";
+import { fileSnapshots } from "./snapshots";
 import { cutoff } from "./types";
 
 async function main() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "store-test-"));
-  const file = (ns: string) => path.join(root, `${ns}.json`);
+  const file = (ns: string) => path.join(root, "ai", `${ns}.json`);
+  const locked = path.join(root, "locked");
+  await fs.mkdir(locked);
+  await fs.chmod(locked, 0o555);
   try {
-    // Round trip, and a second process (a fresh store) reads the same file.
-    const a = fileStore(root);
-    assert.equal(await a.get("ns", "missing"), undefined);
-    await a.set("ns", "k1", { n: 1 });
-    assert.deepEqual(await a.get("ns", "k1"), { n: 1 });
-    assert.deepEqual(await fileStore(root).get("ns", "k1"), { n: 1 });
-    assert.deepEqual(JSON.parse(await fs.readFile(file("ns"), "utf8")), { k1: { n: 1 } });
+    await storeContract({
+      name: "file",
+      kv: () => fileStore(path.join(root, "ai")),
+      snapshots: () => fileSnapshots(path.join(root, "line-cards")),
+      broken: {
+        kv: () => fileStore(path.join(locked, "ai")),
+        snapshots: () => fileSnapshots(path.join(locked, "line-cards")),
+      },
+    });
 
-    // setMany adds to what's there; getAll sees everything; namespaces are separate.
-    await a.setMany("ns", { k2: { n: 2 }, k3: { n: 3 } });
-    assert.deepEqual(Object.keys(await fileStore(root).getAll("ns")).sort(), ["k1", "k2", "k3"]);
-    assert.deepEqual(await a.getAll("other"), {});
+    // One JSON object per namespace, and snapshots pretty-printed per distributor per date.
+    assert.deepEqual(JSON.parse(await fs.readFile(file("ns"), "utf8")).k2, { n: 2 });
+    const snap = await fs.readFile(path.join(root, "line-cards", "arrow", "2026-10-01.json"), "utf8");
+    assert.equal(snap, `${JSON.stringify({ lines: ["a"] }, null, 2)}\n`);
 
-    // Writes in a row from one process don't lose each other's entries.
-    await Promise.all(Array.from({ length: 10 }, (_, i) => a.set("busy", `k${i}`, i)));
-    assert.equal(Object.keys(JSON.parse(await fs.readFile(file("busy"), "utf8"))).length, 10);
-
-    // Pruning by a date in the key, and by a date in the value; no date means dropped.
+    // Pruning applies dateOf to entries the store never wrote (another process's, or older files).
     const old = cutoff(30);
     const today = cutoff(0);
-    await fs.writeFile(file("dated"), JSON.stringify({ [`${old} q`]: 1, [`${today} q`]: 2 }));
-    const b = fileStore(root);
-    await b.set("dated", `${today} new`, 3, { days: 7, dateOf: (k) => k.slice(0, 10) });
-    assert.deepEqual(Object.keys(await fileStore(root).getAll("dated")).sort(), [`${today} new`, `${today} q`]);
-    await fs.writeFile(file("byValue"), JSON.stringify({ x: { at: old }, y: { at: today }, z: {} }));
-    await b.set<{ at?: string }>("byValue", "w", { at: today }, { days: 7, dateOf: (_, v) => v.at });
-    assert.deepEqual(Object.keys(await fileStore(root).getAll("byValue")).sort(), ["w", "y"]);
-
-    // A read-only filesystem: writes don't throw and the process still remembers them.
-    const locked = path.join(root, "locked");
-    await fs.mkdir(locked);
-    await fs.chmod(locked, 0o555);
-    const c = fileStore(path.join(locked, "ai"));
-    await c.set("ns", "k", "v");
-    await c.setMany("ns", { k2: "v2" });
-    assert.equal(await c.get("ns", "k"), "v");
-    assert.deepEqual(await c.getAll("ns"), { k: "v", k2: "v2" });
-    assert.equal(await fileStore(path.join(locked, "ai")).get("ns", "k"), undefined, "nothing reached the disk");
-    await fs.chmod(locked, 0o755);
+    await fs.writeFile(file("seeded"), JSON.stringify({ [`${old} q`]: 1, [`${today} q`]: 2 }));
+    const b = fileStore(path.join(root, "ai"));
+    await b.set("seeded", `${today} new`, 3, { days: 7, dateOf: (k) => k.slice(0, 10) });
+    assert.deepEqual(Object.keys(await fileStore(path.join(root, "ai")).getAll("seeded")).sort(), [
+      `${today} new`,
+      `${today} q`,
+    ]);
   } finally {
+    await fs.chmod(locked, 0o755);
     await fs.rm(root, { recursive: true, force: true });
   }
   console.log("file store: ok");
