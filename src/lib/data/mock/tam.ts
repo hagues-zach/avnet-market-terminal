@@ -6,7 +6,6 @@ import type {
   TamSummary,
   UsdMillions,
 } from "../types";
-import { SEMI_BILLINGS } from "@/lib/shells/mock-avnet";
 
 // Annual world semiconductor TAM ($M), anchored to WSTS/SIA history; 2026 = WSTS
 // Autumn-2025 forecast. Vintage labeled everywhere.
@@ -22,18 +21,19 @@ const TAM_HISTORY: { year: number; tam: number; forecast?: boolean }[] = [
 ];
 
 // SAM = distribution-served slice of TAM (~18%, ties to ECIA channel size).
-// SOM = Avnet's semiconductor billings in SAM (mock). The latest year comes from
-// the shared Avnet model so this page agrees with Market Share and Start Here;
-// earlier years follow the shape below. Real value comes from internal billings.
+// SOM = Avnet's semiconductor billings in SAM. The latest year is the semiconductor
+// billings passed in (getAvnet().semiBillings), so this page agrees with Market
+// Share and Start Here; earlier years follow the shape below.
 const SAM_SHARE_OF_TAM = 0.18;
 const SOM_SHAPE: Record<number, number> = {
   2019: 0.088, 2020: 0.09, 2021: 0.094, 2022: 0.096,
   2023: 0.092, 2024: 0.095, 2025: 0.096, 2026: 0.097,
 };
-const SOM_2025 = SEMI_BILLINGS / (772_200 * SAM_SHARE_OF_TAM);
-const SOM_SHARE_OF_SAM: Record<number, number> = Object.fromEntries(
-  Object.entries(SOM_SHAPE).map(([y, v]) => [y, (v / SOM_SHAPE[2025]) * SOM_2025]),
-);
+/** SOM as a share of SAM by year, scaled so 2025 is Avnet's semiconductor billings. */
+function somShareOfSam(semiBillings: number): Record<number, number> {
+  const som2025 = semiBillings / (772_200 * SAM_SHARE_OF_TAM);
+  return Object.fromEntries(Object.entries(SOM_SHAPE).map(([y, v]) => [y, (v / SOM_SHAPE[2025]) * som2025]));
+}
 
 // 2025 product-category shares of TAM (sum = 1.0). Micro = MPU/MCU/DSP.
 const PRODUCT_SHARE_2025: Record<ProductCategory, number> = {
@@ -66,7 +66,9 @@ function productSplit(year: number, tam: number): Partial<Record<ProductCategory
   return out;
 }
 
-export function getTam(): Sourced<TamSummary> {
+/** The TAM, SAM and SOM summary. `semiBillings`: Avnet's semiconductor billings, trailing 12 months, $M. */
+export function getTam(semiBillings: number): Sourced<TamSummary> {
+  const SOM_SHARE_OF_SAM = somShareOfSam(semiBillings);
   const trend = TAM_HISTORY.map(({ year, tam, forecast }) => {
     const sam = Math.round(tam * SAM_SHARE_OF_TAM);
     return {

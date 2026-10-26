@@ -1,7 +1,6 @@
 import type { Angle, Relevance } from "@/lib/ai/news-angles";
 import type { LiveArticle } from "@/lib/data/live/shared";
 import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
-import { SEGMENT_BILLINGS, VERTICALS } from "@/lib/shells/mock-avnet";
 
 // The Market News briefing, worked out from the live feed: what leads the page,
 // the counts in the summary line, topics this week, and the links from a story
@@ -109,12 +108,23 @@ const END_MARKET_MAP: Record<string, string> = {
   Medical: "Medical",
 };
 
-/** Avnet's trailing 12 month billings ($M, MOCK) and growth for a news topic, or null when Avnet doesn't bill under it. */
-export function avnetExposure(topic: string, facet: TopicFacet): { billings: number; growth: number } | null {
+/** Avnet's billings by segment and by end market: what news topics are measured against. Small enough to send to the browser. */
+export interface ExposureBillings {
+  segments: { segment: string; billings: number; growth: number }[];
+  verticals: { name: string; billings: number; growth: number }[];
+}
+
+export const exposureBillings = (m: { segmentBillings: ExposureBillings["segments"]; verticals: ExposureBillings["verticals"] }): ExposureBillings => ({
+  segments: m.segmentBillings.map(({ segment, billings, growth }) => ({ segment, billings, growth })),
+  verticals: m.verticals.map(({ name, billings, growth }) => ({ name, billings, growth })),
+});
+
+/** Avnet's trailing 12 month billings ($M) and growth for a news topic, or null when Avnet doesn't bill under it. */
+export function avnetExposure(topic: string, facet: TopicFacet, avnet: ExposureBillings): { billings: number; growth: number } | null {
   const rows =
     facet === "segments"
-      ? SEGMENT_BILLINGS.filter((s) => SEGMENT_MAP[topic]?.includes(s.segment))
-      : VERTICALS.filter((v) => v.name === END_MARKET_MAP[topic]);
+      ? avnet.segments.filter((s) => SEGMENT_MAP[topic]?.includes(s.segment))
+      : avnet.verticals.filter((v) => v.name === END_MARKET_MAP[topic]);
   if (!rows.length) return null;
   const billings = rows.reduce((n, r) => n + r.billings, 0);
   const yearAgo = rows.reduce((n, r) => n + r.billings / (1 + r.growth), 0);

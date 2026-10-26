@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { getTam } from "@/lib/data/mock/tam";
+import { SEMI_BILLINGS } from "@/lib/shells/mock-avnet";
 import { getForecast } from "@/lib/data/mock/forecast";
 import { AI_DEVICES } from "@/lib/shells/mock-market";
 import { bn, forecastDrift, inWords, lead, pace, pct, split } from "./read";
@@ -26,7 +27,7 @@ close(s.rest.growth, 0.2);
 close(s.ai.share + s.rest.share, 1);
 
 // On the app's figures: the two groups add to the published market, both years.
-const tam = getTam().value;
+const tam = getTam(SEMI_BILLINGS).value;
 const prior = tam.trend.find((p) => p.year === tam.latestYear - 1)!.tamUsdM;
 const real = split(AI_DEVICES, tam.tamUsdM, prior);
 close(real.ai.usdM + real.rest.usdM, tam.tamUsdM);

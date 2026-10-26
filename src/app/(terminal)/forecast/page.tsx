@@ -1,8 +1,7 @@
 import { getCycle } from "@/lib/data/live/cycle";
 import { COMPANIES, isDemand } from "@/lib/data/live/earnings-model";
 import { getForecast } from "@/lib/data/mock/forecast";
-import { QUARTERS, SEGMENT_BILLINGS } from "@/lib/shells/mock-avnet";
-import { FORECAST_SPREAD, SEGMENT_FORECAST } from "@/lib/shells/mock-market";
+import { getAvnet } from "@/lib/avnet";
 import type { SegmentInput } from "@/lib/scenario/model";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
@@ -10,7 +9,7 @@ import { ScenarioModeler, type RealityCheck } from "@/components/scenario/modele
 
 // Scenario Modeler: where Avnet's mapped billings land if the market grows
 // like the forecast and share moves as set. The maths is src/lib/scenario/model.ts
-// over the shared mock model; the reality check's reported growth is live
+// over Avnet's data (src/lib/avnet); the reality check's reported growth is live
 // from SEC filings. Step 3.4 swaps in WSTS, Gartner and the IP&E forecast.
 
 export const dynamic = "force-dynamic";
@@ -41,21 +40,22 @@ async function realityCheck(): Promise<RealityCheck> {
   }
 }
 
-export default function ScenarioModelerPage() {
-  const segments: SegmentInput[] = SEGMENT_BILLINGS.map((s) => ({
+export default async function ScenarioModelerPage() {
+  const { segmentBillings, segmentForecast, forecastSpread, quarters } = await getAvnet();
+  const segments: SegmentInput[] = segmentBillings.map((s) => ({
     segment: s.segment,
     market: s.market,
     share: s.share,
     billings: s.billings,
-    forecast: SEGMENT_FORECAST[s.segment],
+    forecast: segmentForecast[s.segment],
   }));
   return (
     <PageBody>
       <PageTitle title="Scenario Modeler" subtitle="What Avnet's billings come to if the market grows like the forecast and share moves like this" />
       <ScenarioModeler
         segments={segments}
-        spread={FORECAST_SPREAD}
-        quarters={quartersAhead(QUARTERS[QUARTERS.length - 1], 16)}
+        spread={forecastSpread}
+        quarters={quartersAhead(quarters[quarters.length - 1], 16)}
         checks={realityCheck()}
       />
     </PageBody>

@@ -39,7 +39,7 @@ export function HookupMarker({ ids }: { ids: string[] }) {
             {h.fields && <p className="mt-1 text-micro text-ink-muted">Fields: {h.fields.join(", ")}</p>}
             {h.replaceIn && (
               <p className="mt-0.5 text-micro text-ink-muted">
-                Replace the mock in <code className="break-all font-mono">{h.replaceIn}</code>
+                Plugs in at <code className="break-all font-mono">{h.replaceIn}</code>
               </p>
             )}
           </div>

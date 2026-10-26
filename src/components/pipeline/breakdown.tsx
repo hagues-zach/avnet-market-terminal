@@ -2,7 +2,8 @@
 
 import { Fragment, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { PIPELINE_STAGES, type PipelineRow } from "@/lib/shells/mock-avnet";
+import type { PipelineRow } from "@/lib/avnet/contracts";
+import { PIPELINE_STAGES } from "@/lib/avnet/format";
 import { DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { cn } from "@/lib/utils";

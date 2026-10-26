@@ -4,7 +4,7 @@ import { getCycle } from "@/lib/data/live/cycle";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
 import { VIZ } from "@/lib/colors";
-import { SHARE_BY_REGION, SHARE_BY_SEGMENT, SHARE_BY_SUPPLIER, SHARE_TREND } from "@/lib/shells/mock-market";
+import { getAvnet } from "@/lib/avnet";
 import { fullQuarter, growthAgainstMakers, latestGap, peerShare, shortQuarter } from "@/lib/share/peers";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -27,38 +27,48 @@ const arrowData = cache(() => getCompanyEarnings("arrow"));
 
 const pts = (v: number) => `${Math.abs(v * 100).toFixed(1)} pts`;
 
-/* ---------- Mock share ---------- */
+/* ---------- Avnet share (src/lib/avnet) ---------- */
 
-const latestTrend = SHARE_TREND[SHARE_TREND.length - 1]["Avnet share of mapped TAM"];
-const yearAgoTrend = SHARE_TREND[SHARE_TREND.length - 5]["Avnet share of mapped TAM"];
-const mappedMarket = SHARE_BY_SEGMENT.reduce((s, r) => s + r.tam, 0);
-const mappedBillings = SHARE_BY_SEGMENT.reduce((s, r) => s + r.tam * r.share, 0);
+/** The headline share figures, from Avnet's data. */
+async function shareFigures() {
+  const m = await getAvnet();
+  const trend = m.shareTrend;
+  return {
+    m,
+    latestTrend: trend[trend.length - 1]["Avnet share of mapped TAM"],
+    yearAgoTrend: trend[trend.length - 5]["Avnet share of mapped TAM"],
+    mappedMarket: m.shareBySegment.reduce((s, r) => s + r.tam, 0),
+    mappedBillings: m.shareBySegment.reduce((s, r) => s + r.tam * r.share, 0),
+  };
+}
 
-export function ShareKpis() {
+export async function ShareKpis() {
+  const { m, latestTrend, yearAgoTrend, mappedMarket, mappedBillings } = await shareFigures();
   return (
     <>
       <KpiTile
         label="Share of mapped market"
         value={`${(latestTrend * 100).toFixed(1)}%`}
         delta={{ value: latestTrend - yearAgoTrend, display: pts(latestTrend - yearAgoTrend), period: "YoY" }}
-        source={{ status: "mock" }}
+        source={{ status: m.status }}
       />
       <KpiTile
         label="Mapped billings"
         value={`$${mappedBillings.toFixed(1)}B`}
         note={`of a $${mappedMarket.toFixed(0)}B market`}
-        source={{ status: "mock" }}
+        source={{ status: m.status }}
       />
     </>
   );
 }
 
-export function BreakdownCard() {
-  const segment = SHARE_BY_SEGMENT.map((s) => ({ name: s.segment, tam: s.tam, share: s.share, shareChange: s.shareChange, confidence: s.confidence }));
+export async function BreakdownCard() {
+  const m = await getAvnet();
+  const segment = m.shareBySegment.map((s) => ({ name: s.segment, tam: s.tam, share: s.share, shareChange: s.shareChange, confidence: s.confidence }));
   return (
     <div className="space-y-2">
       <ShareBreakdown
-        rows={{ segment, supplier: SHARE_BY_SUPPLIER, region: SHARE_BY_REGION }}
+        rows={{ segment, supplier: m.shareBySupplier, region: m.shareByRegion }}
         footerLink={
           <Link href="/tools/mapping" className="ml-auto text-ink underline-offset-2 hover:underline">
             How billings map to segments
@@ -75,15 +85,16 @@ export function TrendRowMarker() {
   return <HookupMarker ids={["billings", "wsts", "tam-sam-som", "code-map"]} />;
 }
 
-export function TrendCard() {
-  const data = SHARE_TREND.map((r) => ({ label: r.label.replace(/^FY(\d{2}) (Q\d)$/, "$2 FY$1"), share: r["Avnet share of mapped TAM"] }));
+export async function TrendCard() {
+  const { m, latestTrend, yearAgoTrend } = await shareFigures();
+  const data = m.shareTrend.map((r) => ({ label: r.label.replace(/^FY(\d{2}) (Q\d)$/, "$2 FY$1"), share: r["Avnet share of mapped TAM"] }));
   return (
     <Panel
       className="h-full"
       title="Share over time"
-      subtitle={`Up ${pts(latestTrend - yearAgoTrend)} on a year ago, across all mapped segments`}
-      actions={<DataChip status="mock" />}
-      footer={<SourceLine source="Avnet billings ÷ mapped market size" asOf={SHARE_TREND[SHARE_TREND.length - 1].label} />}
+      subtitle={`${latestTrend >= yearAgoTrend ? "Up" : "Down"} ${pts(latestTrend - yearAgoTrend)} on a year ago, across all mapped segments`}
+      actions={<DataChip status={m.status} />}
+      footer={<SourceLine source="Avnet billings ÷ mapped market size" asOf={m.shareTrend[m.shareTrend.length - 1].label} />}
       bodyClassName="flex flex-col"
     >
       {/* Fills the height the white-space list beside it sets; the absolute box keeps the chart out of that sizing. */}
@@ -96,15 +107,16 @@ export function TrendCard() {
   );
 }
 
-export function WhiteSpaceCard() {
-  const items = SHARE_BY_SEGMENT.filter((s) => s.share < 0.05).sort((a, b) => b.tam - a.tam);
+export async function WhiteSpaceCard() {
+  const m = await getAvnet();
+  const items = m.shareBySegment.filter((s) => s.share < 0.05).sort((a, b) => b.tam - a.tam);
   const max = Math.max(...items.map((s) => s.tam));
   return (
     <Panel
       className="h-full"
       title="White space"
       subtitle="Large markets where Avnet's share is under 5%"
-      actions={<DataChip status="mock" />}
+      actions={<DataChip status={m.status} />}
       footer={
         <SourceLine source="TAM / SAM / SOM and the code map">
           <Link href="/tam" className="ml-auto text-ink underline-offset-2 hover:underline">

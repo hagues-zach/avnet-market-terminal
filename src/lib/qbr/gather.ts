@@ -11,7 +11,7 @@ import { getCycle } from "@/lib/data/live/cycle";
 import { roleOf, type Company } from "@/lib/data/live/earnings-model";
 import { getCarriers } from "@/lib/line-cards/analysis";
 import { getMoves } from "@/lib/line-cards/moves";
-import { avnetBusinessMock, glance, yearAgo } from "@/components/network/company-profile";
+import { avnetBusiness, glance, yearAgo } from "@/components/network/company-profile";
 import type { Setup } from "./setup";
 
 export type BriefSetup = Setup & { company: Company };
@@ -52,7 +52,7 @@ export async function gatherBrief({ company }: BriefSetup) {
     cycle,
     carriers,
     companyMoves,
-    business: avnetBusinessMock(company),
+    business: await avnetBusiness(company),
     q,
     p,
     v,

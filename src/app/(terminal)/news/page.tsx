@@ -1,15 +1,19 @@
 import { getNewsAngles } from "@/lib/ai/news-angles";
 import { getLiveNews } from "@/lib/data/live/news";
+import { getAvnet } from "@/lib/avnet";
+import { exposureBillings } from "@/lib/news/briefing";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { DataChip } from "@/components/ui/chip";
 import { NewsPage } from "@/components/news/news-page";
 
-// Matches REVALIDATE_SECONDS in the news adapter (route config must be a literal).
-export const revalidate = 900;
+// Rendered per request so Avnet's billings come from the data layer at request
+// time, not the build. The feeds themselves are held for 15 minutes in the fetch
+// cache (REVALIDATE_SECONDS in the news adapter), so this doesn't refetch them.
+export const dynamic = "force-dynamic";
 
 export default async function MarketNewsPage() {
-  const data = await getLiveNews();
+  const [data, avnet] = await Promise.all([getLiveNews(), getAvnet()]);
   const live = data.sources.filter((s) => s.ok).length;
 
   return (
@@ -29,7 +33,7 @@ export default async function MarketNewsPage() {
         }
       />
       {/* Not awaited: the feed shows straight away and Claude's angles stream in behind it. */}
-      <NewsPage data={data} anglesPromise={getNewsAngles(data.articles)} />
+      <NewsPage data={data} anglesPromise={getNewsAngles(data.articles)} avnet={exposureBillings(avnet)} />
     </PageBody>
   );
 }

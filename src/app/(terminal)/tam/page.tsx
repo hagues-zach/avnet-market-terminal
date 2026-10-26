@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { getAvnet } from "@/lib/avnet";
 import { dataProvider } from "@/lib/data/provider";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
@@ -18,8 +19,8 @@ import {
 // forecast check reads live SEC filings.
 export const dynamic = "force-dynamic";
 
-export default function TamPage() {
-  const { value: t, vintage = "WSTS" } = dataProvider.getTam();
+export default async function TamPage() {
+  const { value: t, vintage = "WSTS" } = dataProvider.getTam((await getAvnet()).semiBillings);
 
   return (
     <PageBody>

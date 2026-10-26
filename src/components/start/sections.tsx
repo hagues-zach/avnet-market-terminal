@@ -7,7 +7,8 @@ import { getEarningsCalendar, TIMING_LABELS } from "@/lib/data/live/earnings-cal
 import { COMPANIES } from "@/lib/data/live/earnings-model";
 import { getMoves } from "@/lib/line-cards/moves";
 import { getNewsAngles } from "@/lib/ai/news-angles";
-import { START } from "@/lib/shells/specs";
+import { getAvnet } from "@/lib/avnet";
+import { shellSpecs } from "@/lib/shells/specs";
 import { buildFeed } from "@/lib/start/feed";
 import type { Role } from "@/lib/start/roles";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -219,14 +220,14 @@ export async function ReportingCard() {
   );
 }
 
-/* ---------- Avnet (mock) and next steps ---------- */
+/* ---------- Avnet and next steps ---------- */
 
-const avnetKpis = START.sections.find((s) => s.kind === "kpis");
-
-export function AvnetCard() {
+export async function AvnetCard() {
+  const m = await getAvnet();
+  const avnetKpis = shellSpecs(m).START.sections.find((s) => s.kind === "kpis");
   if (!avnetKpis || avnetKpis.kind !== "kpis") return null;
   return (
-    <Panel title="Avnet this quarter" subtitle={avnetKpis.subtitle?.replace(" · mock", "")} actions={<DataChip status="mock" />}>
+    <Panel title="Avnet this quarter" subtitle={avnetKpis.subtitle?.replace(" · mock", "")} actions={<DataChip status={m.status} />}>
       <dl className="divide-y divide-hairline">
         {avnetKpis.items.map((k) => (
           <div key={k.label} className="flex items-baseline justify-between gap-3 py-2 first:pt-0">

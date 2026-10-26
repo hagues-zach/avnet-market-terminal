@@ -2,22 +2,8 @@ import Link from "next/link";
 import { getCycle } from "@/lib/data/live/cycle";
 import type { Cohort } from "@/lib/data/live/earnings-model";
 import { MARKET_GROUP } from "@/lib/customers/read";
-import {
-  APPROVAL_RATE,
-  APPROVED_PIPELINE,
-  APPROVED_PIPELINE_YEAR_AGO,
-  DESIGN_APPROVED_SHARE,
-  MONTHS_TO_BILLING,
-  NEW_REGISTRATIONS,
-  PIPELINE,
-  PIPELINE_BY_QUARTER,
-  PIPELINE_BY_SEGMENT,
-  PIPELINE_BY_SUPPLIER,
-  PIPELINE_BY_VERTICAL,
-  PIPELINE_STAGES,
-  RECENT_APPROVALS,
-  STALLED_REGISTRATIONS,
-} from "@/lib/shells/mock-avnet";
+import { getAvnet, type AvnetModel } from "@/lib/avnet";
+import { PIPELINE_STAGES } from "@/lib/avnet/format";
 import { PageBody } from "@/components/layout/page-body";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -28,7 +14,7 @@ import { PipelineBreakdown, type View } from "@/components/pipeline/breakdown";
 import { PipelineTrend } from "@/components/pipeline/charts";
 import { cn } from "@/lib/utils";
 
-// Rendered per request for the live customer growth; everything else is the shared mock model.
+// Rendered per request for the live customer growth; everything else is Avnet's data (src/lib/avnet).
 export const dynamic = "force-dynamic";
 
 const money = (v: number) => (v >= 1000 ? `$${(v / 1000).toFixed(1)}B` : `$${Math.round(v)}M`);
@@ -38,22 +24,23 @@ const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal
 // The two half-width lists use tighter cells so they fit at 1280px without wrapping IDs and names.
 const TH2 = "h-control whitespace-nowrap px-2 font-display text-label font-normal uppercase text-ink-muted";
 
-async function customerGrowth(): Promise<Record<string, number | undefined>> {
+async function customerGrowth(m: AvnetModel): Promise<Record<string, number | undefined>> {
   const cycle = await getCycle().catch(() => null);
   if (!cycle?.latest) return {};
   const growthOf = (c: Cohort) => cycle.groups.find((g) => g.cohort === c)?.points.find((p) => p.label === cycle.latest)?.growth;
-  return Object.fromEntries(PIPELINE_BY_VERTICAL.map((v) => [v.name, MARKET_GROUP[v.name] ? growthOf(MARKET_GROUP[v.name]!) : undefined]));
+  return Object.fromEntries(m.pipelineByVertical.map((v) => [v.name, MARKET_GROUP[v.name] ? growthOf(MARKET_GROUP[v.name]!) : undefined]));
 }
 
 export default async function DesignPipelinePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const asked = (await searchParams).view;
   // Customers & End Markets links here with ?view=market.
   const view: View = asked === "segment" || asked === "market" ? asked : "supplier";
-  const growth = await customerGrowth();
-  const pipelineChange = APPROVED_PIPELINE / APPROVED_PIPELINE_YEAR_AGO - 1;
-  const regChange = NEW_REGISTRATIONS.thisQuarter / NEW_REGISTRATIONS.yearAgo - 1;
-  const rateChange = APPROVAL_RATE.now - APPROVAL_RATE.yearAgo;
-  const first = PIPELINE.submitted.value;
+  const m = await getAvnet();
+  const growth = await customerGrowth(m);
+  const pipelineChange = m.approvedPipeline / m.approvedPipelineYearAgo - 1;
+  const regChange = m.newRegistrations.thisQuarter / m.newRegistrations.yearAgo - 1;
+  const rateChange = m.approvalRate.now - m.approvalRate.yearAgo;
+  const first = m.pipeline.submitted.value;
 
   return (
     <PageBody>
@@ -62,10 +49,10 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
       <section aria-labelledby="pipeline-lead" className="space-y-3">
         <h2 id="pipeline-lead" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-pretty text-xl leading-snug text-ink">
           <span>
-            The pipeline holds {money(APPROVED_PIPELINE)} of approved designs not yet billing, {pipelineChange >= 0 ? "up" : "down"}{" "}
+            The pipeline holds {money(m.approvedPipeline)} of approved designs not yet billing, {pipelineChange >= 0 ? "up" : "down"}{" "}
             {pct(Math.abs(pipelineChange))} on a year ago.
           </span>
-          <DataChip status="mock" />
+          <DataChip status={m.status} />
         </h2>
         <HookupMarker ids={["drms", "billings"]} />
       </section>
@@ -73,26 +60,26 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiTile
           label="Approved pipeline"
-          value={money(APPROVED_PIPELINE)}
+          value={money(m.approvedPipeline)}
           note="not yet billing"
           delta={{ value: pipelineChange, display: pct(Math.abs(pipelineChange)), period: "YoY" }}
-          source={{ status: "mock" }}
+          source={{ status: m.status }}
         />
         <KpiTile
           label="New registrations"
-          value={NEW_REGISTRATIONS.thisQuarter.toLocaleString("en-US")}
+          value={m.newRegistrations.thisQuarter.toLocaleString("en-US")}
           note="this quarter"
           delta={{ value: regChange, display: pct(Math.abs(regChange)), period: "YoY" }}
-          source={{ status: "mock" }}
+          source={{ status: m.status }}
         />
         <KpiTile
           label="Approval rate"
-          value={pct(APPROVAL_RATE.now)}
+          value={pct(m.approvalRate.now)}
           note="last 12 months"
           delta={{ value: rateChange, display: `${Math.abs(rateChange * 100).toFixed(0)} pts`, period: "YoY" }}
-          source={{ status: "mock" }}
+          source={{ status: m.status }}
         />
-        <KpiTile label="Billings on design-approved parts" value={pct(DESIGN_APPROVED_SHARE)} note="of all billings" source={{ status: "mock" }} />
+        <KpiTile label="Billings on design-approved parts" value={pct(m.designApprovedShare)} note="of all billings" source={{ status: m.status }} />
       </div>
 
       <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
@@ -102,7 +89,7 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
           subtitle="Registrations submitted in the last 12 months, by how far each has got"
           footer={
             <>
-              <span>Median {MONTHS_TO_BILLING} months from approval to first billing</span>
+              <span>Median {m.monthsToBilling} months from approval to first billing</span>
               <Link href="/performance" className={cn(link, "ml-auto")}>
                 Performance Tracker
               </Link>
@@ -111,8 +98,8 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
         >
           <ol className="space-y-1">
             {PIPELINE_STAGES.map(({ id, label }, i) => {
-              const s = PIPELINE[id];
-              const prev = i > 0 ? PIPELINE[PIPELINE_STAGES[i - 1].id] : undefined;
+              const s = m.pipeline[id];
+              const prev = i > 0 ? m.pipeline[PIPELINE_STAGES[i - 1].id] : undefined;
               return (
                 <li key={id}>
                   {prev && (
@@ -142,7 +129,7 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
           subtitle="Approved pipeline and billings on design-approved parts, by fiscal quarter, both indexed to 100 in the first quarter"
           footer={<SourceLine source="Mock: DRMS and Avnet billings" />}
         >
-          <PipelineTrend rows={PIPELINE_BY_QUARTER} />
+          <PipelineTrend rows={m.pipelineByQuarter} />
         </Panel>
       </div>
 
@@ -160,7 +147,7 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
         }
       >
         <PipelineBreakdown
-          views={{ supplier: PIPELINE_BY_SUPPLIER, segment: PIPELINE_BY_SEGMENT, market: PIPELINE_BY_VERTICAL }}
+          views={{ supplier: m.pipelineBySupplier, segment: m.pipelineBySegment, market: m.pipelineByVertical }}
           growth={growth}
           initialView={view}
         />
@@ -190,7 +177,7 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
               </tr>
             </thead>
             <tbody>
-              {STALLED_REGISTRATIONS.map((r) => (
+              {m.stalledRegistrations.map((r) => (
                 <tr key={r.reg} className="border-b border-hairline last:border-b-0">
                   <th scope="row" className="whitespace-nowrap px-2 py-1.5 text-left font-normal tabular-nums text-ink">
                     {r.reg}
@@ -227,7 +214,7 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
               </tr>
             </thead>
             <tbody>
-              {RECENT_APPROVALS.map((r) => (
+              {m.recentApprovals.map((r) => (
                 <tr key={r.reg} className="border-b border-hairline last:border-b-0">
                   <th scope="row" className="whitespace-nowrap px-2 py-1.5 text-left font-normal tabular-nums text-ink">
                     {r.reg}

@@ -2,7 +2,9 @@
 import assert from "node:assert/strict";
 import type { Angle } from "@/lib/ai/news-angles";
 import type { ArticleKind, LiveArticle } from "@/lib/data/live/shared";
-import { avnetExposure, dayGroup, entityOf, profiledCompanies, qbrHref, stamp, summarize, topics, topStories } from "./briefing";
+import { buildModel } from "@/lib/avnet/derive";
+import { mockInputs } from "@/lib/avnet/mock";
+import { avnetExposure, dayGroup, exposureBillings, entityOf, profiledCompanies, qbrHref, stamp, summarize, topics, topStories } from "./briefing";
 
 const FETCHED = "2026-10-21T12:00:00Z";
 const hoursAgo = (h: number) => new Date(Date.parse(FETCHED) - h * 3_600_000).toISOString();
@@ -110,11 +112,12 @@ const rate = (pairs: [LiveArticle, Angle["relevance"]][]): Record<string, Angle>
 
 // Exposure: mapped topics sum Avnet's mock segments; unmapped ones are null.
 {
-  const ana = avnetExposure("Analog & Power", "segments");
+  const avnet = exposureBillings(buildModel(mockInputs()));
+  const ana = avnetExposure("Analog & Power", "segments", avnet);
   assert.ok(ana && ana.billings > 0);
-  assert.equal(avnetExposure("Foundry & Equipment", "segments"), null);
-  assert.ok(avnetExposure("Automotive", "endMarkets"));
-  assert.equal(avnetExposure("Energy", "endMarkets"), null);
+  assert.equal(avnetExposure("Foundry & Equipment", "segments", avnet), null);
+  assert.ok(avnetExposure("Automotive", "endMarkets", avnet));
+  assert.equal(avnetExposure("Energy", "endMarkets", avnet), null);
 }
 
 // Links: supplier tags to profiles, Arrow's alias, and the QBR link.

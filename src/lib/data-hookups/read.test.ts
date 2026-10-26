@@ -4,13 +4,16 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { HOOKUPS, PILLAR_NAMES, type Hookup } from "@/lib/hookups";
 import { NAV } from "@/components/layout/nav";
-import * as specs from "@/lib/shells/specs";
+import { buildModel } from "@/lib/avnet/derive";
+import { mockInputs } from "@/lib/avnet/mock";
+import { shellSpecs } from "@/lib/shells/specs";
 import type { ShellSpec } from "@/lib/shells/types";
 import { CONNECTION_ORDER } from "./order";
 import { PAGE_HOOKUPS } from "./pages";
 import { byCloseness, lead, matches, nextStep, readPages, readSteps, unscheduled, widestStep } from "./read";
 
 const ids = new Set(HOOKUPS.map((h) => h.id));
+const specs: Record<string, ShellSpec> = shellSpecs(buildModel(mockInputs()));
 
 // ---- Rules, on a small register ----
 const h = (id: string, status: Hookup["status"], pillar: Hookup["pillar"] = "internal"): Hookup => ({
@@ -128,12 +131,12 @@ const markerIds = (file: string) => {
   }
   return out;
 };
-const specIds = (name: string) => ((specs as Record<string, ShellSpec>)[name]?.sections ?? []).flatMap((s) => s.hookups);
+const specIds = (name: string) => (specs[name]?.sections ?? []).flatMap((s) => s.hookups);
 for (const p of PAGE_HOOKUPS) {
   const found = new Set(p.files.flatMap((f) => [...markerIds(f)]));
   if (p.from) {
     // Start Here shows only its KPI section's marker; shell pages show every section's.
-    const spec = (specs as Record<string, ShellSpec>)[p.from.spec];
+    const spec = specs[p.from.spec];
     assert.ok(spec, p.from.spec);
     const shown = p.href === "/start" ? (spec.sections.find((s) => s.kind === "kpis")?.hookups ?? []) : specIds(p.from.spec);
     shown.forEach((x) => found.add(x));

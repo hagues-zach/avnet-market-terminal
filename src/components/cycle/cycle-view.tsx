@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getCycle, type CompanySeries, type GroupPoint, type GroupSeries, type StageSeries } from "@/lib/data/live/cycle";
 import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
-import { PERFORMANCE, fmtM, fmtPct } from "@/lib/shells/mock-avnet";
+import { getAvnet } from "@/lib/avnet";
+import { fmtM, fmtPct } from "@/lib/avnet/format";
 import { NA, earningsHref, format } from "@/components/earnings/format";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -261,9 +262,10 @@ function Chain({
 
 /* ---------- Avnet's order book (mock) ---------- */
 
-function OrderBook() {
-  const latest = PERFORMANCE[PERFORMANCE.length - 1];
-  const yearAgo = PERFORMANCE[PERFORMANCE.length - 5];
+async function OrderBook() {
+  const { performance } = await getAvnet();
+  const latest = performance[performance.length - 1];
+  const yearAgo = performance[performance.length - 5];
   return (
     <Panel
       className="xl:col-span-4"
@@ -282,7 +284,7 @@ function OrderBook() {
       bodyClassName="space-y-3"
     >
       <HookupMarker ids={["bookings", "backlog"]} />
-      <BookToBill rows={PERFORMANCE} />
+      <BookToBill rows={performance} />
       <dl className="grid grid-cols-2 gap-3 border-t border-hairline pt-3">
         <div>
           <dt className="font-display text-label uppercase text-ink-muted">Book-to-bill, {latest.quarter}</dt>

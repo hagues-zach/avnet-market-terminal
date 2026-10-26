@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { getCompanyNews } from "@/lib/data/live/company-news";
+import { getAccount } from "@/lib/avnet";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getNextRelease, TIMING_LABELS } from "@/lib/data/live/earnings-calendar";
 import { COHORT_LABELS, ROLE_SINGULAR, roleOf, type Company, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
@@ -381,37 +382,33 @@ export async function ProfileNews({ company }: { company: Company }) {
   );
 }
 
-/** Deterministic mock figures per company, so a profile doesn't change between visits. */
-function seeded(slug: string, salt: number, min: number, max: number): number {
-  let h = 2166136261 ^ salt;
-  for (const ch of slug) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return min + ((h >>> 0) % 1000) / 1000 * (max - min);
-}
-
 /**
- * Avnet's business with a supplier or customer. MOCK until billings and account
- * data are hooked up; shared by the profile and the QBR brief so they agree.
+ * Avnet's business with a supplier or customer, from src/lib/avnet (mock until
+ * AVNET_DATA points at Avnet's tables); shared by the profile, the QBR brief,
+ * leads and the deck so they agree.
  */
-export function avnetBusinessMock(company: Company) {
+export async function avnetBusiness(company: Company) {
   const supplier = roleOf(company) === "supplier";
-  const billings = seeded(company.slug, 1, 40, 900);
+  const { figures: f, status } = await getAccount(company.slug, company.name, supplier);
+  const count = (v: number | undefined) => (v === undefined ? "n/a" : v.toLocaleString("en-US"));
   return {
     supplier,
-    rows: [
-      { label: "Billings, last 12 months", value: `$${billings.toFixed(1)}M` },
-      { label: "Backlog", value: `$${(billings * seeded(company.slug, 2, 0.3, 0.8)).toFixed(1)}M` },
-      supplier
-        ? { label: "Open design registrations", value: Math.round(seeded(company.slug, 3, 40, 1400)).toLocaleString("en-US") }
-        : { label: "Open quotes", value: Math.round(seeded(company.slug, 4, 20, 600)).toLocaleString("en-US") },
-    ],
+    status,
+    rows: f
+      ? [
+          { label: "Billings, last 12 months", value: `$${f.billings.toFixed(1)}M` },
+          { label: "Backlog", value: `$${f.backlog.toFixed(1)}M` },
+          supplier ? { label: "Open design registrations", value: count(f.openRegistrations) } : { label: "Open quotes", value: count(f.openQuotes) },
+        ]
+      : [{ label: "Billings, last 12 months", value: "None on record" }],
     hookups: supplier ? ["billings", "backlog", "drms"] : ["billings", "backlog", "quotes", "customer-master"],
   };
 }
 
-export function ProfileAvnetBusiness({ company }: { company: Company }) {
-  const { supplier, rows, hookups } = avnetBusinessMock(company);
+export async function ProfileAvnetBusiness({ company }: { company: Company }) {
+  const { supplier, rows, hookups, status } = await avnetBusiness(company);
   return (
-    <Panel title="Avnet business" subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`} actions={<DataChip status="mock" />}>
+    <Panel title="Avnet business" subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`} actions={<DataChip status={status} />}>
       <dl className="divide-y divide-hairline">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline justify-between gap-3 py-2 first:pt-0">

@@ -1,7 +1,6 @@
 import Link from "next/link";
+import { getAvnet } from "@/lib/avnet";
 import { categoryPath, coverage, lead, summarise, weakest } from "@/lib/mapping/read";
-import { MAPPED_BILLINGS, MAPPED_SHARE, SEGMENT_BILLINGS, SEGMENTS, SEMI_SEGMENTS } from "@/lib/shells/mock-avnet";
-import { MAPPINGS, VALIDATED_MONTH_AGO } from "@/lib/shells/mock-mapping";
 import { PageBody } from "@/components/layout/page-body";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -14,6 +13,9 @@ import { cn } from "@/lib/utils";
 // Code Mapping: how Avnet's product codes map to WSTS, Gartner and IP&E
 // forecast categories. All mock until the code map and material master are
 // hooked up; the actions to accept, edit and reject arrive in step 3.5.
+
+// Rendered per request: the code map comes from the data layer, never baked into the build.
+export const dynamic = "force-dynamic";
 
 const money = (v: number) => (v >= 1000 ? `$${(v / 1000).toFixed(1)}B` : `$${Math.round(v)}M`);
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -28,15 +30,16 @@ const HARD = [
   { title: "Drift", body: "Both classifications change over time, so every mapping is versioned and dated." },
 ];
 
-export default function CodeMappingPage() {
-  const s = summarise(MAPPINGS);
-  const cov = coverage(MAPPINGS, SEGMENTS);
+export default async function CodeMappingPage() {
+  const avnet = await getAvnet();
+  const s = summarise(avnet.mappings);
+  const cov = coverage(avnet.mappings, avnet.segments);
   const weak = weakest(cov);
   const share = s.validated / s.categories;
-  const monthAgo = VALIDATED_MONTH_AGO / s.categories;
+  const monthAgo = avnet.validatedMonthAgo / s.categories;
   const pts = Math.round((share - monthAgo) * 100);
-  const confidence = Object.fromEntries(SEGMENT_BILLINGS.map((x) => [x.segment, x.confidence]));
-  const changes = MAPPINGS.flatMap((m) => m.history.filter((h) => h.event !== "Suggested").map((h) => ({ ...h, m })))
+  const confidence = Object.fromEntries(avnet.segmentBillings.map((x) => [x.segment, x.confidence]));
+  const changes = avnet.mappings.flatMap((m) => m.history.filter((h) => h.event !== "Suggested").map((h) => ({ ...h, m })))
     .sort((a, b) => a.daysAgo - b.daysAgo)
     .slice(0, 6);
 
@@ -46,26 +49,26 @@ export default function CodeMappingPage() {
 
       <section aria-labelledby="mapping-lead" className="space-y-3">
         <h2 id="mapping-lead" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-pretty text-xl leading-snug text-ink">
-          <span>{lead(MAPPED_SHARE, s)}</span>
-          <DataChip status="mock" />
+          <span>{lead(avnet.mappedShare, s)}</span>
+          <DataChip status={avnet.status} />
         </h2>
         <HookupMarker ids={["code-map", "material-master"]} />
       </section>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <KpiTile label="Billings mapped" value={pct(MAPPED_SHARE)} note={`${money(MAPPED_BILLINGS)} of billings`} source={{ status: "mock" }} />
+        <KpiTile label="Billings mapped" value={pct(avnet.mappedShare)} note={`${money(avnet.mappedBillings)} of billings`} source={{ status: avnet.status }} />
         <KpiTile
           label="Validated categories"
           value={`${s.validated} of ${s.categories}`}
           note={pct(share)}
           delta={{ value: pts, display: `${Math.abs(pts)} pts`, period: "this month" }}
-          source={{ status: "mock" }}
+          source={{ status: avnet.status }}
         />
-        <KpiTile label="Awaiting review" value={String(s.review)} note={`${money(s.reviewBillings)} of billings`} source={{ status: "mock" }} />
-        <KpiTile label="Not mapped" value={String(s.unmapped)} note="with no Avnet code" source={{ status: "mock" }} />
+        <KpiTile label="Awaiting review" value={String(s.review)} note={`${money(s.reviewBillings)} of billings`} source={{ status: avnet.status }} />
+        <KpiTile label="Not mapped" value={String(s.unmapped)} note="with no Avnet code" source={{ status: avnet.status }} />
       </div>
 
-      <MappingWorkbench mappings={MAPPINGS} coverage={cov} confidence={confidence} semi={[...SEMI_SEGMENTS]} />
+      <MappingWorkbench mappings={avnet.mappings} coverage={cov} confidence={confidence} semi={[...avnet.semiSegments]} />
 
       <p className="-mt-2 flex flex-wrap gap-x-3 text-caption text-ink-muted">
         <span>
@@ -82,7 +85,7 @@ export default function CodeMappingPage() {
           className="xl:col-span-7"
           title="Recent changes"
           subtitle="Newest first. Validators are shown by role"
-          actions={<DataChip status="mock" />}
+          actions={<DataChip status={avnet.status} />}
           bodyClassName="p-0"
         >
           <table className="w-full border-collapse font-body text-table">
@@ -132,7 +135,7 @@ export default function CodeMappingPage() {
       <p className="text-caption text-ink-muted">
         Everything on this page is mock until the code map (gold.market_intelligence.gartner_avnet_code_map) and the material master are hooked up.
         Category names are the public WSTS, Gartner and IP&amp;E forecast taxonomies; codes, billings, reasons and history are synthetic. Billings are
-        the last 12 months through each mapping and add up to the {pct(MAPPED_SHARE)} of billings the map covers, the same figure Market Share and the
+        the last 12 months through each mapping and add up to the {pct(avnet.mappedShare)} of billings the map covers, the same figure Market Share and the
         TAM, SAM and SOM page use. The queue puts the most billings at stake first, then the lowest confidence. Once step 3.5 is built, Claude
         suggests mappings with its reasons and product managers accept, edit or reject them, and every change is kept.
       </p>

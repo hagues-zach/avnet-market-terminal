@@ -10,61 +10,11 @@
 // MAPPED_SHARE of all billings, and the share of a segment's billings on
 // validated mappings follows its confidence rating.
 
+import type { Confidence, HistoryEvent, Mapping, MapStatus, Source } from "@/lib/avnet/contracts";
+import { SEGMENT_SHORT, STATUS_LABEL } from "@/lib/avnet/format";
 import { SEGMENT_BILLINGS, SEGMENTS } from "./mock-avnet";
 
-export type MapStatus = "validated" | "suggested" | "review" | "unmapped";
-export type Confidence = "High" | "Medium" | "Low";
-export type Source = "WSTS" | "Gartner" | "IP&E forecast";
-
-export const STATUS_LABEL: Record<MapStatus, string> = {
-  validated: "Validated",
-  suggested: "Suggested",
-  review: "In review",
-  unmapped: "Not mapped",
-};
-
-export interface HistoryEvent {
-  daysAgo: number;
-  event: string;
-  by: string;
-}
-
-export interface Mapping {
-  id: string;
-  source: Source;
-  segment: (typeof SEGMENTS)[number];
-  name: string;
-  /** Avnet technology codes; empty when not mapped. */
-  codes: string[];
-  /** PCC level used in APAC and Farnell; null when not mapped. */
-  pcc: string | null;
-  /** Billings through this mapping, trailing 12 months, $M. Zero when not mapped. */
-  billings: number;
-  /** Confidence in the mapping; null when not mapped. */
-  confidence: Confidence | null;
-  status: MapStatus;
-  /** The role a decision waits on, for suggested and in-review mappings. */
-  waitsOn: string | null;
-  definition: string;
-  /** Why the mapping was suggested. Written by Claude once 3.5 is built; mock text until then. */
-  reason: string | null;
-  parts: string[];
-  history: HistoryEvent[];
-}
-
-/** Short segment names for the strip and the category path. */
-export const SEGMENT_SHORT: Record<string, string> = {
-  Analog: "Analog",
-  "Microcontrollers & processors": "Micro",
-  "Logic & FPGA": "Logic",
-  Memory: "Memory",
-  "Discretes & power": "Discretes",
-  Optoelectronics: "Opto",
-  Sensors: "Sensors",
-  Connectors: "Connectors",
-  Passives: "Passives",
-  Electromechanical: "Electromech",
-};
+export type { Confidence, Mapping, MapStatus, Source } from "@/lib/avnet/contracts";
 
 // Each segment's categories and the sources that publish them.
 const CATEGORIES: Record<string, { sources: Source[]; names: string[]; parts: string[] }> = {
