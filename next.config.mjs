@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -9,6 +11,11 @@ const nextConfig = {
   // don't ship by default, is traced into every route that exports.
   serverExternalPackages: ["pptxgenjs", "jszip"],
   outputFileTracingIncludes: { "/api/deck/export": ["./assets/brand/avnet-template-fy27.pptx"] },
+  // A self-contained server in .next/standalone for the container build (see
+  // Dockerfile). Tracing starts at this folder, so a checkout nested inside
+  // another project (a git worktree, a monorepo) still puts server.js at the top.
+  output: "standalone",
+  outputFileTracingRoot: fileURLToPath(new URL(".", import.meta.url)),
 };
 
 export default nextConfig;
