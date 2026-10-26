@@ -8,6 +8,7 @@ import { Panel } from "@/components/ui/panel";
 import { DataChip, type DataStatus } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
+import { PrintFooter } from "@/components/ui/print-footer";
 import { LoadingBlock, Skeleton } from "@/components/ui/states";
 import { Outline } from "./outline";
 import { TalkingPoints, TalkingPointsFallback } from "./talking-points";
@@ -61,9 +62,15 @@ export async function QbrBrief({ setup }: { setup: BriefSetup }) {
     { label: "Avnet billings", status: "mock" as DataStatus },
   ];
 
+  // The printed footer names the sources that fed this brief, mock ones marked.
+  const printSource = `Sources: ${sources
+    .filter((s) => s.status !== "planned")
+    .map((s) => (s.status === "mock" ? `${s.label} (mock)` : s.label))
+    .join(", ")}.`;
+
   return (
     <div className="grid gap-4 lg:grid-cols-12">
-      <article className="min-w-0 rounded-sm border border-hairline bg-surface p-5 lg:col-span-9 xl:p-6">
+      <article data-print="avnet" className="min-w-0 rounded-sm border border-hairline bg-surface p-5 lg:col-span-9 xl:p-6">
         <header className="border-b border-hairline pb-4">
           <h2 className="font-display text-page-title font-light uppercase text-ink">
             {company.name}: {MEETING_LABELS[meeting].toLowerCase()}
@@ -82,7 +89,7 @@ export async function QbrBrief({ setup }: { setup: BriefSetup }) {
             source={q ? `Source: ${company.name}'s SEC filings, quarter ended ${longDate(q.end)}.` : undefined}
           >
             {q ? (
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 print:grid-cols-4">
                 <Figure label={`Revenue, ${q.fiscalLabel}`} value={format("usd", v.revenue)} delta={v.revenueYoY !== undefined && <Delta value={v.revenueYoY} period="YoY" />} />
                 <Figure label="Gross margin" value={format("pct", v.grossMargin)} delta={gm !== undefined && <Delta value={gm} display={`${(Math.abs(gm) * 100).toFixed(1)} pts`} period="YoY" />} />
                 <Figure label="Operating margin" value={format("pct", v.operatingMargin)} />
@@ -235,6 +242,7 @@ export async function QbrBrief({ setup }: { setup: BriefSetup }) {
             </Suspense>
           </Section>
         </div>
+        <PrintFooter>{printSource}</PrintFooter>
       </article>
 
       <aside className="min-w-0 space-y-4 lg:col-span-3 print:hidden" aria-label="About this brief">
