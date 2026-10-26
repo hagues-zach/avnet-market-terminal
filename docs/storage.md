@@ -102,7 +102,7 @@ time zone. Failures throw a `DatabricksError` with a `kind` (`settings`, `http`,
 token is never logged or put in an error. `databricksClient()` wraps it as a
 `SqlClient`.
 
-Oracle needs `oracledb` in `serverExternalPackages` in `next.config.mjs`, so it is
+`oracledb` is in `serverExternalPackages` in `next.config.mjs`, so it is
 required from `node_modules` at run time and traced into a standalone build rather
 than bundled.
 

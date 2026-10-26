@@ -8,8 +8,10 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // PowerPoint exports are built on the Avnet template (src/lib/brand/pptx): pptxgenjs
   // and jszip run as plain Node, and the template file, which serverless functions
-  // don't ship by default, is traced into every route that exports.
-  serverExternalPackages: ["pptxgenjs", "jszip"],
+  // don't ship by default, is traced into every route that exports. oracledb (the
+  // Oracle storage adapter, src/lib/store/oracle.ts) is required from node_modules
+  // at run time rather than bundled.
+  serverExternalPackages: ["pptxgenjs", "jszip", "oracledb"],
   outputFileTracingIncludes: { "/api/deck/export": ["./assets/brand/avnet-template-fy27.pptx"] },
   // A self-contained server in .next/standalone for the container build (see
   // Dockerfile). Tracing starts at this folder, so a checkout nested inside
