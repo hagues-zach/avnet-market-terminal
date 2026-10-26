@@ -52,10 +52,13 @@ export function DeckBuilder({
   start,
   companies,
   previews,
+  talking,
 }: {
   start: Start;
   companies: { slug: string; name: string; group: string }[];
   previews: Promise<Previews>;
+  /** The talking points slide when it loads on its own, since Claude may be writing it. */
+  talking?: Promise<Preview>;
 }) {
   const router = useRouter();
   const uid = useId();
@@ -258,7 +261,7 @@ export function DeckBuilder({
                 </>
               }
             >
-              <PreviewPane id={selected} ids={included} start={start} previews={previews} headingId={`${uid}-preview`} />
+              <PreviewPane id={selected} ids={included} start={start} previews={previews} talking={talking} headingId={`${uid}-preview`} />
             </Suspense>
           </section>
 
@@ -332,15 +335,19 @@ function PreviewPane({
   ids,
   start,
   previews,
+  talking,
   headingId,
 }: {
   id?: SlideId;
   ids: SlideId[];
   start: Start;
   previews: Promise<Previews>;
+  talking?: Promise<Preview>;
   headingId: string;
 }) {
-  const all = use(previews);
+  // Only the slides that show talking points wait for them.
+  const t = talking && (id === "talking" || id === "sources") ? use(talking) : undefined;
+  const all = t ? { ...use(previews), talking: t } : use(previews);
   const n = id ? ids.indexOf(id) + 1 : 0;
   if (!id)
     return (

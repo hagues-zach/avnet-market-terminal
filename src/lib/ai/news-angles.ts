@@ -1,7 +1,7 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { LiveArticle } from "@/lib/data/live/shared";
-import { readCache, writeCache } from "./cache";
+import { store } from "@/lib/store";
 import { plainDashes } from "./dashes";
 import { aiConfigured, claude, describeError, MODEL } from "./claude";
 
@@ -63,7 +63,7 @@ function render(articles: LiveArticle[]): string {
 }
 
 export async function getNewsAngles(articles: LiveArticle[]): Promise<Angles> {
-  const cached = await readCache<Angle>(CACHE);
+  const cached = await store.getAll<Angle>(CACHE);
   const eligible = articles.filter((a) => KINDS.has(a.kind));
   const byId: Record<string, Angle> = {};
   for (const a of eligible) if (cached[a.id]) byId[a.id] = { ...cached[a.id], angle: plainDashes(cached[a.id].angle) };
@@ -85,6 +85,7 @@ export async function getNewsAngles(articles: LiveArticle[]): Promise<Angles> {
     if (response.stop_reason === "max_tokens" || !response.parsed_output) {
       return { byId, status: "partial", message: "Claude's answer was cut off; the remaining stories will be retried." };
     }
+    const fresh: Record<string, Angle> = {};
     for (const item of response.parsed_output.items) {
       const index = Number(item.id.replace(/^s/, "")) - 1;
       const article = todo[index];
@@ -92,9 +93,9 @@ export async function getNewsAngles(articles: LiveArticle[]): Promise<Angles> {
       if (!article || !angle) continue;
       const entry: Angle = { relevance: item.relevance, angle };
       byId[article.id] = { ...entry, angle: plainDashes(angle) };
-      cached[article.id] = entry;
+      fresh[article.id] = entry;
     }
-    await writeCache(CACHE, cached);
+    await store.setMany(CACHE, fresh);
     const missing = eligible.some((a) => !byId[a.id]);
     return { byId, status: missing ? "partial" : "ok", message: missing ? "Some stories are waiting for the next refresh." : undefined };
   } catch (error) {

@@ -1,9 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { readCache, writeCache } from "@/lib/ai/cache";
 import { aiConfigured, claude, describeError } from "@/lib/ai/claude";
 import { plainDashes } from "@/lib/ai/dashes";
+import { store } from "@/lib/store";
 import { format, longDate } from "@/components/earnings/format";
 import type { Brief, BriefSetup } from "./gather";
 import { ungrounded } from "./grounded";
@@ -19,7 +19,6 @@ import { MEETING_LABELS } from "./setup";
 export const QBR_MODEL = "claude-sonnet-5-5";
 const CACHE = "qbr-points-v1";
 const KEEP_DAYS = 21;
-const memory = new Map<string, TalkingPoints>();
 
 export const SECTIONS = ["quarter", "management", "distribution", "news", "business"] as const;
 export type SectionId = (typeof SECTIONS)[number];
@@ -211,22 +210,18 @@ export async function writeTalkingPoints(brief: Brief, setup: BriefSetup): Promi
  */
 export async function cachedTalkingPoints(slug: string, meeting: string, focus: string, filed: string | undefined): Promise<TalkingPoints | null> {
   const key = pointsKey(slug, meeting, focus, filed, new Date());
-  return memory.get(key) ?? (await readCache<TalkingPoints>(CACHE))[key] ?? null;
+  return (await store.get<TalkingPoints>(CACHE, key)) ?? null;
 }
 
 /** Talking points for the brief, from the cache when this company, meeting and focus were written this week on the same filing. */
 export async function getTalkingPoints(brief: Brief, setup: BriefSetup): Promise<TalkingPoints> {
   if (!aiConfigured()) return { status: "off", points: [], questions: [], message: "Claude writes talking points for the meeting once ANTHROPIC_API_KEY is set." };
   const key = pointsKey(setup.company.slug, setup.meeting, setup.focus, brief.earnings.latestFiling?.filed, new Date());
-  const hit = memory.get(key) ?? (await readCache<TalkingPoints>(CACHE))[key];
+  const hit = await store.get<TalkingPoints>(CACHE, key);
   if (hit) return hit;
 
   const { result } = await writeTalkingPoints(brief, setup);
   if (result.status !== "ok") return result; // Failures are not kept, so the next visit tries again.
-  memory.set(key, result);
-  const stored = await readCache<TalkingPoints & { writtenAt: string }>(CACHE);
-  const cutoff = new Date(Date.now() - KEEP_DAYS * 864e5).toISOString().slice(0, 10);
-  const kept = Object.fromEntries(Object.entries(stored).filter(([, v]) => (v.writtenAt ?? "") >= cutoff));
-  await writeCache(CACHE, { ...kept, [key]: result });
+  await store.set<TalkingPoints>(CACHE, key, result, { days: KEEP_DAYS, dateOf: (_, v) => v.writtenAt });
   return result;
 }

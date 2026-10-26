@@ -92,7 +92,7 @@ Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenari
 - [x] **Step 3. News "why it matters" and the supplier commentary digest.** Built on branch `news-synthesis-step-3`, using Claude (`claude-opus-5-5`) through the Anthropic SDK.
   - Market News: one sentence per story on why it matters to an Avnet seller or field engineer, a relevance rating, and a relevance filter. One request per refresh for new stories only.
   - Company profiles: "Management commentary", a digest of the latest earnings press release (the exhibit on the results 8-K) covering guidance, demand, inventory, lead times, pricing, the channel and end markets, plus points to raise in a conversation.
-  - Results are stored under `.cache/ai` (not committed) so nothing is analysed twice. Moves to the database with the line card store.
+  - Results are saved through `src/lib/store` (local files under `.cache/ai` for now) so nothing is analysed twice. See `docs/storage.md` for moving it to a database.
   - Not yet personalised to the signed-in user; that needs accounts (step 6).
   - Needs `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment; without it both features say AI is off.
 - [ ] **Step 4. QBR prep.** The first tool, because it exercises all three pillars: pick a supplier or customer and get a brief built from its profile, news, the cycle and talking points.

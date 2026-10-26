@@ -1,9 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { readCache, writeCache } from "@/lib/ai/cache";
 import { claude as client, describeError } from "@/lib/ai/claude";
 import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
+import { store } from "@/lib/store";
 import { arrow, avnet, company, cycle, earnings, economy, lineCard, news, supply } from "./answer";
 import { cacheKey, compose } from "./compose";
 import { depth, suggest } from "./route";
@@ -25,7 +25,6 @@ type Depth = keyof typeof MODELS;
 
 const CACHE = "ask-claude-v3";
 const KEEP_DAYS = 7;
-const memory = new Map<string, Answer>();
 
 const SLUGS = COMPANIES.map((c) => c.slug) as [string, ...string[]];
 const bySlug = new Map(COMPANIES.map((c) => [c.slug, c]));
@@ -240,15 +239,12 @@ export async function askFresh(question: string, today: string, model?: string):
 export async function askClaude(question: string): Promise<Answer> {
   const today = new Date().toISOString().slice(0, 10);
   const key = cacheKey(question, today);
-  const hit = memory.get(key) ?? (await readCache<Answer>(CACHE))[key];
+  const hit = await store.get<Answer>(CACHE, key);
   if (hit) return hit;
 
   const { answer: a } = await askFresh(question, today);
   if (a.error) return a; // Failures are not kept, so the next ask tries again.
-  memory.set(key, a);
-  const stored = await readCache<Answer>(CACHE);
-  const cutoff = new Date(Date.now() - KEEP_DAYS * 864e5).toISOString().slice(0, 10);
-  const kept = Object.fromEntries(Object.entries(stored).filter(([k]) => k.slice(0, 10) >= cutoff));
-  await writeCache(CACHE, { ...kept, [key]: a });
+  // Keys start with the day asked, so old answers are dropped by key.
+  await store.set(CACHE, key, a, { days: KEEP_DAYS, dateOf: (k) => k.slice(0, 10) });
   return a;
 }

@@ -1,6 +1,6 @@
 import { COMPANIES, ROLE_LABELS, roleOf, type Role } from "@/lib/data/live/earnings-model";
 import { deckHref, parseStart } from "@/lib/deck/outline";
-import { previewsFor } from "@/lib/deck/preview";
+import { previewsFor, talkingPreview } from "@/lib/deck/preview";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { DeckBuilder } from "@/components/deck/builder";
@@ -32,7 +32,14 @@ export default async function DeckPage({ searchParams }: { searchParams: Promise
   return (
     <PageBody>
       <PageTitle title="Pitch Deck Builder" subtitle="Build a deck from the app's own views, each slide marked live or mock" />
-      <DeckBuilder key={key} start={start} companies={OPTIONS} previews={previewsFor(start)} />
+      {/* Talking points may need Claude on a miss (about 15 seconds), so they load on their own and hold up only their slide. */}
+      <DeckBuilder
+        key={key}
+        start={start}
+        companies={OPTIONS}
+        previews={previewsFor(start, { writeTalking: false })}
+        talking={talkingPreview(start)}
+      />
     </PageBody>
   );
 }

@@ -1,13 +1,16 @@
 // Pitch Deck Builder previews: each slide's headline, sentence, figures and chart,
 // from the Ask the Terminal answerers (live) and the shared mock model of Avnet.
 // The same previews fill the exported PowerPoint (src/lib/deck/pptx.ts), so the
-// screen and the file agree. Server-only. Claude text is only read from the
-// cache; nothing calls Claude.
+// screen and the file agree. Server-only. Claude text is read from what the app
+// saved, except talking points: when QBR Prep's copy is missing (each serverless
+// instance has its own disk), they are written here, as QBR Prep would.
 import { answer } from "@/lib/ask/answer";
 import { day, quarterName, type Answer } from "@/lib/ask/sentences";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getCycle } from "@/lib/data/live/cycle";
-import { cachedTalkingPoints } from "@/lib/qbr/talking-points";
+import { aiConfigured } from "@/lib/ai/claude";
+import { gatherBrief } from "@/lib/qbr/gather";
+import { cachedTalkingPoints, getTalkingPoints, type TalkingPoints } from "@/lib/qbr/talking-points";
 import { getLeads } from "@/lib/leads/data";
 import { groupLabel, inSentence, lead as leadsLead, techName } from "@/lib/leads/rank";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
@@ -87,7 +90,41 @@ async function cycleChart(): Promise<Chart | undefined> {
   };
 }
 
-async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Promise<Preview> {
+/**
+ * The talking points slide: QBR Prep's saved points, or on a miss, points written
+ * now from the same brief (Claude Sonnet, about 15 seconds and a cent and a half).
+ * With `write` false a miss only says so.
+ */
+async function talking(s: Start, write: boolean): Promise<Preview> {
+  const q = s.qbr!;
+  const name = s.company!.name;
+  const filed = (await getCompanyEarnings(s.company!.slug)).latestFiling?.filed;
+  let t: TalkingPoints | null = await cachedTalkingPoints(s.company!.slug, q.meeting, q.focus, filed);
+  if (!t && write && aiConfigured()) {
+    const setup = { company: s.company!, meeting: q.meeting, date: null, focus: q.focus };
+    t = await getTalkingPoints(await gatherBrief(setup), setup).catch(() => null);
+  }
+  if (!t || t.status !== "ok")
+    return {
+      headline: `Talking points for ${name}`,
+      text: "No talking points are saved for this meeting yet. Open QBR Prep for it to have Claude write them; the export leaves this slide out until then.",
+      source: "QBR Prep",
+      error: true,
+    };
+  return {
+    headline: q.focus ? `Talking points for ${name}, on ${q.focus}` : `Talking points for ${name}`,
+    // Three of each fit a slide; the full set stays on QBR Prep.
+    groups: [
+      { title: "Talking points", lines: t.points.slice(0, 3).map((x) => x.text) },
+      { title: "Questions to ask", lines: t.questions.slice(0, 3).map((x) => x.text) },
+    ],
+    claude: { label: "Written by Claude for QBR Prep from the brief", date: t.writtenAt ? day(t.writtenAt, thisYear()) : undefined },
+    source: "QBR Prep, written by Claude",
+    period: t.writtenAt ? day(t.writtenAt, thisYear()) : undefined,
+  };
+}
+
+async function build(id: SlideId, s: Start, company: () => Promise<Answer>, write: boolean): Promise<Preview> {
   const name = s.company?.name;
   switch (id) {
     case "cover":
@@ -277,48 +314,39 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>): Pro
         period: top[0]?.quarter,
       };
     }
-    case "talking": {
-      const q = s.qbr!;
-      const filed = (await getCompanyEarnings(s.company!.slug)).latestFiling?.filed;
-      const t = await cachedTalkingPoints(s.company!.slug, q.meeting, q.focus, filed);
-      if (!t || t.status !== "ok")
-        return {
-          headline: `Talking points for ${name}`,
-          text: "No talking points are saved for this meeting yet. Open QBR Prep for it to have Claude write them; the export leaves this slide out until then.",
-          source: "QBR Prep",
-          error: true,
-        };
-      return {
-        headline: q.focus ? `Talking points for ${name}, on ${q.focus}` : `Talking points for ${name}`,
-        // Three of each fit a slide; the full set stays on QBR Prep.
-        groups: [
-          { title: "Talking points", lines: t.points.slice(0, 3).map((x) => x.text) },
-          { title: "Questions to ask", lines: t.questions.slice(0, 3).map((x) => x.text) },
-        ],
-        claude: { label: "Written by Claude for QBR Prep from the brief", date: t.writtenAt ? day(t.writtenAt, thisYear()) : undefined },
-        source: "QBR Prep, written by Claude",
-        period: t.writtenAt ? day(t.writtenAt, thisYear()) : undefined,
-      };
-    }
+    case "talking":
+      return talking(s, write);
     case "sources":
       // The sources slide is drawn from the outline in the browser.
       return { headline: slide(id).title, source: "This deck" };
   }
 }
 
-/** A preview for every slide this start can make, keyed by slide. A failed slide says so. */
-export async function previewsFor(s: Start): Promise<Partial<Record<SlideId, Preview>>> {
+const failed = (id: SlideId): Preview => ({ headline: slide(id).title, text: `Couldn't load ${slide(id).from} just now.`, source: slide(id).from, error: true });
+
+/**
+ * A preview for every slide this start can make, keyed by slide. A failed slide says so.
+ * With `writeTalking` false, talking points are only read from what's saved, so the
+ * page isn't held up by Claude; it shows talkingPreview() for that slide instead.
+ */
+export async function previewsFor(s: Start, { writeTalking = true } = {}): Promise<Partial<Record<SlideId, Preview>>> {
   let companyAnswer: Promise<Answer> | undefined;
   const company = () => (companyAnswer ??= answer(`How is ${s.company!.name} doing?`));
   const ids = SLIDES.map((x) => x.id).filter((id) => id !== "sources" && (id === "cover" || available(id, s)));
   const done = await Promise.all(
     ids.map(async (id) => {
       try {
-        return [id, await build(id, s, company)] as const;
+        return [id, await build(id, s, company, writeTalking)] as const;
       } catch {
-        return [id, { headline: slide(id).title, text: `Couldn't load ${slide(id).from} just now.`, source: slide(id).from, error: true }] as const;
+        return [id, failed(id)] as const;
       }
     }),
   );
   return Object.fromEntries(done);
+}
+
+/** The talking points slide on its own, written by Claude on a miss; undefined when the deck has no such slide. */
+export function talkingPreview(s: Start): Promise<Preview> | undefined {
+  if (!available("talking", s)) return undefined;
+  return talking(s, true).catch(() => failed("talking"));
 }

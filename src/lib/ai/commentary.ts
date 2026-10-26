@@ -2,7 +2,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
 import { DATA_USER_AGENT, fetchSec } from "@/lib/data/live/revenue-mix";
-import { readCache, writeCache } from "./cache";
+import { store } from "@/lib/store";
 import { plainDeep } from "./dashes";
 import { aiConfigured, claude, describeError, MODEL } from "./claude";
 
@@ -129,7 +129,7 @@ interface Stored {
  * searched by company. Null when nothing is cached.
  */
 export async function cachedCommentary(company: Company): Promise<{ digest: Digest; filed: string; releaseUrl: string } | null> {
-  const cached = await readCache<Stored>(CACHE);
+  const cached = await store.getAll<Stored>(CACHE);
   const prefix = String(company.cik).padStart(10, "0");
   const hits = Object.entries(cached)
     .filter(([accession]) => accession.startsWith(prefix))
@@ -151,8 +151,7 @@ export async function getCommentary(slug: string): Promise<Commentary> {
   }
   const base = { company, filed: release.filed, releaseUrl: release.url, releaseWords: release.text.split(/\s+/).length };
 
-  const cached = await readCache<Stored>(CACHE);
-  const hit = cached[release.accession];
+  const hit = await store.get<Stored>(CACHE, release.accession);
   if (hit) return { ...base, status: "ok", digest: plainDeep(hit.digest) };
   if (!aiConfigured()) return { ...base, status: "off", message: "AI synthesis is off. Set ANTHROPIC_API_KEY to turn it on." };
   if (release.text.length > MAX_CHARS) {
@@ -170,8 +169,7 @@ export async function getCommentary(slug: string): Promise<Commentary> {
     if (response.stop_reason === "refusal") return { ...base, status: "unavailable", message: "Claude declined to analyse this release." };
     if (response.stop_reason === "max_tokens" || !response.parsed_output) return { ...base, status: "unavailable", message: "Claude's answer was cut off." };
     const digest = response.parsed_output;
-    cached[release.accession] = { digest, filed: release.filed, releaseUrl: release.url };
-    await writeCache(CACHE, cached);
+    await store.set<Stored>(CACHE, release.accession, { digest, filed: release.filed, releaseUrl: release.url });
     return { ...base, status: "ok", digest: plainDeep(digest) };
   } catch (error) {
     return { ...base, status: "unavailable", message: describeError(error) };
