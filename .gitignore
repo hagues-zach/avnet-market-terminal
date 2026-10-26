@@ -31,3 +31,6 @@ next-env.d.ts
 
 # local caches (AI results)
 /.cache
+
+# Licensed data for the cycle engine (WSTS); only derived results are committed.
+data/cycle/licensed/

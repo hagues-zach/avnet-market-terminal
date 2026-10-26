@@ -1,0 +1,151 @@
+{
+  "fetched": "2026-10-26",
+  "vintage": "revised",
+  "note": "FRED serves revised data, so backtests use today's revised figures, not what was published at the time.",
+  "fred": {
+    "M2SL": {
+      "first": "1959-01",
+      "last": "2026-08",
+      "months": 812
+    },
+    "CPIAUCSL": {
+      "first": "1947-01",
+      "last": "2026-09",
+      "months": 956
+    },
+    "T10Y3M": {
+      "first": "1982-01",
+      "last": "2026-10",
+      "months": 538
+    },
+    "T10Y2Y": {
+      "first": "1976-06",
+      "last": "2026-10",
+      "months": 605
+    },
+    "A34SNO": {
+      "first": "1992-02",
+      "last": "2026-08",
+      "months": 415
+    },
+    "NEWORDER": {
+      "first": "1992-02",
+      "last": "2026-08",
+      "months": 415
+    },
+    "DGORDER": {
+      "first": "1992-02",
+      "last": "2026-08",
+      "months": 415
+    },
+    "NOFDFSA066MSFRBPHI": {
+      "first": "1968-05",
+      "last": "2026-10",
+      "months": 702
+    },
+    "TLMFGCONS": {
+      "first": "2002-01",
+      "last": "2026-08",
+      "months": 296
+    },
+    "KORLOLITOAASTSAM": {
+      "first": "1990-01",
+      "last": "2026-09",
+      "months": 441
+    },
+    "CHNLOLITOAASTSAM": {
+      "first": "1992-05",
+      "last": "2026-09",
+      "months": 413
+    },
+    "JPNLOLITOAASTSAM": {
+      "first": "1959-01",
+      "last": "2026-09",
+      "months": 813
+    },
+    "USALOLITOAASTSAM": {
+      "first": "1955-01",
+      "last": "2026-09",
+      "months": 861
+    },
+    "XTEXVA01KRM664S": {
+      "first": "1957-01",
+      "last": "2026-08",
+      "months": 836
+    },
+    "XTEXVA01JPM664S": {
+      "first": "1955-01",
+      "last": "2026-08",
+      "months": 860
+    },
+    "BAMLH0A0HYM2": {
+      "first": "2023-10",
+      "last": "2026-10",
+      "months": 37
+    },
+    "IPG3344S": {
+      "first": "1972-01",
+      "last": "2026-09",
+      "months": 657
+    },
+    "CAPUTLG3344S": {
+      "first": "1972-01",
+      "last": "2026-09",
+      "months": 657
+    },
+    "A34SVS": {
+      "first": "1992-01",
+      "last": "2026-08",
+      "months": 416
+    },
+    "CES3133440001": {
+      "first": "1985-01",
+      "last": "2026-09",
+      "months": 501
+    },
+    "MVAAUTLTTS": {
+      "first": "1977-01",
+      "last": "2026-09",
+      "months": 597
+    },
+    "INDPRO": {
+      "first": "1919-01",
+      "last": "2026-09",
+      "months": 1293
+    },
+    "PCU334413334413": {
+      "first": "1967-01",
+      "last": "2026-09",
+      "months": 716
+    },
+    "CUSR0000SEEE01": {
+      "first": "2005-01",
+      "last": "2026-09",
+      "months": 260
+    },
+    "CES6054150001": {
+      "first": "1990-01",
+      "last": "2026-09",
+      "months": 441
+    },
+    "A34STI": {
+      "first": "1992-01",
+      "last": "2026-08",
+      "months": 416
+    },
+    "A34SFI": {
+      "first": "1992-01",
+      "last": "2026-08",
+      "months": 416
+    }
+  },
+  "sec": {
+    "companies": 32,
+    "cohorts": [
+      "manufacturer",
+      "platform",
+      "connectivity",
+      "memory"
+    ]
+  }
+}

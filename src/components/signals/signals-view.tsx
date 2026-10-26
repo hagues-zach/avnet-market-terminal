@@ -270,6 +270,9 @@ export async function SignalsView() {
         <Link href="/news" className="text-ink underline-offset-2 hover:underline">
           Market News
         </Link>
+        <Link href="/signals/engine" className="text-ink underline-offset-2 hover:underline">
+          How the cycle engine works
+        </Link>
       </nav>
 
       <p className="text-caption text-ink-muted">

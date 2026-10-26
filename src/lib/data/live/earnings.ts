@@ -171,7 +171,7 @@ function nearest<T>(map: Map<string, T>, end: string, toleranceDays: number): T 
 const ratio = (a: number | undefined, b: number | undefined) =>
   a !== undefined && b !== undefined && b !== 0 ? a / b : undefined;
 
-function build(company: Company, doc: CompanyFacts): CompanyEarnings {
+function build(company: Company, doc: CompanyFacts, keep = QUARTERS_KEPT): CompanyEarnings {
   const flow = {} as Record<FlowMetric, Map<string, QuarterValue>>;
   for (const m of Object.keys(FLOW_CONCEPTS) as FlowMetric[]) flow[m] = mergeFlow(doc, FLOW_CONCEPTS[m], m === "revenue");
   const instant = {} as Record<InstantMetric, Map<string, number>>;
@@ -238,7 +238,7 @@ function build(company: Company, doc: CompanyFacts): CompanyEarnings {
     if (qoq !== undefined) q.values.revenueQoQ = qoq - 1;
   }
 
-  const quarters = all.slice(-QUARTERS_KEPT);
+  const quarters = all.slice(-keep);
   return { company, quarters, latestFiling: latestFiling(company, doc, quarters[quarters.length - 1]?.end) };
 }
 
@@ -258,7 +258,7 @@ function latestFiling(company: Company, doc: CompanyFacts, end: string | undefin
   };
 }
 
-async function load(company: Company): Promise<CompanyEarnings> {
+async function load(company: Company, keep = QUARTERS_KEPT): Promise<CompanyEarnings> {
   const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${String(company.cik).padStart(10, "0")}.json`;
   const res = await fetch(url, {
     headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
@@ -266,8 +266,11 @@ async function load(company: Company): Promise<CompanyEarnings> {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`SEC returned ${res.status} for ${company.name}`);
-  return build(company, (await res.json()) as CompanyFacts);
+  return build(company, (await res.json()) as CompanyFacts, keep);
 }
+
+/** One company's filings straight from SEC, uncached, with every quarter they hold: for scripts that run outside Next (scripts/fetch-history.ts). */
+export const loadFromSec = (company: Company) => load(company, Infinity);
 
 // Failures throw, so they are never cached; the next request retries. Once a
 // result is cached, later requests are served from it while it refreshes.
