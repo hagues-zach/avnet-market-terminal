@@ -1,0 +1,39 @@
+# CI for the Market Intelligence Terminal. The steps live in scripts/ci.sh so any
+# other host (Azure Pipelines, Jenkins) runs exactly the same check. This repo is
+# the app itself (apps/terminal in the wider workspace), so every change runs it.
+# No secrets are used.
+name: terminal-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terminal-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Type check, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g pnpm@10.33.2
+      - run: ./scripts/ci.sh
+
+  docker:
+    name: Container image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t avnet-market-terminal:ci .
