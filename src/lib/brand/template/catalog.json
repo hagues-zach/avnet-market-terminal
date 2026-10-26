@@ -1,0 +1,4718 @@
+{
+  "template": "avnet-template-fy27.pptx",
+  "slide": {
+    "width": 10,
+    "height": 5.625
+  },
+  "masters": [
+    {
+      "n": 1,
+      "file": "slideMaster1.xml",
+      "theme": "Avnet Templates - 1 Line",
+      "family": "1-line",
+      "layouts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34
+      ]
+    },
+    {
+      "n": 2,
+      "file": "slideMaster2.xml",
+      "theme": "Avnet Templates - 2 Line",
+      "family": "2-line",
+      "layouts": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56
+      ]
+    },
+    {
+      "n": 3,
+      "file": "slideMaster3.xml",
+      "theme": "1_Avnet Templates - 1 Line",
+      "family": "1-line",
+      "layouts": [
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94
+      ],
+      "duplicateOf": 1
+    },
+    {
+      "n": 4,
+      "file": "slideMaster4.xml",
+      "theme": "1_Avnet Templates - 2 Lline",
+      "family": "2-line",
+      "layouts": [
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116
+      ],
+      "duplicateOf": 2
+    }
+  ],
+  "layouts": [
+    {
+      "n": 1,
+      "file": "slideLayout1.xml",
+      "master": 1,
+      "name": "Basic",
+      "family": "1-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.5,
+          "h": 0.447,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0,
+          "y": 4.824,
+          "w": 10,
+          "h": 0.48,
+          "prompt": ""
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 2,
+      "file": "slideLayout2.xml",
+      "master": 1,
+      "name": "Cover - 2/3 Bleed Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.067,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.466,
+          "h": 0.459,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.508,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 3,
+      "file": "slideLayout3.xml",
+      "master": 1,
+      "name": "1_Cover - Full Bleed Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 4.388,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 5,
+          "y": 4.784,
+          "w": 4.5,
+          "h": 0.472,
+          "size": 10,
+          "prompt": "XX.XX.XXXX Presenter Name, Title"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 3.832,
+          "w": 7.643,
+          "h": 0.464,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 4,
+      "file": "slideLayout4.xml",
+      "master": 1,
+      "name": "Cover - 2/3 Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.06,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.617,
+          "h": 0.447,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.508,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 5,
+      "file": "slideLayout5.xml",
+      "master": 1,
+      "name": "Cover - Full Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.053,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.672,
+          "h": 0.447,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 13,
+          "x": 0.504,
+          "y": 1.646,
+          "w": 3.407,
+          "h": 0.382,
+          "size": 10,
+          "prompt": "XX.XX.XXXX    |    Presenter Name, Title"
+        }
+      ],
+      "media": [
+        "image4.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 6,
+      "file": "slideLayout6.xml",
+      "master": 1,
+      "name": "1 Line - Title",
+      "family": "1-line",
+      "kind": "title",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.455,
+          "h": 0.46,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 7,
+      "file": "slideLayout7.xml",
+      "master": 1,
+      "name": "1-Line Title w/dot pattern",
+      "family": "1-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.455,
+          "h": 0.449,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [
+        "image5.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 8,
+      "file": "slideLayout8.xml",
+      "master": 1,
+      "name": "1-Line Title w/ Plus Pattern",
+      "family": "1-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.44,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image6.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 9,
+      "file": "slideLayout9.xml",
+      "master": 1,
+      "name": "1-Line Title w/Slash Pattern",
+      "family": "1-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.44,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image7.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Slash pattern: the brand kit dropped the slash mark"
+    },
+    {
+      "n": 10,
+      "file": "slideLayout10.xml",
+      "master": 1,
+      "name": "Table of Contents - 1 Line*",
+      "family": "1-line",
+      "kind": "contents",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 0.999,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.455,
+          "h": 0.449,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 11,
+      "file": "slideLayout11.xml",
+      "master": 1,
+      "name": "Basic - 1 Line",
+      "family": "1-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.447,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.082,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 12,
+      "file": "slideLayout12.xml",
+      "master": 1,
+      "name": "Table of Contents - 1 Line",
+      "family": "1-line",
+      "kind": "contents",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.434,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 13,
+      "file": "slideLayout13.xml",
+      "master": 1,
+      "name": "Basic: CV - 1 Line",
+      "family": "1-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.318,
+          "w": 8.44,
+          "h": 0.449,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.082,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 14,
+      "file": "slideLayout14.xml",
+      "master": 1,
+      "name": "Callout B - 1 Line",
+      "family": "1-line",
+      "kind": "callout",
+      "placeholders": [],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 15,
+      "file": "slideLayout15.xml",
+      "master": 1,
+      "name": "Image A - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1,
+          "w": 10,
+          "h": 4.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.421,
+          "h": 0.452,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 16,
+      "file": "slideLayout16.xml",
+      "master": 1,
+      "name": "Image B - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.402,
+          "w": 10,
+          "h": 3.777,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.401,
+          "h": 0.457,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 0.946,
+          "w": 8.582,
+          "h": 0.273,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 17,
+      "file": "slideLayout17.xml",
+      "master": 1,
+      "name": "Image C - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.5,
+          "w": 10,
+          "h": 4.125,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.367,
+          "h": 0.457,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 0.946,
+          "w": 8.582,
+          "h": 0.273,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 18,
+      "file": "slideLayout18.xml",
+      "master": 1,
+      "name": "Quotes Page",
+      "family": "1-line",
+      "kind": "quote",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 2.532,
+          "w": 7.466,
+          "h": 0.459,
+          "prompt": "Insert quote"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.368,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 19,
+      "file": "slideLayout19.xml",
+      "master": 1,
+      "name": "Title and Subhead - 1 Line",
+      "family": "1-line",
+      "kind": "subhead",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.351,
+          "h": 0.457,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1,
+          "w": 8.6,
+          "h": 0.278,
+          "size": 20,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 20,
+      "file": "slideLayout20.xml",
+      "master": 1,
+      "name": "2 Column - 1 Line",
+      "family": "1-line",
+      "kind": "two-column",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.384,
+          "h": 0.447,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "body",
+          "idx": 15,
+          "x": 5.297,
+          "y": 1,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 21,
+      "file": "slideLayout21.xml",
+      "master": 1,
+      "name": "B - Text + Image - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 5.077,
+          "y": 0,
+          "w": 4.923,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 0.997,
+          "w": 4.2,
+          "h": 3.427,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 4.217,
+          "h": 0.432,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 22,
+      "file": "slideLayout22.xml",
+      "master": 1,
+      "name": "B - Image + Text - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 0,
+          "w": 5,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 5.427,
+          "y": 0.997,
+          "w": 4.073,
+          "h": 3.427,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 5.427,
+          "y": 0.32,
+          "w": 4.073,
+          "h": 0.432,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 23,
+      "file": "slideLayout23.xml",
+      "master": 1,
+      "name": "50/50  - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 2.813,
+          "w": 10,
+          "h": 2.813,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 8.575,
+          "h": 1.665,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.407,
+          "h": 0.447,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [
+        "image1.svg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 24,
+      "file": "slideLayout24.xml",
+      "master": 1,
+      "name": "Divider Slide - Green",
+      "family": "1-line",
+      "kind": "divider",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image8.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 25,
+      "file": "slideLayout25.xml",
+      "master": 1,
+      "name": "Divider Slide - Black",
+      "family": "1-line",
+      "kind": "divider",
+      "placeholders": [],
+      "media": [
+        "image10.svg",
+        "image9.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 26,
+      "file": "slideLayout26.xml",
+      "master": 1,
+      "name": "Divider Slide - White",
+      "family": "1-line",
+      "kind": "divider",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image11.png"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 27,
+      "file": "slideLayout27.xml",
+      "master": 1,
+      "name": "Q&A Slide - Green",
+      "family": "1-line",
+      "kind": "qa",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image8.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 28,
+      "file": "slideLayout28.xml",
+      "master": 1,
+      "name": "Q&A Slide - Black",
+      "family": "1-line",
+      "kind": "qa",
+      "placeholders": [],
+      "media": [
+        "image10.svg",
+        "image9.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 29,
+      "file": "slideLayout29.xml",
+      "master": 1,
+      "name": "Q&A Slide - White",
+      "family": "1-line",
+      "kind": "qa",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image11.png"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 30,
+      "file": "slideLayout30.xml",
+      "master": 1,
+      "name": "Thank you slide - Green",
+      "family": "1-line",
+      "kind": "thanks",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image8.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 31,
+      "file": "slideLayout31.xml",
+      "master": 1,
+      "name": "Thank you slide - Black",
+      "family": "1-line",
+      "kind": "thanks",
+      "placeholders": [],
+      "media": [
+        "image10.svg",
+        "image9.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 32,
+      "file": "slideLayout32.xml",
+      "master": 1,
+      "name": "Thank you slide - White",
+      "family": "1-line",
+      "kind": "thanks",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image11.png"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 33,
+      "file": "slideLayout33.xml",
+      "master": 1,
+      "name": "Closing",
+      "family": "1-line",
+      "kind": "closing",
+      "placeholders": [],
+      "media": [
+        "image12.png"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 34,
+      "file": "slideLayout34.xml",
+      "master": 1,
+      "name": "Template Section Info Slide",
+      "family": "1-line",
+      "kind": "section",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.523,
+          "y": 2.162,
+          "w": 8.954,
+          "h": 0.858,
+          "size": 60,
+          "prompt": "Click to edit Master title style"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 35,
+      "file": "slideLayout35.xml",
+      "master": 2,
+      "name": "Cover - 2/3 Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.259,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.617,
+          "h": 0.391,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.616,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 36,
+      "file": "slideLayout36.xml",
+      "master": 2,
+      "name": "Cover - Full Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.27,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.672,
+          "h": 0.427,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 13,
+          "x": 0.504,
+          "y": 1.646,
+          "w": 3.407,
+          "h": 0.382,
+          "size": 10,
+          "prompt": "XX.XX.XXXX    |    Presenter Name, Title"
+        }
+      ],
+      "media": [
+        "image4.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 37,
+      "file": "slideLayout37.xml",
+      "master": 2,
+      "name": "1_Cover - 2/3 Bleed Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.297,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.466,
+          "h": 0.792,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.616,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 38,
+      "file": "slideLayout38.xml",
+      "master": 2,
+      "name": "2_Cover - Full Bleed Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 4.388,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 5,
+          "y": 4.784,
+          "w": 4.5,
+          "h": 0.472,
+          "size": 10,
+          "prompt": "XX.XX.XXXX Presenter Name, Title"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 3.832,
+          "w": 7.643,
+          "h": 0.464,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 39,
+      "file": "slideLayout39.xml",
+      "master": 2,
+      "name": "2-Line Title",
+      "family": "2-line",
+      "kind": "title",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.78,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 40,
+      "file": "slideLayout40.xml",
+      "master": 2,
+      "name": "2-Line Title w/Dot Pattern",
+      "family": "2-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.78,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.385,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [
+        "image5.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 41,
+      "file": "slideLayout41.xml",
+      "master": 2,
+      "name": "2-Line Title w/Plus Pattern",
+      "family": "2-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.78,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.385,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image6.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 42,
+      "file": "slideLayout42.xml",
+      "master": 2,
+      "name": "2-Line Title w/Slash Pattern",
+      "family": "2-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.385,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image7.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Slash pattern: the brand kit dropped the slash mark"
+    },
+    {
+      "n": 43,
+      "file": "slideLayout43.xml",
+      "master": 2,
+      "name": "Basic - 2 line",
+      "family": "2-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.46,
+          "w": 9,
+          "h": 3.621,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 44,
+      "file": "slideLayout44.xml",
+      "master": 2,
+      "name": "Basic Title - 2 Lline",
+      "family": "2-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.792,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.46,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 45,
+      "file": "slideLayout45.xml",
+      "master": 2,
+      "name": "Table of Contents - 2 Line",
+      "family": "2-line",
+      "kind": "contents",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 46,
+      "file": "slideLayout46.xml",
+      "master": 2,
+      "name": "Title: CV - 2 Line",
+      "family": "2-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.447,
+          "h": 0.793,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image13.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 47,
+      "file": "slideLayout47.xml",
+      "master": 2,
+      "name": "CV - 2 Line",
+      "family": "2-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.414,
+          "h": 0.797,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image13.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 48,
+      "file": "slideLayout48.xml",
+      "master": 2,
+      "name": "CV - 2 Line - w/Core Values",
+      "family": "2-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.414,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.46,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image13.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 49,
+      "file": "slideLayout49.xml",
+      "master": 2,
+      "name": "Image A - 2 Line",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.402,
+          "w": 10,
+          "h": 4.223,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.467,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 50,
+      "file": "slideLayout50.xml",
+      "master": 2,
+      "name": "Image B - 2 Line",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.784,
+          "w": 10,
+          "h": 3.411,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.314,
+          "w": 7,
+          "h": 0.332,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.793,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 51,
+      "file": "slideLayout51.xml",
+      "master": 2,
+      "name": "Image C - 2 Line",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.44,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.355,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.314,
+          "w": 7,
+          "h": 0.332,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.784,
+          "w": 10,
+          "h": 3.841,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 52,
+      "file": "slideLayout52.xml",
+      "master": 2,
+      "name": "Title and Subhead - 2 Line",
+      "family": "2-line",
+      "kind": "subhead",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.421,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9.01,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 53,
+      "file": "slideLayout53.xml",
+      "master": 2,
+      "name": "2 Column - 2 Line",
+      "family": "2-line",
+      "kind": "two-column",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.375,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "body",
+          "idx": 15,
+          "x": 5.297,
+          "y": 1.375,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 54,
+      "file": "slideLayout54.xml",
+      "master": 2,
+      "name": "B - Text + Image - 2 Line",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 5.077,
+          "y": 0,
+          "w": 4.923,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 4.2,
+          "h": 3.427,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 4.255,
+          "h": 0.853,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 55,
+      "file": "slideLayout55.xml",
+      "master": 2,
+      "name": "B - Image + Text - 2 Line",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 0,
+          "w": 5,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 5.427,
+          "y": 1.38,
+          "w": 4.07,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 5.427,
+          "y": 0.32,
+          "w": 4.073,
+          "h": 0.8,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": false
+    },
+    {
+      "n": 56,
+      "file": "slideLayout56.xml",
+      "master": 2,
+      "name": "50/50 - 2 Line",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 3.144,
+          "w": 10,
+          "h": 2.481,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.373,
+          "w": 9,
+          "h": 1.584,
+          "size": 20,
+          "prompt": "Subhead goes here Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.785,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [
+        "image1.svg"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 57,
+      "file": "slideLayout57.xml",
+      "master": 3,
+      "name": "Cover - 2/3 Bleed Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.067,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.466,
+          "h": 0.459,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.508,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 2 in master 1"
+    },
+    {
+      "n": 58,
+      "file": "slideLayout58.xml",
+      "master": 3,
+      "name": "1_Cover - Full Bleed Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 4.388,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 5,
+          "y": 4.784,
+          "w": 4.5,
+          "h": 0.472,
+          "size": 10,
+          "prompt": "XX.XX.XXXX Presenter Name, Title"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 3.832,
+          "w": 7.643,
+          "h": 0.464,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 3 in master 1"
+    },
+    {
+      "n": 59,
+      "file": "slideLayout59.xml",
+      "master": 3,
+      "name": "Cover - 2/3 Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.06,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.617,
+          "h": 0.447,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.508,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 4 in master 1"
+    },
+    {
+      "n": 60,
+      "file": "slideLayout60.xml",
+      "master": 3,
+      "name": "Cover - Full Image - 1 Line",
+      "family": "1-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.053,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.672,
+          "h": 0.447,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 13,
+          "x": 0.504,
+          "y": 1.646,
+          "w": 3.407,
+          "h": 0.382,
+          "size": 10,
+          "prompt": "XX.XX.XXXX    |    Presenter Name, Title"
+        }
+      ],
+      "media": [
+        "image4.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 5 in master 1"
+    },
+    {
+      "n": 61,
+      "file": "slideLayout61.xml",
+      "master": 3,
+      "name": "Basic",
+      "family": "1-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.5,
+          "h": 0.447,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.08,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 1 in master 1"
+    },
+    {
+      "n": 62,
+      "file": "slideLayout62.xml",
+      "master": 3,
+      "name": "1 Line - Title",
+      "family": "1-line",
+      "kind": "title",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.455,
+          "h": 0.467,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 6 in master 1"
+    },
+    {
+      "n": 63,
+      "file": "slideLayout63.xml",
+      "master": 3,
+      "name": "1-Line Title w/dot pattern",
+      "family": "1-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.455,
+          "h": 0.449,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [
+        "image5.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 7 in master 1"
+    },
+    {
+      "n": 64,
+      "file": "slideLayout64.xml",
+      "master": 3,
+      "name": "1-Line Title w/ Plus Pattern",
+      "family": "1-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.44,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image6.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 8 in master 1"
+    },
+    {
+      "n": 65,
+      "file": "slideLayout65.xml",
+      "master": 3,
+      "name": "1-Line Title w/Slash Pattern",
+      "family": "1-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.44,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image7.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Slash pattern: the brand kit dropped the slash mark"
+    },
+    {
+      "n": 66,
+      "file": "slideLayout66.xml",
+      "master": 3,
+      "name": "Table of Contents - 1 Line*",
+      "family": "1-line",
+      "kind": "contents",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 0.999,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.455,
+          "h": 0.449,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 10 in master 1"
+    },
+    {
+      "n": 67,
+      "file": "slideLayout67.xml",
+      "master": 3,
+      "name": "Basic - 1 Line",
+      "family": "1-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.447,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.082,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 11 in master 1"
+    },
+    {
+      "n": 68,
+      "file": "slideLayout68.xml",
+      "master": 3,
+      "name": "Table of Contents - 1 Line",
+      "family": "1-line",
+      "kind": "contents",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.434,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 12 in master 1"
+    },
+    {
+      "n": 69,
+      "file": "slideLayout69.xml",
+      "master": 3,
+      "name": "Title: CV - 1 Line - w/ Core Values",
+      "family": "1-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.44,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 9,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 70,
+      "file": "slideLayout70.xml",
+      "master": 3,
+      "name": "Basic: CV - 1 Line",
+      "family": "1-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.318,
+          "w": 8.44,
+          "h": 0.449,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.082,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 13 in master 1"
+    },
+    {
+      "n": 71,
+      "file": "slideLayout71.xml",
+      "master": 3,
+      "name": "Callout B - 1 Line",
+      "family": "1-line",
+      "kind": "callout",
+      "placeholders": [],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 14 in master 1"
+    },
+    {
+      "n": 72,
+      "file": "slideLayout72.xml",
+      "master": 3,
+      "name": "Image A - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1,
+          "w": 10,
+          "h": 4.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.421,
+          "h": 0.452,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 15 in master 1"
+    },
+    {
+      "n": 73,
+      "file": "slideLayout73.xml",
+      "master": 3,
+      "name": "Image B - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.402,
+          "w": 10,
+          "h": 3.777,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.401,
+          "h": 0.457,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 0.946,
+          "w": 8.582,
+          "h": 0.273,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 16 in master 1"
+    },
+    {
+      "n": 74,
+      "file": "slideLayout74.xml",
+      "master": 3,
+      "name": "Image C - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.5,
+          "w": 10,
+          "h": 4.125,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.367,
+          "h": 0.457,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 0.946,
+          "w": 8.582,
+          "h": 0.273,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 17 in master 1"
+    },
+    {
+      "n": 75,
+      "file": "slideLayout75.xml",
+      "master": 3,
+      "name": "Quotes Page",
+      "family": "1-line",
+      "kind": "quote",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 2.532,
+          "w": 7.466,
+          "h": 0.459,
+          "prompt": "Insert quote"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.368,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 18 in master 1"
+    },
+    {
+      "n": 76,
+      "file": "slideLayout76.xml",
+      "master": 3,
+      "name": "Title and Subhead - 1 Line",
+      "family": "1-line",
+      "kind": "subhead",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.351,
+          "h": 0.457,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1,
+          "w": 8.6,
+          "h": 0.278,
+          "size": 20,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 19 in master 1"
+    },
+    {
+      "n": 77,
+      "file": "slideLayout77.xml",
+      "master": 3,
+      "name": "2 Column - 1 Line",
+      "family": "1-line",
+      "kind": "two-column",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.384,
+          "h": 0.447,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "body",
+          "idx": 15,
+          "x": 5.297,
+          "y": 1,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 20 in master 1"
+    },
+    {
+      "n": 78,
+      "file": "slideLayout78.xml",
+      "master": 3,
+      "name": "B - Text + Image - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 5.077,
+          "y": 0,
+          "w": 4.923,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 0.997,
+          "w": 4.2,
+          "h": 3.427,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 4.217,
+          "h": 0.432,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 21 in master 1"
+    },
+    {
+      "n": 79,
+      "file": "slideLayout79.xml",
+      "master": 3,
+      "name": "B - Image + Text - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 0,
+          "w": 5,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 5.427,
+          "y": 0.997,
+          "w": 4.073,
+          "h": 3.427,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 5.427,
+          "y": 0.32,
+          "w": 4.073,
+          "h": 0.432,
+          "size": 26,
+          "prompt": "1-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 22 in master 1"
+    },
+    {
+      "n": 80,
+      "file": "slideLayout80.xml",
+      "master": 3,
+      "name": "50/50  - 1 Line",
+      "family": "1-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 2.813,
+          "w": 10,
+          "h": 2.813,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 8.575,
+          "h": 1.665,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.407,
+          "h": 0.447,
+          "size": 26,
+          "prompt": "1-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [
+        "image1.svg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 23 in master 1"
+    },
+    {
+      "n": 81,
+      "file": "slideLayout81.xml",
+      "master": 3,
+      "name": "Divider Slide - Green",
+      "family": "1-line",
+      "kind": "divider",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image8.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 24 in master 1"
+    },
+    {
+      "n": 82,
+      "file": "slideLayout82.xml",
+      "master": 3,
+      "name": "Divider Slide - Black",
+      "family": "1-line",
+      "kind": "divider",
+      "placeholders": [],
+      "media": [
+        "image10.svg",
+        "image9.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 25 in master 1"
+    },
+    {
+      "n": 83,
+      "file": "slideLayout83.xml",
+      "master": 3,
+      "name": "Divider Slide - White",
+      "family": "1-line",
+      "kind": "divider",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image11.png"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 26 in master 1"
+    },
+    {
+      "n": 84,
+      "file": "slideLayout84.xml",
+      "master": 3,
+      "name": "Q&A Slide - Green",
+      "family": "1-line",
+      "kind": "qa",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image8.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 27 in master 1"
+    },
+    {
+      "n": 85,
+      "file": "slideLayout85.xml",
+      "master": 3,
+      "name": "Q&A Slide - Black",
+      "family": "1-line",
+      "kind": "qa",
+      "placeholders": [],
+      "media": [
+        "image10.svg",
+        "image9.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 28 in master 1"
+    },
+    {
+      "n": 86,
+      "file": "slideLayout86.xml",
+      "master": 3,
+      "name": "Q&A Slide - White",
+      "family": "1-line",
+      "kind": "qa",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image11.png"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 29 in master 1"
+    },
+    {
+      "n": 87,
+      "file": "slideLayout87.xml",
+      "master": 3,
+      "name": "Thank you slide - Green",
+      "family": "1-line",
+      "kind": "thanks",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image8.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 30 in master 1"
+    },
+    {
+      "n": 88,
+      "file": "slideLayout88.xml",
+      "master": 3,
+      "name": "Thank you slide - Black",
+      "family": "1-line",
+      "kind": "thanks",
+      "placeholders": [],
+      "media": [
+        "image10.svg",
+        "image9.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 31 in master 1"
+    },
+    {
+      "n": 89,
+      "file": "slideLayout89.xml",
+      "master": 3,
+      "name": "Thank you slide - White",
+      "family": "1-line",
+      "kind": "thanks",
+      "placeholders": [],
+      "media": [
+        "image1.svg",
+        "image11.png"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 32 in master 1"
+    },
+    {
+      "n": 90,
+      "file": "slideLayout90.xml",
+      "master": 3,
+      "name": "Closing D",
+      "family": "1-line",
+      "kind": "closing",
+      "placeholders": [],
+      "media": [
+        "image12.png"
+      ],
+      "masterShapes": false
+    },
+    {
+      "n": 91,
+      "file": "slideLayout91.xml",
+      "master": 3,
+      "name": "Template Section Info Slide",
+      "family": "1-line",
+      "kind": "section",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.523,
+          "y": 2.162,
+          "w": 8.954,
+          "h": 0.858,
+          "size": 60,
+          "prompt": "Click to edit Master title style"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 34 in master 1"
+    },
+    {
+      "n": 92,
+      "file": "slideLayout92.xml",
+      "master": 3,
+      "name": "1_Title B - 1 Line w/dot pattern",
+      "family": "1-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.3,
+          "w": 8.403,
+          "h": 0.454,
+          "size": 26,
+          "prompt": "Click to edit Master title style"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1,
+          "w": 8.5,
+          "h": 3.432,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image5.png"
+      ],
+      "masterShapes": true
+    },
+    {
+      "n": 93,
+      "file": "slideLayout93.xml",
+      "master": 3,
+      "name": "Title and Subhead - 2 Lline",
+      "family": "2-line",
+      "kind": "subhead",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.3,
+          "w": 8.421,
+          "h": 0.802,
+          "size": 26,
+          "prompt": "Click to edit Master title style"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.494,
+          "y": 1.4,
+          "w": 9.006,
+          "h": 0.278,
+          "size": 20,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 94,
+      "file": "slideLayout94.xml",
+      "master": 3,
+      "name": "Basic Title - 2 Lline",
+      "family": "2-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.3,
+          "w": 8.454,
+          "h": 0.792,
+          "size": 26,
+          "prompt": "Click to edit Master title style"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.4,
+          "w": 9,
+          "h": 3.497,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true
+    },
+    {
+      "n": 95,
+      "file": "slideLayout95.xml",
+      "master": 4,
+      "name": "Cover - 2/3 Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.259,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.617,
+          "h": 0.391,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.616,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 35 in master 2"
+    },
+    {
+      "n": 96,
+      "file": "slideLayout96.xml",
+      "master": 4,
+      "name": "Cover - Full Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.27,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.672,
+          "h": 0.427,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 13,
+          "x": 0.504,
+          "y": 1.646,
+          "w": 3.407,
+          "h": 0.382,
+          "size": 10,
+          "prompt": "XX.XX.XXXX    |    Presenter Name, Title"
+        }
+      ],
+      "media": [
+        "image4.svg",
+        "image3.jpeg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 36 in master 2"
+    },
+    {
+      "n": 97,
+      "file": "slideLayout97.xml",
+      "master": 4,
+      "name": "1_Cover - 2/3 Bleed Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.902,
+          "w": 10,
+          "h": 3.723,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 1.297,
+          "w": 8.576,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 7.466,
+          "h": 0.792,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 0.5,
+          "y": 1.616,
+          "w": 4.5,
+          "h": 0.171,
+          "size": 10,
+          "prompt": "MM.DD.YYYY  |  Presenter’s Name, Title (optional)"
+        }
+      ],
+      "media": [
+        "image2.svg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 37 in master 2"
+    },
+    {
+      "n": 98,
+      "file": "slideLayout98.xml",
+      "master": 4,
+      "name": "2_Cover - Full Bleed Image - 2 Line",
+      "family": "2-line",
+      "kind": "cover",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.504,
+          "y": 4.388,
+          "w": 7.647,
+          "h": 0.278,
+          "size": 16,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "body",
+          "idx": 12,
+          "x": 5,
+          "y": 4.784,
+          "w": 4.5,
+          "h": 0.472,
+          "size": 10,
+          "prompt": "XX.XX.XXXX Presenter Name, Title"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 3.832,
+          "w": 7.643,
+          "h": 0.464,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 38 in master 2"
+    },
+    {
+      "n": 99,
+      "file": "slideLayout99.xml",
+      "master": 4,
+      "name": "2-Line Title",
+      "family": "2-line",
+      "kind": "title",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.78,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 39 in master 2"
+    },
+    {
+      "n": 100,
+      "file": "slideLayout100.xml",
+      "master": 4,
+      "name": "2-Line Title w/Dot Pattern",
+      "family": "2-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.78,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.385,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [
+        "image5.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 40 in master 2"
+    },
+    {
+      "n": 101,
+      "file": "slideLayout101.xml",
+      "master": 4,
+      "name": "2-Line Title w/Plus Pattern",
+      "family": "2-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.78,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.385,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image6.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 41 in master 2"
+    },
+    {
+      "n": 102,
+      "file": "slideLayout102.xml",
+      "master": 4,
+      "name": "2-Line Title w/Slash Pattern",
+      "family": "2-line",
+      "kind": "title-pattern",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.385,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image7.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Slash pattern: the brand kit dropped the slash mark"
+    },
+    {
+      "n": 103,
+      "file": "slideLayout103.xml",
+      "master": 4,
+      "name": "Basic - 2 line",
+      "family": "2-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.46,
+          "w": 9,
+          "h": 3.621,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 43 in master 2"
+    },
+    {
+      "n": 104,
+      "file": "slideLayout104.xml",
+      "master": 4,
+      "name": "Basic Title - 2 Lline",
+      "family": "2-line",
+      "kind": "basic",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.792,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.46,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 44 in master 2"
+    },
+    {
+      "n": 105,
+      "file": "slideLayout105.xml",
+      "master": 4,
+      "name": "Table of Contents - 2 Line",
+      "family": "2-line",
+      "kind": "contents",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.46,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 45 in master 2"
+    },
+    {
+      "n": 106,
+      "file": "slideLayout106.xml",
+      "master": 4,
+      "name": "Title: CV - 2 Line",
+      "family": "2-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.447,
+          "h": 0.793,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image13.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 46 in master 2"
+    },
+    {
+      "n": 107,
+      "file": "slideLayout107.xml",
+      "master": 4,
+      "name": "CV - 2 Line",
+      "family": "2-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.414,
+          "h": 0.797,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image13.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 47 in master 2"
+    },
+    {
+      "n": 108,
+      "file": "slideLayout108.xml",
+      "master": 4,
+      "name": "CV - 2 Line - w/Core Values",
+      "family": "2-line",
+      "kind": "cv",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.414,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.46,
+          "w": 9,
+          "h": 3.67,
+          "size": 14,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [
+        "image13.png"
+      ],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 48 in master 2"
+    },
+    {
+      "n": 109,
+      "file": "slideLayout109.xml",
+      "master": 4,
+      "name": "Image A - 2 Lline",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.402,
+          "w": 10,
+          "h": 4.223,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.467,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 49 in master 2"
+    },
+    {
+      "n": 110,
+      "file": "slideLayout110.xml",
+      "master": 4,
+      "name": "Image B - 2 Lline",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.784,
+          "w": 10,
+          "h": 3.411,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.314,
+          "w": 7,
+          "h": 0.332,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "sldNum",
+          "idx": 4,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "size": 8,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.793,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 50 in master 2"
+    },
+    {
+      "n": 111,
+      "file": "slideLayout111.xml",
+      "master": 4,
+      "name": "Image C - 2 Lline",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.44,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.355,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.314,
+          "w": 7,
+          "h": 0.332,
+          "size": 14,
+          "prompt": "Click to edit Master text styles"
+        },
+        {
+          "type": "pic",
+          "idx": 10,
+          "x": 0,
+          "y": 1.784,
+          "w": 10,
+          "h": 3.841,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 51 in master 2"
+    },
+    {
+      "n": 112,
+      "file": "slideLayout112.xml",
+      "master": 4,
+      "name": "Title and Subhead - 2 Lline",
+      "family": "2-line",
+      "kind": "subhead",
+      "placeholders": [
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.421,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 11,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 9.01,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 52 in master 2"
+    },
+    {
+      "n": 113,
+      "file": "slideLayout113.xml",
+      "master": 4,
+      "name": "2 Column - 2 Lline",
+      "family": "2-line",
+      "kind": "two-column",
+      "placeholders": [
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.787,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.375,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "body",
+          "idx": 15,
+          "x": 5.297,
+          "y": 1.375,
+          "w": 4.2,
+          "h": 3.672,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        }
+      ],
+      "media": [],
+      "masterShapes": true,
+      "excluded": "Duplicate of layout 53 in master 2"
+    },
+    {
+      "n": 114,
+      "file": "slideLayout114.xml",
+      "master": 4,
+      "name": "B - Text + Image - 2 Lline",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 5.077,
+          "y": 0,
+          "w": 4.923,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.38,
+          "w": 4.2,
+          "h": 3.427,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 4.255,
+          "h": 0.853,
+          "size": 26,
+          "prompt": "2-line headline"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 54 in master 2"
+    },
+    {
+      "n": 115,
+      "file": "slideLayout115.xml",
+      "master": 4,
+      "name": "B - Image + Text - 2 Lline",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 0,
+          "w": 5,
+          "h": 5.625,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 5.427,
+          "y": 1.38,
+          "w": 4.07,
+          "h": 3.67,
+          "size": 20,
+          "prompt": "Click to edit Master text styles Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 5.427,
+          "y": 0.32,
+          "w": 4.073,
+          "h": 0.8,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 55 in master 2"
+    },
+    {
+      "n": 116,
+      "file": "slideLayout116.xml",
+      "master": 4,
+      "name": "50/50 - 2 Lline",
+      "family": "2-line",
+      "kind": "image",
+      "placeholders": [
+        {
+          "type": "pic",
+          "idx": 13,
+          "x": 0,
+          "y": 3.144,
+          "w": 10,
+          "h": 2.481,
+          "size": 9,
+          "prompt": "Click icon to insert image DOWNLOAD AVNET-BRANDED IMAGES AT BRAND.AVNET.COM"
+        },
+        {
+          "type": "body",
+          "idx": 10,
+          "x": 0.5,
+          "y": 1.373,
+          "w": 9,
+          "h": 1.584,
+          "size": 20,
+          "prompt": "Subhead goes here Second level Third level Fourth level Fifth level"
+        },
+        {
+          "type": "title",
+          "x": 0.5,
+          "y": 0.32,
+          "w": 8.454,
+          "h": 0.785,
+          "size": 26,
+          "prompt": "2-line headline"
+        },
+        {
+          "type": "sldNum",
+          "idx": 12,
+          "x": 0.154,
+          "y": 5.349,
+          "w": 0.27,
+          "h": 0.134,
+          "prompt": "‹#›"
+        }
+      ],
+      "media": [
+        "image1.svg"
+      ],
+      "masterShapes": false,
+      "excluded": "Duplicate of layout 56 in master 2"
+    }
+  ]
+}

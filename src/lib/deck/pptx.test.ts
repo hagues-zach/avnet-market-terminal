@@ -77,14 +77,11 @@ const slides: DeckSlide[] = [
   },
 ];
 
-// A 1x1 PNG stands in for the logo, so the test doesn't depend on the working directory.
-const PIXEL = "image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
 const dir = mkdtempSync(path.join(tmpdir(), "deck-test-"));
 try {
   (async () => {
     const file = path.join(dir, "deck.pptx");
-    const bytes = await buildDeck("Supplier pitch for Microchip", slides, PIXEL);
+    const bytes = await buildDeck("Supplier pitch for Microchip", slides);
     writeFileSync(file, bytes);
     assert.equal(bytes.subarray(0, 2).toString(), "PK", "a zip file");
 
@@ -92,12 +89,24 @@ try {
     const read = (part: string) => execFileSync("unzip", ["-p", file, part], { encoding: "utf8" });
     assert.ok(list.includes("[Content_Types].xml"), "OOXML content types");
     const slideParts = list.filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p)).sort((a, b) => Number(a.match(/\d+/)![0]) - Number(b.match(/\d+/)![0]));
-    assert.equal(slideParts.length, slides.length, "one slide per entry");
+    assert.equal(slideParts.length, slides.length + 1, "one slide per entry, then the closing slide");
     assert.equal(list.filter((p) => /^ppt\/charts\/chart\d+\.xml$/.test(p)).length, 2, "a native chart for each chart slide");
-    assert.ok(list.some((p) => p.startsWith("ppt/media/")), "the logo is embedded");
+
+    // Each slide on the template layout its content calls for, the closing slide last.
+    const layoutName = (n: number) => {
+      const target = read(`ppt/slides/_rels/slide${n}.xml.rels`).match(/slideLayouts\/(slideLayout\d+\.xml)/)![1];
+      return read(`ppt/slideLayouts/${target}`).match(/<p:cSld name="([^"]*)"/)![1].replace(/&amp;/g, "&");
+    };
+    assert.deepEqual(
+      slides.map((_, i) => layoutName(i + 1)),
+      ["Cover - Full Image - 1 Line", "Title and Subhead - 1 Line", "Title and Subhead - 2 Line", "Title and Subhead - 1 Line", "2 Column - 1 Line", "Basic - 1 Line"],
+    );
+    assert.equal(layoutName(slides.length + 1), "Closing");
+    assert.match(read("ppt/slides/slide2.xml"), /<p:ph type="title"\/>[\s\S]*?Microchip grew 38\.0%/, "headlines fill the title placeholder");
+    assert.ok(!list.some((p) => /slideLayout(9|42|65|102)\.xml$/.test(p)), "no slash pattern layouts");
 
     const text = (xml: string) => [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join(" ");
-    const texts = slideParts.map((p) => text(read(p)));
+    const texts = slideParts.slice(0, slides.length).map((p) => text(read(p)));
     texts.forEach((s, i) => assert.ok(s.includes(slides[i].preview.headline.replace(/'/g, "&apos;")) || s.includes(slides[i].preview.headline), `slide ${i + 1} in order`));
     texts.forEach((s, i) => assert.equal(s.includes("Mock data"), slides[i].mock, `Mock data only on mock slides (slide ${i + 1})`));
     // "n/a" is the app's word for a missing value; any other slash, middle dot or dash is not allowed.

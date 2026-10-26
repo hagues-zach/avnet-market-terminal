@@ -176,3 +176,15 @@ Checks: tests and typecheck pass. Audit: every control has a label or `aria-labe
 - **Charts.** Native PowerPoint charts from the same figures as the preview, which now draws them too (Recharts): Avnet against Arrow as bars (Avnet Green, Arrow blue), the company's revenue over its last eight quarters as columns (dark grey), and supply-chain revenue growth by quarter as a line. Values sit in each chart's data sheet, so a seller can restyle or re-sort them.
 - **Talking points.** A deck from QBR Prep (`from=qbr&meeting=…&focus=…`, now passed by QBR Prep's "Export to deck") closes on "Talking points and questions": three points beside three questions, read from the copy QBR Prep saved. No new Claude call; if none is saved, the preview says to open QBR Prep first.
 - **Checks (2026-10-24).** `npx tsx src/lib/deck/pptx.test.ts` builds a deck from fixtures and reads the zip back: slide order, a chart part per chart slide, the logo, "Mock data" only on mock slides, no slash, middle dot or dash apart from "n/a", Avnet Green only on Avnet's series. Four live decks downloaded from the route (supplier, QBR with talking points, internal review, one slide) had the expected slides and chart data (Microchip's eight quarters to $1.48B, Avnet +47.7% against Arrow +31.8%, supply-chain growth to 65.6%). The charts weren't seen rendered: Quick Look doesn't draw them and Keynote scripting wasn't permitted, so open a sample in PowerPoint to judge them.
+
+## On the Avnet FY27 template (2026-10-26)
+
+The export now builds on the official Avnet Template FY27, not layouts drawn in code. Each slide fills a template layout's real placeholders:
+- the full-image cover
+- Title and Subhead for chart and figures slides (the sentence is the subhead)
+- Basic for lines and sentences
+- 2 Column for talking points
+- Basic for sources
+- the template's Closing slide at the end
+
+The deck is 10 by 5.625 inches in Arial, with the template's logo tab and slide numbers. Headlines longer than one title line use the 2-line layouts. Charts stay native and editable. The template's slash pattern layouts are removed from the file. See `docs/design/pptx-template.md`.

@@ -445,6 +445,7 @@ Avnet's graphic elements are strong and rare. In a working tool they appear even
 - **Highlight bar**: an angled green bar that bleeds off the edge, with black text. Used for a single key message, for example the Start Here headline insight. At most one per page, and never on dense data pages.
 - **A-Frame**: only in Learning Center and onboarding illustrations. Never in app chrome.
 - **Patterns** (dot, plus): only on empty states and the login screen, one pattern at a time.
+- **PowerPoint and PDF exports** follow the official Avnet Template FY27 (`assets/brand/avnet-template-fy27.pptx`): its layouts, Arial throughout, the slanted logo tab and its slide structure. The template's four "w/Slash Pattern" layouts are removed from every export; its slanted bar divider backgrounds and the logo tab are allowed (decided 2026-10-26). See `docs/design/pptx-template.md`.
 - **Logo**: the primary logo (black wordmark, green bar) on white. The brand prefers the top or bottom right corner. App chrome conventionally puts it at the top left of the sidebar; confirm this with brand (see Open questions). Never recolour, stretch or add a tagline.
 
 ## Iconography and illustration
