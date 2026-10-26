@@ -2,7 +2,7 @@
 
 An engine that finds which economic series lead, move with, or lag the semiconductor cycle, combines them into four indexes, and turns them into a read on Economic Signals: what could push the market up or down, for product leaders, account managers and executives. This is the "Semiconductor Economic Coincident Index" noted on build plan step 2.15.
 
-Status: **planned, not started.** Written 2026-10-21 from a read of the code at `a7db242`, and from the user's notes on EPB Research's four-economy framework.
+Status: **Phases 0 to 4 built on public data (2026-10-26)**; see `docs/cycle-engine.md` for how it works, how to refresh it and the first results. No public series passed the leading test against the public reference proxy, so WSTS history (and the Asian chip sources in Phase 1b) come next. Phase 5, the page, waits on those. Written 2026-10-21 from a read of the code at `a7db242`, and from the user's notes on EPB Research's four-economy framework.
 
 ## The idea, from EPB Research
 
