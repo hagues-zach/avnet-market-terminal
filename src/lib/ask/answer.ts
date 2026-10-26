@@ -3,7 +3,6 @@
 // only ever read from the cache; nothing here calls Claude. The answerers are
 // exported so src/lib/ask/claude.ts can hand them to Claude as tools.
 import { cachedCommentary } from "@/lib/ai/commentary";
-import { readCache } from "@/lib/ai/cache";
 import { plainDashes } from "@/lib/ai/dashes";
 import type { Angle } from "@/lib/ai/news-angles";
 import { MEASURES, scorecard, tally, verdict, type Kind } from "@/lib/competitive/compare";
@@ -19,6 +18,7 @@ import { season } from "@/lib/earnings/season";
 import { getCarriers } from "@/lib/line-cards/analysis";
 import { PERFORMANCE } from "@/lib/shells/mock-avnet";
 import { readsOf, sentence as economySentence, type Changes } from "@/lib/signals/read";
+import { store } from "@/lib/store";
 import { SIGNAL_KEYS, scoreSignals, sentence as supplySentence } from "@/lib/supply/read";
 import { route, suggest } from "./route";
 import {
@@ -239,7 +239,7 @@ export async function news(question: string, c?: Company, topic?: string): Promi
     const hit = (a: LiveArticle) => words.every((w) => `${a.title} ${a.summary}`.toLowerCase().includes(w));
     articles = all.filter((a) => a.kind !== "filing" && (!words.length || hit(a))).slice(0, 3);
   }
-  const angles = await readCache<Angle>("news-angles-v1");
+  const angles = await store.getAll<Angle>("news-angles-v1");
   const stories: Story[] = articles.map((a) => ({
     title: a.title,
     outlet: a.outlet,

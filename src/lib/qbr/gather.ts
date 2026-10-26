@@ -2,9 +2,9 @@
 // (src/lib/qbr/talking-points.ts) and the dev-only eval all read the same data.
 // Server-only.
 import { getCommentary } from "@/lib/ai/commentary";
-import { readCache } from "@/lib/ai/cache";
 import type { Angle } from "@/lib/ai/news-angles";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
+import { store } from "@/lib/store";
 import { getRevenueMix } from "@/lib/data/live/revenue-mix";
 import { getCompanyNews } from "@/lib/data/live/company-news";
 import { getCycle } from "@/lib/data/live/cycle";
@@ -27,7 +27,7 @@ export async function gatherBrief({ company }: BriefSetup) {
     getCycle().catch(() => null),
     supplier ? getCarriers(company.name).catch(() => null) : Promise.resolve(null),
     supplier ? getMoves().catch(() => null) : Promise.resolve(null),
-    readCache<Angle>("news-angles-v1"),
+    store.getAll<Angle>("news-angles-v1"),
   ]);
 
   const q = earnings.quarters[earnings.quarters.length - 1];

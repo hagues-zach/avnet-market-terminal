@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { answer } from "@/lib/ask/answer";
-import { readCache } from "@/lib/ai/cache";
 import { plainDashes } from "@/lib/ai/dashes";
 import type { Angle } from "@/lib/ai/news-angles";
 import { getCycle, type Cycle } from "@/lib/data/live/cycle";
@@ -15,6 +14,7 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { Chip, DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
+import { store } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { MarketByYear } from "./market-chart";
 
@@ -391,7 +391,7 @@ const MARKET_TAGS = ["Memory", "Logic & Processors", "Foundry & Equipment"];
 export async function Stories() {
   const [news, angles] = await Promise.all([
     getLiveNews().catch(() => null),
-    readCache<Angle>("news-angles-v1").catch(() => ({}) as Record<string, Angle>),
+    store.getAll<Angle>("news-angles-v1").catch(() => ({}) as Record<string, Angle>),
   ]);
   const stories = (news?.articles ?? []).filter((a) => a.kind === "news" && a.segments.some((s) => MARKET_TAGS.includes(s))).slice(0, 4);
   return (
