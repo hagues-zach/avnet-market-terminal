@@ -2,6 +2,7 @@ import Link from "next/link";
 import output from "../../../../../data/cycle/output.json";
 import { SERIES } from "@/lib/cycle/catalog";
 import { phases } from "@/lib/cycle/signals";
+import { MANUAL } from "@/lib/cycle/sources/manual";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -67,7 +68,7 @@ export default function CycleEnginePage() {
           <table className="w-full border-collapse font-body text-table">
             <thead className="bg-surface-sunken">
               <tr className="border-b border-hairline">
-                {["Series", "Starting guess", "Placed as", "Lead, months", "Turns matched", "Holds in both eras", "Best correlation", "Why"].map((h) => (
+                {["Series", "Starting guess", "Placed as", "Lead, months", "Turns matched", "Holds in both eras", "Best correlation", "Latest data", "Why"].map((h) => (
                   <th key={h} scope="col" className={TH}>
                     {h}
                   </th>
@@ -77,7 +78,7 @@ export default function CycleEnginePage() {
             {groups.map(({ p, rows }) => (
               <tbody key={p} className="border-b border-hairline">
                 <tr>
-                  <th colSpan={8} scope="rowgroup" className="bg-surface px-3 pb-1 pt-3 text-left text-body-strong text-ink">
+                  <th colSpan={9} scope="rowgroup" className="bg-surface px-3 pb-1 pt-3 text-left text-body-strong text-ink">
                     {PLACED[p]} ({rows.length})
                   </th>
                 </tr>
@@ -93,6 +94,10 @@ export default function CycleEnginePage() {
                     <td className={cn(TD, "tabular-nums text-ink")}>{c.tested ? `${c.matched} of ${c.matched + c.missed}, ${Math.round(c.hitRate * 100)}%` : "n/a"}</td>
                     <td className={cn(TD, "text-ink")}>{!c.tested ? "n/a" : c.stable === true ? "Yes" : c.stable === false ? "No" : "One era only"}</td>
                     <td className={cn(TD, "tabular-nums text-ink")}>{c.correlation ? `${c.correlation.r.toFixed(2)} at ${months(c.correlation.lead)}` : "n/a"}</td>
+                    <td className={cn(TD, "whitespace-nowrap text-ink")}>
+                      {c.lastMonth ? monthName(c.lastMonth) : "n/a"}
+                      {c.backtestOnly && <span className="block text-caption text-ink-muted">No longer published; tested only</span>}
+                    </td>
                     <td className={cn(TD, "min-w-[18rem] text-body-sm text-ink-muted")}>{c.reason}</td>
                   </tr>
                 ))}
@@ -214,9 +219,30 @@ export default function CycleEnginePage() {
         )}
       </Panel>
 
+      <Panel title="Sources to keep current" subtitle="What runs automatically, what needs a hand, and anything that failed on the last refresh">
+        <ul className="divide-y divide-hairline text-body-sm">
+          {o.history.failed.map((f: { source: string; reason: string }) => (
+            <li key={f.source} className="py-2 text-ink">
+              <span className="text-body-strong">{f.source}</span> failed on the last refresh; the previous figures are kept. {f.reason}
+            </li>
+          ))}
+          <li className="py-2 text-ink">
+            <span className="text-body-strong">Korea chip exports</span> come from UN Comtrade, about nine months behind. A free Korea Customs key (data.go.kr) would make them current.
+          </li>
+          {MANUAL.map((m) => {
+            const st = (o.history.manual as { key: string; status?: string; latest?: string | null; behind?: number | null; bad?: number }[]).find((x) => x.key === m.key);
+            const state = !st || st.status === "missing" ? "Not added yet." : `Latest ${st.latest ? monthName(st.latest) : "n/a"}${st.behind ? `, ${st.behind} ${st.behind === 1 ? "month" : "months"} behind` : ""}${st.bad ? `; ${st.bad} rows couldn't be read` : ""}.`;
+            return (
+              <li key={m.key} className="py-2 text-ink">
+                <span className="text-body-strong">{m.label}</span>: {state} Save each month&apos;s figure ({m.value}) from {m.where} to <code>data/cycle/manual/{m.key}.csv</code>.
+              </li>
+            );
+          })}
+        </ul>
+      </Panel>
+
       <p className="text-body-sm text-ink-muted">
-        Built from public data only. WSTS global chip sales will replace the reference proxy when Avnet&apos;s files arrive; Japan&apos;s equipment billings, Korea and Taiwan chip
-        exports and the SOX are still to add. See <Link href="/signals" className="text-ink underline underline-offset-2">Economic Signals</Link>.
+        Built from public data only. WSTS global chip sales will replace the reference proxy when Avnet&apos;s files arrive; the SOX still needs a licensed feed. See <Link href="/signals" className="text-ink underline underline-offset-2">Economic Signals</Link>.
       </p>
     </PageBody>
   );

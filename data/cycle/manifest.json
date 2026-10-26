@@ -147,5 +147,26 @@
       "connectivity",
       "memory"
     ]
-  }
+  },
+  "seaj": {
+    "first": "2005-01",
+    "last": "2026-09",
+    "months": 252
+  },
+  "comtrade": {
+    "first": "2013-01",
+    "last": "2025-12",
+    "months": 156
+  },
+  "manual": [
+    {
+      "key": "taiwan-orders-electronics",
+      "status": "missing"
+    },
+    {
+      "key": "tsmc-revenue",
+      "status": "missing"
+    }
+  ],
+  "failed": []
 }

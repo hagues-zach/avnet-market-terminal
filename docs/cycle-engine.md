@@ -11,6 +11,22 @@ npx tsx scripts/run-cycle-engine.ts   # date the cycle, run the finder, indexes 
 
 Both outputs are committed: `data/cycle/history/` (public data) and `data/cycle/output.json`. The page reads `output.json`, so nothing is fetched or computed per request. Splicing the 6-hourly live points onto the history waits for the database.
 
+## Asian sources (Phase 1b, added 2026-10-27)
+
+| Series | Source | History | Notes |
+|---|---|---|---|
+| Japan chip equipment billings | SEAJ "Back Number" workbook, found by link on seaj.or.jp/english/statistics | Jan 2005 to the latest month | 3-month averages, read with SheetJS (`xlsx`, devDependency, script only) |
+| Japan chip equipment bookings, book-to-bill | Same workbook | Jan 2005 to Mar 2017 | SEAJ stopped publishing bookings; tested against past cycles, never in an index |
+| Korea chip exports (HS 8542) | UN Comtrade public preview, from Korea Customs | Jan 2013 to about nine months ago | One month per call, fetched only for months not held yet |
+| Taiwan export orders, electronic products | Saved by hand to `data/cycle/manual/taiwan-orders-electronics.csv` | As saved | MOEA blocks automated downloads |
+| TSMC monthly revenue | Saved by hand to `data/cycle/manual/tsmc-revenue.csv` | As saved | TSMC investor relations blocks automated downloads |
+
+**Each month, by hand:** save the Taiwan export orders and TSMC revenue figures as described in `data/cycle/manual/README.md`, then rerun `run-cycle-engine`. The engine page says how current each file is. Once the first real downloads are saved, a parser for their exact layout can replace the hand-copied CSV.
+
+**Korea, current:** register for the free Korea Customs API `관세청_품목별 수출입실적(GW)` on data.go.kr and add `KCS_SERVICE_KEY` to `.env.local`. The adapter is written once a key is available to test against, and it replaces Comtrade for Korea.
+
+A source that fails on a refresh keeps its previous file and is listed in `manifest.failed`, which the page shows.
+
 ## Files
 
 | Where | What |
@@ -64,9 +80,17 @@ Every module has a tsx test: `npx tsx src/lib/cycle/<module>.test.ts`.
 - **Stress:** off. The finished-goods share is higher than 64% of its history, and chip makers' operating margin is at a high (55% in 2026 Q2).
 - **AI gap:** in 2026 Q2, AI and datacenter chip revenue grew 73.5% against 24.6% for everyone else.
 
+## Results with the Asian sources (2026-10-27)
+
+Still **no series passed the leading test**:
+- Japan chip equipment billings came out **lagging** (about 4 months, 90% of turns).
+- Bookings and book-to-bill (to March 2017) and Korea chip exports came out **moving with the cycle**.
+
+But their best correlations sit at positive leads: Korea chip exports at 8 months ahead (r 0.48), book-to-bill at 7, billings at 3. That pattern, early by correlation but on time by turns, fits the SEC check: the US shipments proxy itself turns late against chip makers' revenue. So the reference is the likeliest reason these don't place as leading. Rerunning on WSTS is the test.
+
 ## Next
 
 1. **WSTS Blue Book monthly history** from Avnet into `data/cycle/licensed/wsts-monthly.json`, then rerun. That re-dates the cycle on global chip sales and retests every series. The Asian and OECD indicators may well qualify against it.
-2. **Chip-specific leading sources** (Phase 1b): Japan semiconductor equipment billings (SEAJ), Korea semiconductor exports, Taiwan export orders, and the SOX. Each needs a parser for its press release or spreadsheet. The free SOX history sits behind a bot check, so it needs a licensed feed.
+2. **Still to add:** the Korea Customs key (current Korea data), the first Taiwan and TSMC downloads, and the SOX through a licensed feed (the free history sits behind a bot check).
 3. **Avnet bookings history** from Databricks, tested as a leading candidate.
 4. **Phase 5:** the Economic Signals page, once the leading tier has members.

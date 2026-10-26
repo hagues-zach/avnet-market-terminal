@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { SERIES, type CatalogSeries } from "./catalog";
+import { parseManualCsv } from "./sources/manual";
+import type { SeajMonth } from "./sources/seaj";
 import { average, groupQuarters, quarterlyToMonthly, ratio, yoy, type CompanyQuarters, type Series } from "./transform";
 
 // Reads the committed history (scripts/fetch-history.ts) into each catalog
@@ -31,9 +33,25 @@ export function secGroup(group: NonNullable<CatalogSeries["sec"]>) {
   return groupQuarters(secCompanies().filter((c) => SEC_COHORTS[group].includes(c.cohort)));
 }
 
-/** The underlying level: the FRED series, the ratio, or for SEC the growth itself. */
+const readJson = <T,>(file: string, fallback: T): T => (existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as T) : fallback);
+export const MANUAL_DIR = path.join(process.cwd(), "data", "cycle", "manual");
+
+export const seajMonths = () => readJson<SeajMonth[]>(path.join(ROOT, "seaj.json"), []);
+export const comtradeKorea = () => readJson<[string, number][]>(path.join(ROOT, "comtrade-kr-8542.json"), []).map(([month, value]) => ({ month, value }));
+export function manualSeries(key: string) {
+  const file = path.join(MANUAL_DIR, `${key}.csv`);
+  return existsSync(file) ? parseManualCsv(readFileSync(file, "utf8")) : null;
+}
+
+/** The underlying level: the FRED series, the ratio, the source's own file, or for SEC the growth itself. */
 export function rawSeries(s: CatalogSeries): Series {
   if (s.fred) return fredSeries(s.fred);
+  if (s.seaj) {
+    const field = s.seaj;
+    return seajMonths().flatMap((m) => (m[field] === undefined ? [] : [{ month: m.month, value: m[field]! }]));
+  }
+  if (s.comtrade) return comtradeKorea();
+  if (s.manual) return manualSeries(s.key)?.points ?? [];
   if (s.ratio) return ratio(fredSeries(s.ratio[0]), fredSeries(s.ratio[1]));
   if (s.sec) return quarterlyToMonthly(secGroup(s.sec).map((q) => ({ quarter: q.quarter, value: q.growth })));
   return [];
@@ -44,6 +62,8 @@ export function measured(s: CatalogSeries): Series {
   const raw = rawSeries(s);
   // SEC figures are already growth on a year ago, held for each month of the quarter.
   if (s.sec) return raw;
+  // SEAJ publishes 3-month averages already; another average would only blur the turns.
+  if (s.seaj) return s.measure === "yoy" ? yoy(raw) : raw;
   return average(s.measure === "yoy" ? yoy(raw) : raw, 3);
 }
 
