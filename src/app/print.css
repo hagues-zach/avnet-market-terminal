@@ -1,0 +1,150 @@
+/*
+ * Printed and PDF output in the look of the Avnet FY27 PowerPoint template
+ * (docs/design/pages/qbr-prep.md, "Print"). Opt in by marking the document
+ * element with data-print="avnet". In print, only that element shows; its
+ * header's heading is the page title. Measurements follow the template's
+ * content masters, which sit on a 10 in slide: title at 0.32 in, a 0.5 pt
+ * green rule at 0.765 in, the logo tab at the top right, the page number in
+ * grey at the bottom left.
+ *
+ * Chromium (131 and later) draws the logo tab, page number and source line in
+ * @page margin boxes, so they repeat on every page without covering content.
+ * The source line comes from --avnet-print-source, which PrintFooter sets on
+ * the root. Browsers without margin boxes get PrintFooter's fixed footer.
+ */
+
+@media print {
+  @page avnet {
+    size: landscape;
+    /* No side margins: the logo tab bleeds to the edge, as on the slides.
+       The document's own side padding gives the 0.5 in content margin. */
+    margin: 0.9in 0 0.55in 0;
+
+    @top-right {
+      content: "";
+      width: 1.79in;
+      background: url("/brand/avnet-tab.svg") no-repeat right 0 top 0.08in / 1.79in 0.65in;
+    }
+
+    @bottom-left {
+      content: counter(page) "\2003\2003" var(--avnet-print-source, "");
+      padding-left: 0.154in;
+      font: 8pt Arial, Helvetica, sans-serif;
+      color: #919191;
+      vertical-align: middle;
+    }
+  }
+
+  /* Page one carries the title band itself, logo tab included. */
+  @page avnet:first {
+    margin-top: 0;
+
+    @top-right {
+      content: none;
+    }
+  }
+
+  /* Only the marked document prints: hide everything around it in <main>,
+     and flatten the wrappers that hold it. */
+  body:has([data-print="avnet"]) main *:not(:has([data-print="avnet"])):not([data-print="avnet"], [data-print="avnet"] *) {
+    display: none !important;
+  }
+  body:has([data-print="avnet"]) main,
+  body:has([data-print="avnet"]) main *:has([data-print="avnet"]) {
+    display: block !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+  }
+
+  [data-print="avnet"] {
+    page: avnet;
+    position: relative;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    /* 0.32 in tops only the first page: the title band. */
+    padding: 0.32in 0.5in 0 !important;
+    background: #fff !important;
+    color: #000;
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  [data-print="avnet"] * {
+    font-family: inherit !important;
+  }
+
+  /* The logo tab on page one, at the template's 0.08 in from the top. */
+  [data-print="avnet"]::before {
+    content: "";
+    position: absolute;
+    top: 0.08in;
+    right: 0;
+    width: 1.79in;
+    height: 0.65in;
+    background: url("/brand/avnet-tab.svg") no-repeat right center / contain;
+  }
+
+  [data-print="avnet"] > header {
+    border: 0 !important;
+    padding-bottom: 0.2in !important;
+  }
+
+  /* Title: Arial 26 pt black, regular, sentence case, with the thin green
+     rule under it, stopping short of the logo tab as on the masters. */
+  [data-print="avnet"] > header > :is(h1, h2):first-child {
+    margin-right: 1.5in;
+    min-height: 0.445in;
+    padding-bottom: 0.06in;
+    border-bottom: 0.5pt solid #41c363;
+    color: #000 !important;
+    font-size: 26pt !important;
+    font-weight: 400 !important;
+    line-height: 0.95 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    text-wrap: balance;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  /* Keep headings with what follows, and small blocks in one piece.
+     Sections may run longer than a page, so they are allowed to break. */
+  [data-print="avnet"] :is(h1, h2, h3, h4) {
+    break-after: avoid-page;
+  }
+  [data-print="avnet"] section > h2 + p {
+    break-after: avoid-page;
+  }
+  [data-print="avnet"] :is(li, dl > div, figure, tr, .rounded-sm) {
+    break-inside: avoid-page;
+  }
+  [data-print="avnet"] p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  [data-print="avnet"] a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /* Without margin boxes, PrintFooter's line sits fixed at the foot of each page. */
+  [data-print-footer] {
+    display: none;
+  }
+  :root:not([data-print-margins]) [data-print="avnet"] [data-print-footer] {
+    display: block;
+    position: fixed;
+    left: 0.5in;
+    right: 0.5in;
+    bottom: 0;
+    padding-top: 0.04in;
+    background: #fff;
+    font-size: 8pt;
+    color: #919191;
+  }
+}
