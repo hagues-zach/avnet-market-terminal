@@ -23,6 +23,9 @@ importers:
       next:
         specifier: ^15.2.3
         version: 15.5.19(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      oracledb:
+        specifier: 7.0.1
+        version: 7.0.1
       pptxgenjs:
         specifier: 4.0.1
         version: 4.0.1
@@ -851,6 +854,10 @@ packages:
   object-hash@3.0.0:
     resolution: {integrity: sha512-RSn9F68PjH9HqtltsSnqYC1XXoWe9Bju5+213R98cNGttag9q9yAOTzdbsqvIa7aNm5WffBZFpWYr2aWrklWAw==}
     engines: {node: '>= 6'}
+
+  oracledb@7.0.1:
+    resolution: {integrity: sha512-xlM0Ceh6A5stQLAdEfKf3pgCSkbOjQLo2ZPEi3+kXklz+KbZD3fLi/nsTSbQeZZNFBSFDNxdn1Ek3+bxG40M8w==}
+    engines: {node: '>=14.17'}
 
   pako@1.0.11:
     resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
@@ -1712,6 +1719,8 @@ snapshots:
   object-assign@4.1.1: {}
 
   object-hash@3.0.0: {}
+
+  oracledb@7.0.1: {}
 
   pako@1.0.11: {}
 
