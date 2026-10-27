@@ -18,5 +18,5 @@ export async function POST(req: Request) {
   const started = Date.now();
   const brief = await gatherBrief(withCompany);
   const out = await writeTalkingPoints(brief, withCompany);
-  return NextResponse.json({ ...out, supplier: brief.supplier, ms: Date.now() - started });
+  return NextResponse.json({ ...out, supplier: brief.supplier, lineCards: brief.lineCards, ms: Date.now() - started });
 }

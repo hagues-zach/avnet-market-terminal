@@ -17,6 +17,10 @@ import {
   seasonSentence,
   usd,
 } from "./sentences";
+import { HIDDEN_PATHS } from "@/lib/visibility";
+
+// The routing checks cover every answer, so they run with no page hidden; hiding is checked at the end.
+const hidden = HIDDEN_PATHS.splice(0);
 
 const slug = (q: string) => route(q)?.company?.slug;
 const intent = (q: string) => route(q)?.intent;
@@ -186,5 +190,12 @@ assert.equal(none.sources.length, 0);
 assert.equal(none.suggestions?.length, 3);
 assert.equal(cacheKey("  Is supply   tightening?? ", "2026-10-23"), cacheKey("is supply tightening", "2026-10-23"));
 assert.notEqual(cacheKey("is supply tightening", "2026-10-23"), cacheKey("is supply tightening", "2026-10-24"));
+
+// ---- Hidden pages ----
+// An answer whose page is hidden isn't routed to: the question goes to Claude instead.
+HIDDEN_PATHS.push("/line-cards");
+assert.equal(route("Who carries Lattice?"), null);
+assert.equal(route("Is supply tightening?")?.intent, "supply");
+HIDDEN_PATHS.splice(0, HIDDEN_PATHS.length, ...hidden);
 
 console.log("ask route: ok");

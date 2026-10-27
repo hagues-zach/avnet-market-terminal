@@ -24,7 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { HIDDEN_PATHS } from "@/lib/visibility";
+import { isHidden } from "@/lib/visibility";
 
 // "home" and "admin" are not pillars, but sit in the nav the same way: Start
 // Here above the pillars, Data Hookups below them.
@@ -79,10 +79,10 @@ const ALL_NAV: NavItem[] = [
   { label: "Pitch Deck Builder", href: "/tools/deck", icon: Presentation, built: true, pillar: "tools", mock: true },
   { label: "Lead Finder", href: "/tools/leads", icon: UserSearch, built: true, pillar: "tools", mock: true },
   { label: "Scenario Modeler", href: "/forecast", icon: TrendingUp, built: true, pillar: "tools", mock: true },
-  { label: "Code Mapping", href: "/tools/mapping", icon: Network, built: true, pillar: "tools", mock: true },
   { label: "Ask the Terminal", href: "/copilot", icon: Sparkles, built: true, pillar: "tools", mock: true },
 
   { label: "Data Hookups", href: "/data-hookups", icon: Plug, built: true, pillar: "admin" },
+  { label: "Code Mapping", href: "/tools/mapping", icon: Network, built: true, pillar: "admin", mock: true },
 ];
 
-export const NAV: NavItem[] = ALL_NAV.filter((item) => !HIDDEN_PATHS.includes(item.href));
+export const NAV: NavItem[] = ALL_NAV.filter((item) => !isHidden(item.href));

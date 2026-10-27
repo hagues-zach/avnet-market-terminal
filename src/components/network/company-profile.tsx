@@ -8,6 +8,7 @@ import { COHORT_LABELS, ROLE_SINGULAR, roleOf, type Company, type CompanyEarning
 import { getRevenueMix, type RevenueMix } from "@/lib/data/live/revenue-mix";
 import { getCommentary, type Digest } from "@/lib/ai/commentary";
 import { getCarriers } from "@/lib/line-cards/analysis";
+import { isHidden } from "@/lib/visibility";
 import { companyColor } from "@/lib/colors";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { KpiTile } from "@/components/ui/kpi-tile";
@@ -93,7 +94,7 @@ const linkClass = "text-ink underline-offset-2 hover:underline";
 export async function ProfileChips({ company }: { company: Company }) {
   const role = roleOf(company);
   let onAvnet = false;
-  if (role === "supplier") {
+  if (role === "supplier" && !isHidden("/line-cards")) {
     const { carriers, hasHome } = await getCarriers(company.name).catch(() => ({ carriers: [], hasHome: false }));
     onAvnet = hasHome && carriers.some((c) => c.slug === "avnet");
   }

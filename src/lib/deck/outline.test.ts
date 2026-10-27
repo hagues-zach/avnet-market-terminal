@@ -31,6 +31,10 @@ import {
   unavailableReason,
   type SlideId,
 } from "./outline";
+import { HIDDEN_PATHS } from "@/lib/visibility";
+
+// The checks below cover every slide, so they run with no page hidden; hiding is checked at the end.
+const hidden = HIDDEN_PATHS.splice(0);
 
 const ids = new Set(HOOKUPS.map((h) => h.id));
 const q = (url: string) => Object.fromEntries(new URL(url, "http://x").searchParams);
@@ -217,5 +221,13 @@ const visible = [
   ...[...readFileSync("src/components/deck/builder.tsx", "utf8").matchAll(/>\s*([A-Z][^<>{}=;()]*?)\s*</g)].map((m) => m[1]),
 ];
 for (const t of visible) assert.ok(!/[/·—–]/.test(t), t);
+
+// ---- Hidden pages ----
+// A slide whose page is hidden can't be made, so it drops out of every outline.
+HIDDEN_PATHS.push("/line-cards", "/tools/leads");
+assert.equal(available("linecard", fromQbr), false);
+assert.equal(unavailableReason("leads", fromQbr), "Its page is hidden");
+assert.equal(titles(outline(fromQbr)), "cover company commentary share arrow pipeline cycle talking sources");
+HIDDEN_PATHS.splice(0, HIDDEN_PATHS.length, ...hidden);
 
 console.log("deck outline: ok");

@@ -38,6 +38,8 @@ interface Result {
   usage: Usage;
   context: string;
   supplier: boolean;
+  /** Whether the brief carried line cards: a supplier review while Line Cards is shown. */
+  lineCards: boolean;
   ms: number;
 }
 
@@ -68,7 +70,8 @@ function grade(c: Case, r: Result): string[] {
   if (!c.focus && items.some((i) => /\bfocus\b/i.test(i.text))) fails.push("mentions a focus when none was given");
   // "The brief" is fine: it is the document the reader has open. Talk about the prompt is not.
   if (items.some((i) => /\b(data provided|no focus|focus was given|the context|as instructed)\b/i.test(i.text))) fails.push("talks about its own process");
-  if (!r.supplier && items.some((i) => /line card|franchise/i.test(i.text))) fails.push("a customer review talks about line cards");
+  if (!r.lineCards && items.some((i) => /line card|franchise/i.test(i.text)))
+    fails.push(r.supplier ? "talks about line cards while Line Cards is hidden" : "a customer review talks about line cards");
   for (const i of items) {
     const all = `${i.text} ${"why" in i ? i.why : ""}`;
     if (/[/·]/.test(all)) fails.push(`slash or middle dot: ${i.text}`);

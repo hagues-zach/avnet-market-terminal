@@ -10,6 +10,7 @@ import { shellSpecs } from "@/lib/shells/specs";
 import type { ShellSpec } from "@/lib/shells/types";
 import { CONNECTION_ORDER } from "./order";
 import { PAGE_HOOKUPS } from "./pages";
+import { isHidden } from "@/lib/visibility";
 import { byCloseness, lead, matches, nextStep, readPages, readSteps, unscheduled, widestStep } from "./read";
 
 const ids = new Set(HOOKUPS.map((h) => h.id));
@@ -106,10 +107,10 @@ assert.ok(!matches(billings, "transcript"));
 assert.equal(ids.size, HOOKUPS.length, "hookup ids are unique");
 for (const x of HOOKUPS) assert.ok(PILLAR_NAMES[x.pillar], x.id);
 
-// The usage register: every id exists, every page is in the nav, every mock page is listed.
+// The usage register: every id exists, every page is in the nav (unless hidden), every mock page is listed.
 const navHrefs = new Set(NAV.map((n) => n.href));
 for (const p of PAGE_HOOKUPS) {
-  assert.ok(navHrefs.has(p.href), `${p.href} is in the nav`);
+  assert.ok(navHrefs.has(p.href) || isHidden(p.href), `${p.href} is in the nav`);
   for (const id of p.ids) assert.ok(ids.has(id), `${p.href}: ${id} is in HOOKUPS`);
   assert.equal(new Set(p.ids).size, p.ids.length, `${p.href}: no repeated ids`);
 }

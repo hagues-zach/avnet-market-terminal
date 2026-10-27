@@ -10,6 +10,7 @@ import { getNewsAngles } from "@/lib/ai/news-angles";
 import { getAvnet } from "@/lib/avnet";
 import { shellSpecs } from "@/lib/shells/specs";
 import { buildFeed } from "@/lib/start/feed";
+import { isHidden } from "@/lib/visibility";
 import type { Role } from "@/lib/start/roles";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { HighlightBar } from "@/components/ui/highlight-bar";
@@ -101,7 +102,9 @@ export function PanelFallback({ title, lines = 4 }: { title: string; lines?: num
 /* ---------- What changed ---------- */
 
 export async function FeedCard({ role }: { role: Role }) {
-  const [news, moves, calendar] = await Promise.allSettled([getLiveNews(), getMoves(), getEarningsCalendar()]);
+  // Line card moves come from Line Cards, so they leave the feed while that page is hidden.
+  const withMoves = !isHidden("/line-cards");
+  const [news, moves, calendar] = await Promise.allSettled([getLiveNews(), withMoves ? getMoves() : Promise.resolve({ moves: [] }), getEarningsCalendar()]);
   const articles = news.status === "fulfilled" ? news.value.articles : [];
   const angles = articles.length ? await getNewsAngles(articles).catch(() => null) : null;
   const failed = [news.status === "rejected" && "news", moves.status === "rejected" && "line card moves", calendar.status === "rejected" && "earnings"].filter(
@@ -122,7 +125,7 @@ export async function FeedCard({ role }: { role: Role }) {
       subtitle={`Ranked for ${role.plural}`}
       footer={
         <>
-          <span>News, line card moves and earnings releases from the last seven days{angles?.status === "off" ? ". Claude is off, so stories show without angles" : ""}.</span>
+          <span>{withMoves ? "News, line card moves and earnings releases" : "News and earnings releases"} from the last seven days{angles?.status === "off" ? ". Claude is off, so stories show without angles" : ""}.</span>
           <Link href="/news" className="ml-auto text-ink underline-offset-2 hover:underline">
             All market news
           </Link>
@@ -131,7 +134,7 @@ export async function FeedCard({ role }: { role: Role }) {
     >
       {failed.length > 0 && <p className="mb-2 text-caption text-negative">Couldn&apos;t load {failed.join(" or ")}; showing the rest.</p>}
       {items.length === 0 ? (
-        <EmptyState title="Nothing new this week" body="No stories, line card moves or earnings releases in the last seven days." />
+        <EmptyState title="Nothing new this week" body={withMoves ? "No stories, line card moves or earnings releases in the last seven days." : "No stories or earnings releases in the last seven days."} />
       ) : (
         <ul className="divide-y divide-hairline">
           {items.map((it) => (

@@ -8,6 +8,7 @@ import { Bar, BarChart, Cell, LabelList, Line, LineChart, ResponsiveContainer, X
 import {
   AUDIENCES,
   GROUPS,
+  isHiddenSlide,
   SLIDES,
   addSlide,
   available,
@@ -292,7 +293,7 @@ export function DeckBuilder({
             <div key={g}>
               <h3 className={cn(LABEL, "border-b border-hairline pb-1.5")}>{g}</h3>
               <ul className="divide-y divide-hairline">
-                {SLIDES.filter((s) => s.group === g).map((s) => {
+                {SLIDES.filter((s) => s.group === g && !isHiddenSlide(s.id)).map((s) => {
                   const inDeck = ids.includes(s.id);
                   const why = unavailableReason(s.id, start);
                   const href = available(s.id, start) || s.planned ? hrefOf(s.id, start) : null;

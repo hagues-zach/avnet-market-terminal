@@ -2,6 +2,7 @@
 // company or name it is about. Pure, so the page and the test read the same
 // rules. Claude (step 3.2) will call the same answerers as tools.
 import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
+import { isHidden } from "@/lib/visibility";
 
 export type Intent = "company" | "arrow" | "cycle" | "economy" | "supply" | "earnings" | "news" | "linecard" | "avnet";
 
@@ -22,8 +23,13 @@ export interface Answerer {
   status: "live" | "mock";
 }
 
-/** What can be asked, in the order the page lists it. Every example routes to its own intent (the test checks). */
-export const ANSWERERS: Answerer[] = [
+// The page an answer reads from, where that page can be hidden (src/lib/visibility.ts).
+const INTENT_PAGE: Partial<Record<Intent, string>> = { supply: "/supply-chain", linecard: "/line-cards" };
+
+/** False for an answer whose page is hidden: it isn't listed, routed to or offered to Claude. */
+export const intentShown = (intent: Intent) => !isHidden(INTENT_PAGE[intent] ?? "");
+
+const ALL_ANSWERERS: Answerer[] = [
   {
     intent: "company",
     title: "Companies",
@@ -46,6 +52,9 @@ export const ANSWERERS: Answerer[] = [
   { intent: "linecard", title: "Line cards", what: "Which collected distributors carry a supplier", example: "Who carries Lattice?", status: "live" },
   { intent: "avnet", title: "Avnet's business", what: "Billings, book-to-bill and backlog", example: "How is Avnet's business?", status: "mock" },
 ];
+
+/** What can be asked, in the order the page lists it. Every example routes to its own intent (the test checks). */
+export const ANSWERERS: Answerer[] = ALL_ANSWERERS.filter((a) => intentShown(a.intent));
 
 // Words that can't name a company on their own (segments, generic words).
 const GENERIC = new Set([
@@ -159,7 +168,13 @@ export function depth(question: string): "recall" | "analysis" {
   return ANALYSIS.test(q) || topicCount(q, findCompany(question)) > 1 ? "analysis" : "recall";
 }
 
+/** The answerer a question goes to, or null for Claude. An answer whose page is hidden goes to Claude too. */
 export function route(question: string): Routed | null {
+  const r = rules(question);
+  return r && intentShown(r.intent) ? r : null;
+}
+
+function rules(question: string): Routed | null {
   const q = clean(question);
   if (!q) return null;
   const company = findCompany(question);

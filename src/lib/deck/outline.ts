@@ -6,6 +6,7 @@ import { HOOKUPS, type Hookup } from "@/lib/hookups";
 import { COMPANIES, roleOf, type Company } from "@/lib/data/live/earnings-model";
 import { PRIMERS, type Primer } from "@/lib/learn/content";
 import type { MarketView } from "@/lib/scenario/model";
+import { isHidden } from "@/lib/visibility";
 
 export type Audience = "supplier" | "customer" | "internal";
 
@@ -104,6 +105,8 @@ export const slide = (id: SlideId): Slide => SLIDES.find((s) => s.id === id)!;
 export const isSlideId = (v: string): v is SlideId => SLIDES.some((s) => s.id === v);
 /** Cover and sources frame the deck; they aren't counted as content. */
 export const isFrame = (id: SlideId) => id === "cover" || id === "sources";
+/** A slide whose page is hidden (src/lib/visibility.ts): left out of the library and every outline. */
+export const isHiddenSlide = (id: SlideId) => isHidden(hrefOf(id, { scenario: DEFAULT_SCENARIO }) ?? "");
 
 export type SlideStatus = "live" | "mock" | "planned";
 
@@ -243,10 +246,10 @@ const ORDER: Record<Audience, SlideId[]> = {
   internal: ["cover", "company", "cycle", "economy", "arrow", "performance", "share", "scenario", "sources"],
 };
 
-/** Whether a slide can be made for this start: its company or primer is known, and its page is built. */
+/** Whether a slide can be made for this start: its company or primer is known, and its page is built and shown. */
 export function available(id: SlideId, s: Pick<Start, "company" | "primer"> & Partial<Pick<Start, "from">>): boolean {
   const x = slide(id);
-  if (x.planned) return false;
+  if (x.planned || isHiddenSlide(id)) return false;
   if (x.needs === "qbr") return Boolean(s.company && s.from === "qbr");
   if (x.needs === "company") return Boolean(s.company);
   if (x.needs === "primer") return Boolean(s.primer);
@@ -259,6 +262,7 @@ export function unavailableReason(id: SlideId, s: Pick<Start, "company" | "prime
   const x = slide(id);
   if (x.planned) return `Arrives in step ${x.planned}`;
   if (available(id, s)) return null;
+  if (isHiddenSlide(id)) return "Its page is hidden";
   if (x.needs === "qbr") return "Needs a deck started from QBR Prep";
   return x.needs === "primer" ? "Needs a company with a primer" : x.needs === "subject" ? "Needs a company or a technology" : "Needs a company";
 }

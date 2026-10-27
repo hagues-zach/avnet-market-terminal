@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { BookOpenCheck } from "lucide-react";
 import { COMPANIES, ROLE_SINGULAR, roleOf } from "@/lib/data/live/earnings-model";
+import { isHidden } from "@/lib/visibility";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { ButtonLink } from "@/components/ui/button";
@@ -70,7 +71,7 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
             <ProfileKeyFacts company={company} />
           </Suspense>
           {business && <ProfileAvnetBusiness company={company} />}
-          {role === "supplier" && (
+          {role === "supplier" && !isHidden("/line-cards") && (
             <Suspense fallback={<ProfileFallback title="Distribution" />}>
               <ProfileDistribution company={company} />
             </Suspense>

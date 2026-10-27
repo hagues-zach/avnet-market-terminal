@@ -11,6 +11,7 @@ import { getCycle } from "@/lib/data/live/cycle";
 import { roleOf, type Company } from "@/lib/data/live/earnings-model";
 import { getCarriers } from "@/lib/line-cards/analysis";
 import { getMoves } from "@/lib/line-cards/moves";
+import { isHidden } from "@/lib/visibility";
 import { avnetBusiness, glance, yearAgo } from "@/components/network/company-profile";
 import type { Setup } from "./setup";
 
@@ -19,14 +20,16 @@ export type Brief = Awaited<ReturnType<typeof gatherBrief>>;
 
 export async function gatherBrief({ company }: BriefSetup) {
   const supplier = roleOf(company) === "supplier";
+  // A supplier's distribution position comes from Line Cards; while that page is hidden, the brief shows the market backdrop.
+  const lineCards = supplier && !isHidden("/line-cards");
   const [earnings, mix, commentary, news, cycle, carriers, moves, angles] = await Promise.all([
     getCompanyEarnings(company.slug),
     getRevenueMix(company.slug),
     getCommentary(company.slug),
     getCompanyNews(company, 4).catch(() => []),
     getCycle().catch(() => null),
-    supplier ? getCarriers(company.name).catch(() => null) : Promise.resolve(null),
-    supplier ? getMoves().catch(() => null) : Promise.resolve(null),
+    lineCards ? getCarriers(company.name).catch(() => null) : Promise.resolve(null),
+    lineCards ? getMoves().catch(() => null) : Promise.resolve(null),
     store.getAll<Angle>("news-angles-v1"),
   ]);
 
@@ -44,6 +47,7 @@ export async function gatherBrief({ company }: BriefSetup) {
 
   return {
     supplier,
+    lineCards,
     earnings,
     commentary,
     digest: commentary.digest,
