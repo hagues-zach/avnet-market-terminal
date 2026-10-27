@@ -1,5 +1,5 @@
-import { databricksClient, databricksSettings } from "@/lib/databricks/client";
-import { databricksDialect, sqlSnapshots, sqlStore } from "./sql";
+import { databricksClient, databricksSettings, type QueryOptions } from "@/lib/databricks/client";
+import { databricksDialect, sqlSnapshots, sqlStore, type Dialect, type SqlClient } from "./sql";
 
 // The Databricks adapter: both stores as Delta tables in Unity Catalog, through
 // the SQL Statement Execution API client in src/lib/databricks. Values are JSON
@@ -21,13 +21,30 @@ const SETTINGS = [
   "DATABRICKS_SCHEMA",
 ] as const;
 
-/** Both stores on Databricks, from the DATABRICKS_* settings. Throws naming any that are missing. */
-export function databricksStores(env: Record<string, string | undefined> = process.env) {
+/**
+ * The client and dialect for the DATABRICKS_* settings, and a description of where
+ * they point (no token). Throws naming any setting that's missing.
+ */
+export function databricksConnection(
+  env: Record<string, string | undefined> = process.env,
+  options: Pick<QueryOptions, "timeoutMs"> = {},
+): { client: SqlClient; dialect: Dialect; target: string } {
   const missing = SETTINGS.filter((name) => !env[name]?.trim());
   if (missing.length) {
     throw new Error(`STORE_ADAPTER is "databricks" but ${missing.join(", ")} ${missing.length > 1 ? "are" : "is"} not set.`);
   }
-  const client = databricksClient({ settings: databricksSettings(env) });
-  const dialect = databricksDialect(env.DATABRICKS_CATALOG!.trim(), env.DATABRICKS_SCHEMA!.trim());
+  const settings = databricksSettings(env);
+  const catalog = env.DATABRICKS_CATALOG!.trim();
+  const schema = env.DATABRICKS_SCHEMA!.trim();
+  return {
+    client: databricksClient({ ...options, settings }),
+    dialect: databricksDialect(catalog, schema),
+    target: `${settings.host}, warehouse ${settings.warehouseId}, tables in ${catalog}.${schema}`,
+  };
+}
+
+/** Both stores on Databricks, from the DATABRICKS_* settings. Throws naming any that are missing. */
+export function databricksStores(env: Record<string, string | undefined> = process.env) {
+  const { client, dialect } = databricksConnection(env);
   return { kv: sqlStore(client, dialect), snapshots: sqlSnapshots(client, dialect) };
 }

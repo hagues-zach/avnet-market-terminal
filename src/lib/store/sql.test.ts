@@ -45,6 +45,13 @@ async function main() {
         ["kv.upsert", "kv.upsert", "kv.expire"],
       );
 
+      // Writes from one store reach the database one at a time, across namespaces too.
+      const busy = fakeSql();
+      const one = sqlStore(busy, dialect);
+      await Promise.all(Array.from({ length: 6 }, (_, i) => one.set(`ns${i % 2}`, `k${i}`, i)));
+      assert.equal(busy.maxInFlight, 1, "writes are queued");
+      assert.equal(busy.log.length, 6);
+
       // Reads that fail don't throw for the key-value store, and do for snapshots.
       assert.equal(await sqlStore(down, dialect).get("ns", "k"), undefined);
       assert.deepEqual(await sqlStore(down, dialect).getAll("ns"), {});
@@ -69,6 +76,11 @@ async function main() {
       sql.snapDates("arrow"),
       sql.snapRead("arrow", "2026-10-01"),
       sql.snapWrite("arrow", "2026-10-01", '{"lines":[]}'),
+      sql.checkPing(),
+      sql.checkCountKv(),
+      sql.checkCountSnapshots(),
+      sql.checkCleanupKv("zz-check-abc-"),
+      sql.checkCleanupSnapshots("zz-check-abc-"),
     ];
     const text = all.map((s) => `${s.sql};\n-- ${JSON.stringify(s.params)}\n`).join("\n");
     const saved = path.join(__dirname, "sql-snapshots", `${dialect.name}.sql`);
@@ -85,6 +97,7 @@ async function main() {
   const executed: { sql: string; binds: Record<string, unknown>; options: unknown }[] = [];
   let closed = 0;
   let pools = 0;
+  let poolsClosed = 0;
   const fakeOracle: OracleDb = {
     CLOB: "CLOB",
     OUT_FORMAT_OBJECT: 4002,
@@ -104,6 +117,9 @@ async function main() {
             },
           };
         },
+        async close() {
+          poolsClosed++;
+        },
       };
     },
   };
@@ -116,6 +132,8 @@ async function main() {
   assert.deepEqual(fakeOracle.fetchAsString, ["CLOB"]);
   assert.equal(closed, 2);
   assert.equal(pools, 1, "one pool for the process");
+  await client.close();
+  assert.equal(poolsClosed, 1, "close ends the pool");
 
   // Missing settings name every one that's missing, before anything connects.
   assert.throws(

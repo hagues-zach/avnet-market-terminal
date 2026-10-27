@@ -21,3 +21,18 @@
 
 /* store snap.write */ MERGE INTO STORE_SNAPSHOTS t USING (SELECT :distributor AS distributor, TO_DATE(:snap_date, 'YYYY-MM-DD') AS snap_date, :json AS document FROM dual) s ON (t.distributor = s.distributor AND t.snap_date = s.snap_date) WHEN MATCHED THEN UPDATE SET t.document = s.document, t.written_at = SYSTIMESTAMP WHEN NOT MATCHED THEN INSERT (distributor, snap_date, document, written_at) VALUES (s.distributor, s.snap_date, s.document, SYSTIMESTAMP);
 -- {"distributor":"arrow","snap_date":"2026-10-01","json":"{\"lines\":[]}"}
+
+/* store check.ping */ SELECT 1 AS ok FROM dual;
+-- {}
+
+/* store check.countKv */ SELECT COUNT(*) AS n FROM STORE_KV;
+-- {}
+
+/* store check.countSnapshots */ SELECT COUNT(*) AS n FROM STORE_SNAPSHOTS;
+-- {}
+
+/* store check.cleanupKv */ DELETE FROM STORE_KV WHERE ns LIKE :prefix;
+-- {"prefix":"zz-check-abc-%"}
+
+/* store check.cleanupSnapshots */ DELETE FROM STORE_SNAPSHOTS WHERE distributor LIKE :prefix;
+-- {"prefix":"zz-check-abc-%"}

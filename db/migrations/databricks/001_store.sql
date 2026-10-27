@@ -18,7 +18,11 @@ CREATE TABLE IF NOT EXISTS store_kv (
   written_at TIMESTAMP NOT NULL COMMENT 'When the row was last written',
   CONSTRAINT store_kv_pk PRIMARY KEY (ns, item_key)
 ) USING DELTA
-COMMENT 'Market Intelligence Terminal saved results (src/lib/store)';
+COMMENT 'Market Intelligence Terminal saved results (src/lib/store)'
+-- Deletion vectors give row-level concurrency (Databricks Runtime 14.2 and later,
+-- SQL warehouses included), so app instances writing different rows at once don't
+-- conflict. Within one instance the app already writes one statement at a time.
+TBLPROPERTIES ('delta.enableDeletionVectors' = 'true');
 
 -- Line card snapshots: one JSON document per distributor per day.
 CREATE TABLE IF NOT EXISTS store_snapshots (
@@ -28,4 +32,5 @@ CREATE TABLE IF NOT EXISTS store_snapshots (
   written_at TIMESTAMP NOT NULL COMMENT 'When the row was last written',
   CONSTRAINT store_snapshots_pk PRIMARY KEY (distributor, snap_date)
 ) USING DELTA
-COMMENT 'Market Intelligence Terminal line card snapshots (src/lib/store)';
+COMMENT 'Market Intelligence Terminal line card snapshots (src/lib/store)'
+TBLPROPERTIES ('delta.enableDeletionVectors' = 'true');

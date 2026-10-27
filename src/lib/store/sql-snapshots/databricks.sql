@@ -21,3 +21,18 @@
 
 /* store snap.write */ MERGE INTO `avnet_dev`.`market_terminal`.`store_snapshots` t USING (SELECT :distributor AS distributor, CAST(:snap_date AS DATE) AS snap_date, :json AS document) s ON (t.distributor = s.distributor AND t.snap_date = s.snap_date) WHEN MATCHED THEN UPDATE SET t.document = s.document, t.written_at = current_timestamp() WHEN NOT MATCHED THEN INSERT (distributor, snap_date, document, written_at) VALUES (s.distributor, s.snap_date, s.document, current_timestamp());
 -- {"distributor":"arrow","snap_date":"2026-10-01","json":"{\"lines\":[]}"}
+
+/* store check.ping */ SELECT 1 AS ok;
+-- {}
+
+/* store check.countKv */ SELECT COUNT(*) AS n FROM `avnet_dev`.`market_terminal`.`store_kv`;
+-- {}
+
+/* store check.countSnapshots */ SELECT COUNT(*) AS n FROM `avnet_dev`.`market_terminal`.`store_snapshots`;
+-- {}
+
+/* store check.cleanupKv */ DELETE FROM `avnet_dev`.`market_terminal`.`store_kv` WHERE ns LIKE :prefix;
+-- {"prefix":"zz-check-abc-%"}
+
+/* store check.cleanupSnapshots */ DELETE FROM `avnet_dev`.`market_terminal`.`store_snapshots` WHERE distributor LIKE :prefix;
+-- {"prefix":"zz-check-abc-%"}

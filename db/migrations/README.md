@@ -5,7 +5,7 @@ The tables behind the database storage adapters in `src/lib/store` (see
 `STORE_ADAPTER` you use. Scripts are numbered and run once each, in order.
 
 Neither script has been run against a real database yet; the adapters are tested
-against fakes only.
+against fakes only. After running one, check the adapter against it (next section).
 
 | Script | Creates |
 |---|---|
@@ -35,6 +35,20 @@ The script uses `CREATE TABLE IF NOT EXISTS`, so running it again does nothing.
 
 Oracle has no `CREATE TABLE IF NOT EXISTS` before 23ai, so running the script a
 second time fails with ORA-00955 (name already used) and changes nothing.
+
+## Check it works
+
+With the settings in the environment or `.env.local`:
+
+```bash
+pnpm check:store databricks
+```
+
+(or `oracle`, or no argument to use `STORE_ADAPTER`). It connects, reads both
+tables' row counts, runs the store contract on rows of its own (names starting
+`zz-check-`) and deletes them again, printing a pass or fail line per step with a
+hint for whatever failed. It never changes other rows. It needs the same rights
+as the app: read, insert, update and delete on both tables.
 
 ## Seed data
 

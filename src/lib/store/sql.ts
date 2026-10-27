@@ -18,7 +18,8 @@ import { cutoff, type Expiry, type Store } from "./types";
 // reads, so a database outage isn't mistaken for having no snapshots.
 //
 // Tested against a fake SqlClient only (sql.test.ts); not yet run against a real
-// Databricks or Oracle database. Server-only.
+// Databricks or Oracle database. scripts/check-store.ts runs the same checks
+// against a real one. Server-only.
 
 export type SqlValue = string | number | boolean | null;
 
@@ -42,7 +43,12 @@ export type StatementKind =
   | "snap.distributors"
   | "snap.dates"
   | "snap.read"
-  | "snap.write";
+  | "snap.write"
+  | "check.ping"
+  | "check.countKv"
+  | "check.countSnapshots"
+  | "check.cleanupKv"
+  | "check.cleanupSnapshots";
 
 export interface Statement {
   kind: StatementKind;
@@ -175,6 +181,18 @@ export function statements(d: Dialect) {
           `VALUES (s.distributor, s.snap_date, s.document, ${d.now})`,
         { distributor, snap_date: date, json },
       ),
+
+    // For the live check (check.ts): a round trip, each table's row count, and
+    // removing the check's own rows by the prefix their names start with.
+    checkPing: () => tag("check.ping", `SELECT 1 AS ok${d.noTable}`, {}),
+    checkCountKv: () => tag("check.countKv", `SELECT COUNT(*) AS n FROM ${d.kvTable}`, {}),
+    checkCountSnapshots: () => tag("check.countSnapshots", `SELECT COUNT(*) AS n FROM ${d.snapshotTable}`, {}),
+    checkCleanupKv: (prefix: string) =>
+      tag("check.cleanupKv", `DELETE FROM ${d.kvTable} WHERE ns LIKE :prefix`, { prefix: `${prefix}%` }),
+    checkCleanupSnapshots: (prefix: string) =>
+      tag("check.cleanupSnapshots", `DELETE FROM ${d.snapshotTable} WHERE distributor LIKE :prefix`, {
+        prefix: `${prefix}%`,
+      }),
   };
 }
 
@@ -197,6 +215,10 @@ export function sqlStore(client: SqlClient, dialect: Dialect): Store {
     if (!m) memory.set(ns, (m = new Map()));
     return m;
   };
+  // Writes go to the database one at a time. Concurrent MERGEs into one Delta
+  // table can fail with a write conflict, and on Oracle two inserts of a new key
+  // can collide; neither should cost a result.
+  let queue = Promise.resolve();
 
   async function write<T>(ns: string, entries: Record<string, T>, expire?: Expiry<T>): Promise<void> {
     const m = mem(ns);
@@ -205,17 +227,21 @@ export function sqlStore(client: SqlClient, dialect: Dialect): Store {
     if (expire) {
       for (const [k, v] of [...m]) if ((expire.dateOf(k, v as T) ?? "") < from) m.delete(k);
     }
-    try {
-      const rows = Object.entries(entries).map(
-        ([k, v]): [string, string, string | null] => [k, JSON.stringify(v) ?? "null", expire?.dateOf(k, v) ?? null],
-      );
-      for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
-        await run(client, sql.kvUpsert(ns, rows.slice(i, i + UPSERT_BATCH)));
+    const rows = Object.entries(entries).map(
+      ([k, v]): [string, string, string | null] => [k, JSON.stringify(v) ?? "null", expire?.dateOf(k, v) ?? null],
+    );
+    const done = queue.then(async () => {
+      try {
+        for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
+          await run(client, sql.kvUpsert(ns, rows.slice(i, i + UPSERT_BATCH)));
+        }
+        if (expire) await run(client, sql.kvExpire(ns, from));
+      } catch (e) {
+        warn(dialect, `write to ${ns}`, e);
       }
-      if (expire) await run(client, sql.kvExpire(ns, from));
-    } catch (e) {
-      warn(dialect, `write to ${ns}`, e);
-    }
+    });
+    queue = done;
+    await done;
   }
 
   return {

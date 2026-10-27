@@ -6,7 +6,8 @@ There are also adapters for Avnet's provisioned database, Databricks or Oracle
 data lives.
 
 **Both database adapters are tested against fakes only. Neither has been run
-against a real Databricks workspace or Oracle database yet.**
+against a real Databricks workspace or Oracle database yet.** `pnpm check:store`
+runs the same checks against a real one (see below).
 
 ## The interface
 
@@ -67,7 +68,10 @@ dialect.
 How they work:
 
 - **Writes** are `MERGE` upserts, 50 rows per statement, so `setMany` of many
-  entries is a few round trips.
+  entries is a few round trips. Each store sends its writes one at a time:
+  concurrent `MERGE`s into one Delta table can fail with a write conflict. Across
+  app instances, the Databricks tables have deletion vectors on, which gives
+  row-level concurrency.
 - **Expiry** stores the date `dateOf` gives each row in `entry_date` when it is
   written, then runs one `DELETE` of the namespace's rows dated before the cutoff
   or with no date. So a row written without an expiry is dropped by the
@@ -117,6 +121,28 @@ Tests, all against fakes:
 - `npx tsx src/lib/databricks/client.test.ts`: the client against a fake fetch.
 
 The shared contract is `src/lib/store/contract.ts`. A new adapter should pass it.
+
+### Checking against a real database
+
+```bash
+pnpm check:store            # the adapter in STORE_ADAPTER
+pnpm check:store oracle     # or name one
+```
+
+`scripts/check-store.ts` (logic in `src/lib/store/check.ts`, tested against the
+fake in `check.test.ts`) reads settings from the environment, then `.env.local`,
+then `.env`. Its steps:
+
+1. **connect**: one round trip. A stopped Databricks warehouse gets five minutes to start.
+2. **tables**: both tables can be read; prints their row counts.
+3. **contract**: the shared contract, on namespaces and distributors starting with
+   `zz-check-<time>-`, so real rows are never changed. It covers large values
+   (past Oracle's 4 KB and 32 KB limits) and concurrent writes.
+4. **cleanup**: deletes every row under that prefix, even after a failure.
+
+A failed step prints the database's error and what to check. It exits 0 when all
+pass, 1 when a step fails, and 2 for a missing setting or an unknown adapter.
+Run it first on any new database, before setting `STORE_ADAPTER` for the app.
 
 ## Namespaces today
 
