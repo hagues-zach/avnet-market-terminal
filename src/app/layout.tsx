@@ -1,16 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Oswald } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "./print.css";
 
-const oswald = Oswald({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+// Self hosted so builds need no internet access. Latin subset variable fonts
+// from @fontsource-variable, SIL Open Font License (see fonts/OFL-*.txt).
+// Oswald covers the 300 to 700 weights in use; Inter covers 100 to 900.
+const oswald = localFont({
+  src: "./fonts/oswald-latin-wght-normal.woff2",
+  weight: "300 700",
   variable: "--font-oswald",
   display: "swap",
 });
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
   variable: "--font-inter",
   display: "swap",
 });
