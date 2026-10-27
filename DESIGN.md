@@ -370,8 +370,8 @@ In code: `VIZ`, `chartSeriesColor`, `entityColor`, `ALL_PAIRS_ORDER`, `RISK_COLO
 
 ### Fonts
 
-- **Oswald** (Google Fonts, already loaded). The brand display face. Light 300 for page titles in all caps. Regular 400 for section and card titles in sentence case, for KPI figures and for table and chart labels, the uses the brand assigns to Oswald.
-- **Inter** (Google Fonts, already loaded). Stands in for **Aperçu Avnet**, the brand's body face. Aperçu is custom to Avnet and is not licensed for this app. Inter is used for body, table cells, controls and captions. Ask brand for a web licence (see Open questions). Arial is the Office fallback and is not used on the web, per the brand guide.
+- **Oswald** (Google Fonts, self hosted from `src/app/fonts`). The brand display face. Light 300 for page titles in all caps. Regular 400 for section and card titles in sentence case, for KPI figures and for table and chart labels, the uses the brand assigns to Oswald.
+- **Inter** (Google Fonts, self hosted from `src/app/fonts`). Stands in for **Aperçu Avnet**, the brand's body face. Aperçu is custom to Avnet and is not licensed for this app. Inter is used for body, table cells, controls and captions. Ask brand for a web licence (see Open questions). Arial is the Office fallback and is not used on the web, per the brand guide.
 - Figures always use tabular numerals (`font-variant-numeric: tabular-nums`).
 
 ### Scale
