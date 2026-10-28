@@ -38,6 +38,8 @@ const PATTERNS: Record<string, RegExp> = {
   deere: /\bDeere\b/,
   emerson: /\bEmerson\b/,
   rockwell: /Rockwell Automation/i,
+  itt: /\bITT\b/,
+  cts: /\bCTS Corp(oration)?\b/,
 };
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
