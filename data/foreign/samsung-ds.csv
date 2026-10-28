@@ -1,6 +1,0 @@
-# Samsung Electronics, Device Solutions (DS) segment: memory, foundry and System LSI.
-# DART's statements carry the whole group, so the segment is kept by hand from
-# Samsung's quarterly earnings release (samsung.com/global/ir), in won.
-# One row per quarter: quarter end, segment revenue, segment operating profit.
-# Figures may be quoted with thousands separators, e.g. "33,400,000,000,000".
-quarter_end,revenue,operating_income

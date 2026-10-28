@@ -1,0 +1,282 @@
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance" xmlns:dart-gcd="http://dart.fss.or.kr/taxonomy/2024-06-30/ifrs/dart-gcd" xmlns:dart="http://dart.fss.or.kr/taxonomy/2024-06-30/ifrs/dart" xmlns:ifrs-full="http://xbrl.ifrs.org/taxonomy/2021-03-24/ifrs-full" xmlns:rol_dart="http://dart.fss.or.kr/role/2024-06-30/ifrs/rol_dart" xmlns:rol_dart-gcd="http://dart.fss.or.kr/role/2024-06-30/ifrs/rol_dart-gcd" xmlns:dart-gaap-businessid="ci" xmlns:entity00126380="http://dart.fss.or.kr/taxonomy/2025-06-30/entity00126380" xmlns:info="http://xbrl.iasb.org/info" xmlns:iso4217="http://www.xbrl.org/2003/iso4217" xmlns:link="http://www.xbrl.org/2003/linkbase" xmlns:negated="http://www.xbrl.org/2009/role/negated" xmlns:net="http://www.xbrl.org/2009/role/net" xmlns:nonnum="http://www.xbrl.org/dtr/type/non-numeric" xmlns:num="http://www.xbrl.org/dtr/type/numeric" xmlns:xbrldi="http://xbrl.org/2006/xbrldi" xmlns:xbrldt="http://xbrl.org/2005/xbrldt" xmlns:xl="http://www.xbrl.org/2003/XLink" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://dart.fss.or.kr/taxonomy/2025-06-30/entity00126380 entity00126380_2025-06-30.xsd">
+<!-- Trimmed from Samsung Electronics' DART XBRL: the operating segment note of the H1 2025 report (rcept 20250814003156) and one impairment-table context from the FY2025 report (20260310002820). -->
+<xbrli:context id="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-01-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-04-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-01-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-01-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-04-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-04-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-04-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-04-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-04-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-04-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-04-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-01-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-01-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:SeparateMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-01-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-01-01</xbrli:startDate>
+      <xbrli:endDate>2025-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentConsolidationItemsAxis">ifrs-full:OperatingSegmentsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2024-01-01</xbrli:startDate>
+      <xbrli:endDate>2024-06-30</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<xbrli:context id="CFY2025dFY_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_IndividualAssetsOrCashgeneratingUnitsAxis_ifrs-full_IndividualAssetsOrCashgeneratingUnitsMember_ifrs-full_ClassesOfAssetsAxis_ifrs-full_GoodwillMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfImpairmentLossRecognisedOrReversedForCashGeneratingUnitTableOfMember">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://dart.fss.or.kr/ifrs/CIK">00126380</xbrli:identifier>
+      <xbrli:segment>
+        <xbrldi:explicitMember dimension="ifrs-full:ConsolidatedAndSeparateFinancialStatementsAxis">ifrs-full:ConsolidatedMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:IndividualAssetsOrCashgeneratingUnitsAxis">ifrs-full:IndividualAssetsOrCashgeneratingUnitsMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:ClassesOfAssetsAxis">ifrs-full:GoodwillMember</xbrldi:explicitMember>
+        <xbrldi:explicitMember dimension="ifrs-full:SegmentsAxis">entity00126380:DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfImpairmentLossRecognisedOrReversedForCashGeneratingUnitTableOfMember</xbrldi:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:startDate>2025-01-01</xbrli:startDate>
+      <xbrli:endDate>2025-12-31</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">6621286000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">5554284000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">2606630000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">1667732000000</dart:OperatingIncomeLoss>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">13575097000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">6851689000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">269907000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">136163000000</ifrs-full:DepreciationExpense>
+<ifrs-full:Revenue contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">50922486000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">28093113000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">58820343000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">28238893000000</ifrs-full:Revenue>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">-430492000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">-512505000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">3089162000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">1700691000000</dart:OperatingIncomeLoss>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">16629921000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">8394980000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">298265000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">149782000000</ifrs-full:DepreciationExpense>
+<ifrs-full:Revenue contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">51732862000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">27074741000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">63023920000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_SeparateMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionOfSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">30000009000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">43570160000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">95287371000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">27875087000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">53006093000000</ifrs-full:Revenue>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">659976000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">1320057000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">9159340000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">18479258000000</ifrs-full:DepreciationExpense>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">3325705000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">8047605000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">350173000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="CFY2025dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">1455676000000</dart:OperatingIncomeLoss>
+<ifrs-full:Revenue contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">42070812000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">89363554000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">28556551000000</ifrs-full:Revenue>
+<ifrs-full:Revenue contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">51693841000000</ifrs-full:Revenue>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">642611000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">1282358000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">7997543000000</ifrs-full:DepreciationExpense>
+<ifrs-full:DepreciationExpense contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">15846606000000</ifrs-full:DepreciationExpense>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">2722479000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DxDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">6797370000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYQ_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">6450960000000</dart:OperatingIncomeLoss>
+<dart:OperatingIncomeLoss contextRef="PFY2024dHYA_ifrs-full_ConsolidatedAndSeparateFinancialStatementsAxis_ifrs-full_ConsolidatedMember_ifrs-full_SegmentConsolidationItemsAxis_ifrs-full_OperatingSegmentsMember_ifrs-full_SegmentsAxis_entity00126380_DsDivisionMemberOfReportableSegmentsMemberOfDisclosureOfOperatingSegmentsTableOfMember" unitRef="KRW" decimals="-6">8364975000000</dart:OperatingIncomeLoss>
+</xbrli:xbrl>

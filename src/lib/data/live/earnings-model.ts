@@ -46,12 +46,12 @@ export const COHORTS = Object.keys(COHORT_LABELS) as Cohort[];
  * document matches `interim`; its earnings release is the 6-K matching `release`
  * (regex sources: Company crosses into client components, so it stays plain
  * data). A DART filer reports to Korea's regulator
- * under K-IFRS in won, found by its KRX stock code (DART's own corp code is looked
- * up from that); `segment` takes one segment of the group instead of the whole.
+ * under K-IFRS in won, found by DART's own corp code (not the KRX ticker);
+ * `segment` takes one segment of the group instead of the whole.
  */
 export type Foreign =
   | { source: "sec-20f"; interim: string; release: string }
-  | { source: "dart"; stockCode: string; currency: "KRW"; segment?: "DS" };
+  | { source: "dart"; corpCode: string; currency: "KRW"; segment?: "DS" };
 
 export interface Company {
   slug: string;
@@ -120,8 +120,8 @@ export const COMPANIES: Company[] = [
   { slug: "sandisk", name: "Sandisk", cik: 2023554, cohort: "memory" },
   { slug: "seagate", name: "Seagate", cik: 1137789, cohort: "memory" },
   { slug: "gsi-technology", name: "GSI Technology", cik: 1126741, cohort: "memory" },
-  { slug: "sk-hynix", name: "SK hynix", cohort: "memory", foreign: { source: "dart", stockCode: "000660", currency: "KRW" } },
-  { slug: "samsung-ds", name: "Samsung Device Solutions", cohort: "memory", foreign: { source: "dart", stockCode: "005930", currency: "KRW", segment: "DS" } },
+  { slug: "sk-hynix", name: "SK hynix", cohort: "memory", foreign: { source: "dart", corpCode: "00164779", currency: "KRW" } }, // KRX 000660
+  { slug: "samsung-ds", name: "Samsung Device Solutions", cohort: "memory", foreign: { source: "dart", corpCode: "00126380", currency: "KRW", segment: "DS" } }, // KRX 005930
   { slug: "applied-materials", name: "Applied Materials", cik: 6951, cohort: "equipment" },
   { slug: "lam-research", name: "Lam Research", cik: 707549, cohort: "equipment" },
   { slug: "kla", name: "KLA", cik: 319201, cohort: "equipment" },
@@ -140,7 +140,7 @@ export const COMPANIES: Company[] = [
   { slug: "corning", name: "Corning", cik: 24741, cohort: "components" },
   { slug: "itt", name: "ITT", cik: 216228, cohort: "components" },
   { slug: "cts", name: "CTS", cik: 26058, cohort: "components" },
-  { slug: "samsung-em", name: "Samsung Electro-Mechanics", cohort: "components", foreign: { source: "dart", stockCode: "009150", currency: "KRW" } },
+  { slug: "samsung-em", name: "Samsung Electro-Mechanics", cohort: "components", foreign: { source: "dart", corpCode: "00126371", currency: "KRW" } }, // KRX 009150
   { slug: "jabil", name: "Jabil", cik: 898293, cohort: "ems" },
   { slug: "flex", name: "Flex", cik: 866374, cohort: "ems" },
   { slug: "sanmina", name: "Sanmina", cik: 897723, cohort: "ems" },
@@ -362,7 +362,7 @@ export function sourceOf(c: Company): { chip: string; filings: string; short: st
   const f = c.foreign;
   if (f?.source === "sec-20f") return { chip: "SEC 20-F filer, US GAAP", filings: `${c.name}'s 20-F and interim 6-K reports`, short: "SEC EDGAR" };
   if (f?.source === "dart" && f.segment) {
-    return { chip: "Segment, K-IFRS, from won", filings: `${c.name}'s figures from the group's earnings releases, converted from won`, short: "the group's releases" };
+    return { chip: "Segment, K-IFRS, from won", filings: `${c.name}'s segment note in the group's DART filings, converted from won`, short: "Korea's DART" };
   }
   if (f?.source === "dart") return { chip: "DART filer, K-IFRS, from won", filings: `${c.name}'s DART filings, converted from won`, short: "Korea's DART" };
   return { chip: "SEC filer", filings: `${c.name}'s SEC filings`, short: "SEC EDGAR" };

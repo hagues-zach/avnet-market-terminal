@@ -79,7 +79,7 @@ const ACCOUNTS: { sheet: Sheet; ids: string[]; names: RegExp; concept: string; c
     names: /^영업활동(으로 인한 )?현금흐름$/,
     concept: "NetCashProvidedByUsedInOperatingActivities",
   },
-  { sheet: "cash", ids: ["ifrs-full_PurchaseOfPropertyPlantAndEquipment"], names: /^유형자산의 ?취득$/, concept: "PaymentsToAcquirePropertyPlantAndEquipment", cost: true },
+  { sheet: "cash", ids: ["ifrs-full_PurchaseOfPropertyPlantAndEquipment", "ifrs-full_PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities"], names: /^유형자산의 ?취득$/, concept: "PaymentsToAcquirePropertyPlantAndEquipment", cost: true },
   { sheet: "cash", ids: ["ifrs-full_DividendsPaidClassifiedAsFinancingActivities"], names: /^배당금(의)? ?지급$/, concept: "PaymentsOfDividends", cost: true },
   {
     sheet: "cash",
@@ -115,10 +115,15 @@ const filedOn = (rceptNo: string) => `${rceptNo.slice(0, 4)}-${rceptNo.slice(4, 
 export function parseDart(rows: DartRow[]): ConceptFact[] {
   const out: ConceptFact[] = [];
   const seen = new Set<string>();
+  const byId = (row: DartRow) => ACCOUNTS.find((a) => a.sheet === SHEET[row.sj_div] && a.ids.includes(row.account_id));
+  // Names repeat across statements (comprehensive income attributable to owners
+  // is "지배기업의 소유주지분" too), so a name only counts where no row had the ID.
+  const matchedById = new Set(rows.map((r) => byId(r)?.concept));
   for (const row of rows) {
     const sheet = SHEET[row.sj_div];
     if (!sheet) continue;
-    const rule = ACCOUNTS.find((a) => a.sheet === sheet && (a.ids.includes(row.account_id) || a.names.test(row.account_nm.trim())));
+    const rule =
+      byId(row) ?? ACCOUNTS.find((a) => a.sheet === sheet && !matchedById.has(a.concept) && a.names.test(row.account_nm.trim()));
     if (!rule) continue;
     const report = REPORTS.find((r) => r.code === row.reprt_code);
     if (!report) continue;
@@ -154,46 +159,17 @@ export function parseDart(rows: DartRow[]): ConceptFact[] {
   return out;
 }
 
-/** The DART corp code for a KRX stock code, from the corpCode.xml list. Pure over the XML. */
-export function corpCodeFor(xml: string, stockCode: string): string | undefined {
-  for (const m of xml.matchAll(/<list>([\s\S]*?)<\/list>/g)) {
-    const field = (name: string) => new RegExp(`<${name}>\\s*([^<]*?)\\s*</${name}>`).exec(m[1])?.[1];
-    if (field("stock_code") === stockCode) return field("corp_code");
-  }
-  return undefined;
-}
-
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
   if (!res.ok) throw new Error(`DART returned ${res.status}`);
   return (await res.json()) as T;
 }
 
-let corpCodes: Promise<string> | undefined;
-
-/** The full corp code list, read once per process (a few MB zipped). */
-async function corpCodeXml(key: string): Promise<string> {
-  corpCodes ??= (async () => {
-    const res = await fetch(`${API}/corpCode.xml?crtfc_key=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(60_000), cache: "no-store" });
-    if (!res.ok) throw new Error(`DART returned ${res.status} for the company list`);
-    const zip = await JSZip.loadAsync(await res.arrayBuffer());
-    const file = Object.values(zip.files).find((f) => /\.xml$/i.test(f.name));
-    if (!file) throw new Error("DART's company list had no XML file");
-    return file.async("string");
-  })().catch((e) => {
-    corpCodes = undefined;
-    throw e;
-  });
-  return corpCodes;
-}
-
 // Status "013" is DART's "no data": a report not filed yet.
 const NO_DATA = "013";
 
 /** Every mapped fact from `years` years of a company's reports, consolidated. */
-export async function fetchDart(stockCode: string, key: string, years = 4, today = new Date()): Promise<ConceptFact[]> {
-  const corpCode = corpCodeFor(await corpCodeXml(key), stockCode);
-  if (!corpCode) throw new Error(`DART has no company with stock code ${stockCode}`);
+export async function fetchDart(corpCode: string, key: string, years = 4, today = new Date()): Promise<ConceptFact[]> {
   const thisYear = today.getUTCFullYear();
   const requests = Array.from({ length: years }, (_, i) => thisYear - i).flatMap((year) => REPORTS.map((r) => ({ year, code: r.code })));
   const facts: ConceptFact[] = [];
@@ -209,29 +185,90 @@ export async function fetchDart(stockCode: string, key: string, years = 4, today
   return facts;
 }
 
+// The statements API carries the group only; a segment's figures are in the
+// operating segment note of each report's XBRL instance, on ifrs-full:SegmentsAxis.
+const SEGMENT_CONCEPTS: Record<string, string> = {
+  "ifrs-full:Revenue": "Revenues",
+  "dart:OperatingIncomeLoss": "OperatingIncomeLoss",
+};
+
 /**
- * A segment's quarters from a hand-kept CSV (data/foreign/<slug>.csv): rows of
- * "quarter_end,revenue,operating_income" in won, as the group's earnings release
- * prints them. DART's statements carry the group, not its segments.
+ * The segment's member in the operating segment note, under reportable segments:
+ * the figures Samsung publishes. Samsung has renamed it ("DsDivisionMember…" in
+ * 2025, "DsSegmentsMember…" from 2026). The note also repeats the segment under
+ * a second parent ("…OfSegmentsMember") with a different measure, and other
+ * tables such as impairment reuse it; both are skipped.
  */
-export function parseSegmentCsv(text: string, source: string): { facts: ConceptFact[]; bad: number[] } {
-  const facts: ConceptFact[] = [];
-  const bad: number[] = [];
-  text.split(/\r?\n/).forEach((raw, i) => {
-    const line = raw.trim();
-    if (!line || line.startsWith("#") || /^quarter_end\s*,/i.test(line)) return;
-    // Release tables print thousands separators, so a figure may be quoted ("30,000").
-    const [end, revenue, operating] = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((c) => c.trim().replace(/^"|"$/g, ""));
-    const rev = dartAmount(revenue);
-    const op = dartAmount(operating);
-    if (!/^\d{4}-(03-31|06-30|09-30|12-31)$/.test(end) || rev === undefined) {
-      bad.push(i + 1);
-      return;
-    }
-    const start = quarterStart(Number(end.slice(0, 4)), end.slice(5));
-    const meta = { start, end, form: "Manual", filed: end, url: source };
-    facts.push({ concept: "Revenues", val: rev, ...meta });
-    if (op !== undefined) facts.push({ concept: "OperatingIncomeLoss", val: op, ...meta });
-  });
-  return { facts, bad };
+export const segmentMember = (segment: string) =>
+  new RegExp(`:${segment[0]}${segment.slice(1).toLowerCase()}(Segments|Division)MemberOfReportableSegmentsMember\\w*OperatingSegmentsTable`);
+
+/**
+ * One report's segment revenue and operating profit, before internal sales are
+ * eliminated, for every duration the instance holds (three months, year to date,
+ * and last year's comparatives). Pure over the instance document.
+ */
+export function parseSegmentXbrl(xbrl: string, member: RegExp, rceptNo: string, form: string): ConceptFact[] {
+  const periods = new Map<string, { start: string; end: string }>();
+  for (const m of xbrl.matchAll(/<xbrli:context id="([^"]+)">([\s\S]*?)<\/xbrli:context>/g)) {
+    const body = m[2];
+    if (!member.test(body) || /Elimination/i.test(body)) continue;
+    const start = /<xbrli:startDate>([^<]+)</.exec(body)?.[1];
+    const end = /<xbrli:endDate>([^<]+)</.exec(body)?.[1];
+    if (start && end) periods.set(m[1], { start, end });
+  }
+  const meta = { form, filed: filedOn(rceptNo), accn: rceptNo, url: dartViewer(rceptNo) };
+  const out: ConceptFact[] = [];
+  for (const m of xbrl.matchAll(/<([\w-]+:\w+)\b[^>]*\bcontextRef="([^"]+)"[^>]*>([^<]*)</g)) {
+    const concept = SEGMENT_CONCEPTS[m[1]];
+    const period = periods.get(m[2]);
+    const val = dartAmount(m[3]);
+    if (concept && period && val !== undefined) out.push({ concept, val, ...period, ...meta });
+  }
+  return out;
 }
+
+/** "분기보고서 (2026.03)" → the report code and its name; anything else (audit, correction notices) → undefined. */
+export function reportOf(reportName: string): (typeof REPORTS)[number] | undefined {
+  if (/사업보고서/.test(reportName)) return REPORTS[3];
+  if (/반기보고서/.test(reportName)) return REPORTS[1];
+  const month = /분기보고서\s*\(\d{4}\.(\d{2})\)/.exec(reportName)?.[1];
+  return month === "03" ? REPORTS[0] : month === "09" ? REPORTS[2] : undefined;
+}
+
+/**
+ * A segment's facts from `years` years of periodic reports' XBRL. Samsung's
+ * reports tag the segment note from 2025; each also carries the prior year's
+ * comparatives, so two years of reports reach back to the start of 2024.
+ */
+export async function fetchDartSegment(corpCode: string, key: string, segment: string, years = 2, today = new Date()): Promise<ConceptFact[]> {
+  const since = `${today.getUTCFullYear() - years + 1}0101`;
+  // last_reprt_at=Y keeps only the latest version of a report that was amended.
+  const list = await getJson<{ status: string; message: string; list?: { rcept_no: string; report_nm: string }[] }>(
+    `${API}/list.json?crtfc_key=${encodeURIComponent(key)}&corp_code=${corpCode}&bgn_de=${since}&pblntf_ty=A&last_reprt_at=Y&page_count=100`,
+  );
+  if (list.status === NO_DATA) return [];
+  if (list.status !== "000") throw new Error(`DART: ${list.message} (${list.status})`);
+  const member = segmentMember(segment);
+  const filings = (list.list ?? []).flatMap((f) => {
+    const report = reportOf(f.report_nm);
+    return report ? [{ ...f, report }] : [];
+  });
+  // Each archive takes several seconds to arrive, so a few are read at a time.
+  const read = async ({ rcept_no, report }: (typeof filings)[number]): Promise<ConceptFact[]> => {
+    const url = `${API}/fnlttXbrl.xml?crtfc_key=${encodeURIComponent(key)}&rcept_no=${rcept_no}&reprt_code=${report.code}`;
+    const get = () => fetch(url, { signal: AbortSignal.timeout(60_000), cache: "no-store" });
+    const res = await get().catch(get);
+    if (!res.ok) throw new Error(`DART returned ${res.status} for filing ${rcept_no}`);
+    // A filing without XBRL comes back as a small status message, not a zip.
+    const zip = await JSZip.loadAsync(await res.arrayBuffer()).catch(() => undefined);
+    const instance = zip && Object.values(zip.files).find((f) => /\.xbrl$/i.test(f.name));
+    return instance ? parseSegmentXbrl(await instance.async("string"), member, rcept_no, `DART ${report.name}`) : [];
+  };
+  const facts: ConceptFact[] = [];
+  for (let i = 0; i < filings.length; i += XBRL_AT_ONCE) {
+    for (const batch of await Promise.all(filings.slice(i, i + XBRL_AT_ONCE).map(read))) facts.push(...batch);
+  }
+  return facts;
+}
+
+const XBRL_AT_ONCE = 4;

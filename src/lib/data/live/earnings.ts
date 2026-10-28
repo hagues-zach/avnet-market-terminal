@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { unstable_cache } from "next/cache";
 import {
   COMPANIES,
@@ -14,7 +12,7 @@ import {
   type PeerRow,
   type Quarter,
 } from "./earnings-model";
-import { fetchDart, parseSegmentCsv } from "./foreign/dart";
+import { fetchDart, fetchDartSegment } from "./foreign/dart";
 import { convert, FRED_RATE } from "./foreign/fx";
 import { parseInterim, type ConceptFact } from "./foreign/st-6k";
 import { fred } from "./fred";
@@ -337,19 +335,14 @@ async function twentyFFacts(company: Company & { foreign: { source: "sec-20f"; i
   return mergeFacts(doc, read.flat());
 }
 
-type DartCompany = Company & { foreign: { source: "dart"; stockCode: string; currency: "KRW"; segment?: "DS" } };
+type DartCompany = Company & { foreign: { source: "dart"; corpCode: string; currency: "KRW"; segment?: "DS" } };
 
-/** A DART filer's facts in won: the group's statements, or a segment kept by hand. */
+/** A DART filer's facts in won: the group's statements, or one segment's note. */
 async function dartFacts(company: DartCompany): Promise<ConceptFact[]> {
-  if (company.foreign.segment) {
-    const file = path.join(process.cwd(), "data", "foreign", `${company.slug}.csv`);
-    const { facts } = existsSync(file) ? parseSegmentCsv(readFileSync(file, "utf8"), `data/foreign/${company.slug}.csv`) : { facts: [] };
-    if (!facts.length) throw new Error(`No quarters yet: add ${company.name}'s figures to data/foreign/${company.slug}.csv.`);
-    return facts;
-  }
   const key = process.env.DART_API_KEY;
   if (!key) throw new Error("DART_API_KEY is not set, so Korean filings can't be read.");
-  return fetchDart(company.foreign.stockCode, key);
+  const { corpCode, segment } = company.foreign;
+  return segment ? fetchDartSegment(corpCode, key, segment) : fetchDart(corpCode, key);
 }
 
 /** Built in the reporting currency, so every ratio is exact, then converted to dollars. */
@@ -379,7 +372,7 @@ const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c
   revalidate: REVALIDATE_SECONDS,
 });
 // Foreign reporters change once a quarter, and DART limits calls per day.
-const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v1"], {
+const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v2"], {
   revalidate: 24 * 60 * 60,
 });
 
