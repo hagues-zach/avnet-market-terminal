@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Angles } from "@/lib/ai/news-angles";
 import type { LiveNews } from "@/lib/data/live/shared";
-import { stamp, summarize, topics, topStories, type TopicFacet } from "@/lib/news/briefing";
+import { stamp, summarize, topics, topStories, type ExposureBillings, type TopicFacet } from "@/lib/news/briefing";
 import { TopStories } from "./top-stories";
 import { Topics } from "./topics";
 import { AllNews, NO_FILTERS, type Filters } from "./news-feed";
@@ -17,7 +17,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
  * topics this week, then the full feed. The feed renders at once; Claude's
  * angles stream in behind it and fill the top stories and ratings.
  */
-export function NewsPage({ data, anglesPromise }: { data: LiveNews; anglesPromise: Promise<Angles> }) {
+export function NewsPage({ data, anglesPromise, avnet }: { data: LiveNews; anglesPromise: Promise<Angles>; avnet: ExposureBillings }) {
   const { articles, sources, fetchedAt } = data;
   const [angles, setAngles] = useState<Angles | null>(null);
   const [filters, setFiltersState] = useState<Filters>(NO_FILTERS);
@@ -109,7 +109,7 @@ export function NewsPage({ data, anglesPromise }: { data: LiveNews; anglesPromis
 
       <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
         <TopStories top={top} angles={angles} fetchedAt={fetchedAt} />
-        <Topics byFacet={byFacet} selected={filters.facets} onSelect={selectTopic} />
+        <Topics byFacet={byFacet} avnet={avnet} selected={filters.facets} onSelect={selectTopic} />
       </div>
 
       <div ref={feedRef} className="scroll-mt-16">

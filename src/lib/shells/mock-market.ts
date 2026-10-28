@@ -39,7 +39,7 @@ export const SHARE_TREND = BILLINGS_BY_QUARTER.map(({ quarter, billings }, i, al
  * Avnet billings of each supplier's parts ÷ that supplier's reported revenue,
  * latest four quarters. "Market size" is the supplier's revenue, $B.
  */
-const SUPPLIER_REVENUE_GROWTH = 0.08; // assumed; replace with each supplier's reported growth
+export const SUPPLIER_REVENUE_GROWTH = 0.08; // assumed; replace with each supplier's reported growth
 
 export const SHARE_BY_SUPPLIER = SUPPLIERS.filter((s) => s.revenue > 0).map((s) => {
   const billings = TTM_BILLINGS * s.share;
@@ -49,8 +49,8 @@ export const SHARE_BY_SUPPLIER = SUPPLIERS.filter((s) => s.revenue > 0).map((s) 
 
 // WSTS regional markets ($B, 2025), matching TAM / SAM / SOM: Asia here is
 // Asia-Pacific plus Japan. Farnell sells worldwide, so it has no region.
-const REGION_MARKET: Record<string, number> = { Americas: 170, EMEA: 92, Asia: 510.2 };
-const REGION_MARKET_GROWTH: Record<string, number> = { Americas: 0.28, EMEA: 0.08, Asia: 0.25 };
+export const REGION_MARKET: Record<string, number> = { Americas: 170, EMEA: 92, Asia: 510.2 };
+export const REGION_MARKET_GROWTH: Record<string, number> = { Americas: 0.28, EMEA: 0.08, Asia: 0.25 };
 const semiShare = SEMI_BILLINGS / TTM_BILLINGS;
 
 /** Avnet semiconductor billings in a region ÷ that region's market, latest four quarters. */

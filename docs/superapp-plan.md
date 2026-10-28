@@ -2,9 +2,9 @@
 
 Living plan for turning the Market Intelligence Terminal into a superapp for Avnet. Update the status boxes as work lands.
 
-Last updated: 2026-10-17
+Last updated: 2026-10-27
 
-> The page-by-page build plan, including design passes and data hookups, is in `docs/superapp-build-plan.md`. Product requirements are in the PRD ("AMI Superapp", Oct 15 2026).
+> The page-by-page build plan, including design passes and data hookups, is in `docs/superapp-build-plan.md`; it has the current status of every step. This document is the strategy and the original build order. Product requirements are in the PRD ("AMI Superapp", Oct 15 2026).
 
 ## Who it is for
 
@@ -43,42 +43,43 @@ The **company profile** is the hub. Most cross-pillar loops pass through it.
 
 ## What exists today
 
-| Pillar | Page | Route | Data |
-|---|---|---|---|
-| Knowledge | Market News | `/news` | Trade-press RSS, GDELT, SEC filings, Federal Register |
-| Knowledge | Economic Signals | `/signals` | Federal Reserve, BLS, IMF, Treasury, NY Fed, ECB |
-| Knowledge | Market Cycle | `/cycle` | Rolled up from SEC filings for 77 companies |
-| Network | Company Profiles | `/network`, `/network/[slug]` | Pulls together the sources below per company |
-| Network | Line Cards | `/line-cards` | Distributor manufacturer pages (3 collected) plus imported lists |
-| Network | Quarterly Earnings | `/earnings` | SEC XBRL; revenue mix; estimated earnings calendar |
-| Network | Avnet vs Arrow | `/competitive` | SEC XBRL plus segment and region history |
-| Tools | none yet | | |
+Every PRD module and tool has a designed page; the navigation groups are in `docs/superapp-build-plan.md`. Avnet-specific and licensed figures are still mock, each marked with a hookup marker; the rest is live public data.
 
-Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenario, Market Copilot, Export Center (see `src/lib/visibility.ts`).
+| Group | Pages |
+|---|---|
+| Start Here | Start Here, with a persona switch |
+| Knowledge | Market News, Market Overview, Market Cycle, Economic Signals (with the cycle engine at `/signals/engine`), Learning Center |
+| Network | Company Profiles, Quarterly Earnings, Avnet vs Arrow, Line Cards |
+| Avnet performance | Performance Tracker, Market Share, TAM / SAM / SOM, Supply Chain, Design Pipeline, Customers & End Markets |
+| Tools | QBR Prep (Claude talking points, print and PDF), Pitch Deck Builder (PowerPoint on the FY27 template; Export Center merged in), Lead Finder, Scenario Modeler, Code Mapping, Ask the Terminal (Claude with tools) |
+| Setup | Data Hookups |
 
 ## Foundations still missing
 
 | Need | Why | Status |
 |---|---|---|
 | Accounts and profiles | "The logged-in user's business" needs sign-in and a profile (role, region, suppliers, accounts). Today there is one shared password. | Not started |
-| Database | Nothing is stored. Line card snapshots, profiles, watchlists and saved briefs need it. | Decided: Supabase, **new project**, set up at step 2 (see below) |
+| Database | Line card snapshots and AI results are saved through `src/lib/store`, on local files today. Profiles, watchlists and saved briefs need it too. | Adapters for Avnet's database (Databricks or Oracle) built; not yet run against a real one (see below) |
+| Avnet internal data | Billings, pipeline, customers and the code map are mock. | Data layer and Databricks adapter on branch `avnet-data-layer`, not merged; views wait on the data team (`docs/data-contracts.md`) |
+| Deployment | Sellers need it on Avnet infrastructure. | CI, tests and a container build done; sign-in not |
 | Line card data | TTI, Future and Newark are readable. Avnet, Arrow, Mouser, DigiKey, Master, Richardson RFPD and the ECIA directory block automated reading and need importing. | Partly done |
 | Claude API | News synthesis and the commentary digest call Claude; the tools will too. Running cost. Needs a key in every environment. | In use |
 | Treg | Lead enrichment, paid per call. | Not started |
 | Anatomy skill | Open-source Claude Code skill for interactive 3D wireframes. Not installed yet. | Not started |
-| `SEC_USER_AGENT` | Required for revenue mix and segment history; must be set in any deployed environment. | Set locally only |
+| `SEC_USER_AGENT` | Required for revenue mix and segment history; must be set in any deployed environment. | Documented in `.env.example`; set locally only |
 
 ### Database decision
 
-- **Supabase, in a new project.** The existing production Supabase project is read-only by standing rule and must not be used.
-- **Set it up at step 2, not step 1.** Step 1 only regroups pages and reads live public data, so it needs no storage. Line card snapshots are the first thing that must be stored, and their shape should drive the first tables.
-- First tables to expect: `companies`, `line_card_snapshots`, `line_card_entries`, then `profiles`, `watchlists`, `briefs`.
+- **Avnet's provisioned database, Databricks or Oracle** (which one is not decided). This replaced the earlier plan for a new Supabase project. The existing production Supabase project stays read-only and is not used.
+- Everything the app saves goes through one interface, `src/lib/store`, chosen by `STORE_ADAPTER` (`file`, `databricks` or `oracle`). Two tables: a key-value table for saved results and a snapshots table for line cards. See `docs/storage.md`.
+- Avnet's own figures are not copied in: they are queried in place in Databricks through `src/lib/avnet`.
+- Profiles, watchlists and briefs come with accounts.
 
 ## Build order
 
 - [x] **Step 1. Pillar navigation and company profiles.** Built on branch `superapp-pillars-step-1`. The nav is grouped into Knowledge, Network and Tools, with planned pages shown as "Soon". `/network` is a directory of all 77 companies by relationship to Avnet (supplier, competitor, customer, ecosystem); `/network/[slug]` is a profile with rule-based "at a glance" facts, a financial snapshot, revenue mix, matching news and the next earnings date. Not yet on profiles: line card presence, management commentary, QBR prep.
 - [ ] **Step 2. Line cards.** In progress on branch `line-cards-step-2`.
-  - [x] Snapshot storage, as local JSON files under `data/line-cards/<distributor>/<date>.json`. `src/lib/line-cards/store.ts` is the whole storage surface, so moving to Supabase means reimplementing that one file.
+  - [x] Snapshot storage, as local JSON files under `data/line-cards/<distributor>/<date>.json`. `src/lib/line-cards/store.ts` now reads and writes through `snapshots` in `src/lib/store`, so the database adapters cover it.
   - [x] Collection for the three distributors whose sites can be read: TTI, Future Electronics, Newark (Farnell). First snapshots taken 2026-10-14 (UTC).
   - [x] Import form (paste a list or CSV) for every other distributor.
   - [x] `/line-cards`: coverage, overlap matrix, additions and removals, searchable supplier table. Line card presence on supplier profiles.
@@ -87,7 +88,7 @@ Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenari
   - [x] Sub-brands rolled up into supplier families; "only here" count per distributor.
   - [ ] **Import Avnet's line card.** Until then there is no white-space view. Avnet, Arrow, Mouser and DigiKey block automated reading.
   - [ ] Import Arrow, Mouser and DigiKey.
-  - [ ] Move storage to a new Supabase project (not yet created).
+  - [ ] Move storage to Avnet's database (adapters built; build plan 4.1).
   - [ ] Improve name matching (sub-brands, parent companies) once Avnet's list shows where it fails.
 - [x] **Step 3. News "why it matters" and the supplier commentary digest.** Built on branch `news-synthesis-step-3`, using Claude (`claude-opus-5-5`) through the Anthropic SDK.
   - Market News: one sentence per story on why it matters to an Avnet seller or field engineer, a relevance rating, and a relevance filter. One request per refresh for new stories only.
@@ -95,19 +96,25 @@ Hidden, still on mock data: Market Overview, TAM / SAM / SOM, Forecast & Scenari
   - Results are saved through `src/lib/store` (local files under `.cache/ai` for now) so nothing is analysed twice. See `docs/storage.md` for moving it to a database.
   - Not yet personalised to the signed-in user; that needs accounts (step 6).
   - Needs `ANTHROPIC_API_KEY` (or `ANTHROPIC_AUTH_TOKEN`) in the environment; without it both features say AI is off.
-- [ ] **Step 4. QBR prep.** The first tool, because it exercises all three pillars: pick a supplier or customer and get a brief built from its profile, news, the cycle and talking points.
-- [ ] **Step 5. Anatomy explainer pilot.** Three part explainers (candidates: SiC MOSFET module, MLCC, a board-to-board connector), each with the sales angle and linked suppliers.
-- [ ] **Step 6. Accounts and personalisation.** Sign-in, profiles, and personalised news and briefs.
-- [ ] **Step 7. Pitch deck builder and lead generation.** Decks reuse the Avnet-branded deck skill and charts from Network; leads use Treg and tie to line-card white space.
+- [x] **Step 4. QBR prep.** The first tool, because it exercises all three pillars: pick a supplier or customer and get a brief built from its profile, news, the cycle and talking points. Built in build plan 2.3 and 3.1: the brief from live public data, Claude's talking points and questions with sources, print and PDF. Avnet account numbers are mock.
+- [ ] **Step 5. Anatomy explainer pilot.** Three part explainers (candidates: SiC MOSFET module, MLCC, a board-to-board connector), each with the sales angle and linked suppliers. The Learning Center (build plan 2.17) has six technology primers with illustrations, each ending with the suppliers that make the part; the interactive 3D explainers are not built.
+- [ ] **Step 6. Accounts and personalisation.** Sign-in, profiles, and personalised news and briefs. Not started (build plan 4.2).
+- [ ] **Step 7. Pitch deck builder and lead generation.**
+  - [x] Pitch Deck Builder: slides from the app's own views, downloaded as an editable PowerPoint on the Avnet FY27 template (build plan 2.21 and 3.3).
+  - [x] Lead Finder: public customer companies ranked on live reasons, linked to Profile, QBR and the deck (build plan 2.22).
+  - [ ] Private companies and Treg enrichment; tie leads to line-card white space once Avnet's line card is imported (build plan 3.6).
 
-Later candidates: education curriculum with quizzes, weekly state-of-the-market brief, cross-sell suggester, "ask the Terminal" assistant, partnership and M&A tracker, foreign peers, distribution channel tracker, geographic exposure view.
+Also built beyond the original order: Ask the Terminal (Claude with the app's data as tools), Scenario Modeler and Code Mapping pages, and the semiconductor cycle engine (`docs/cycle-engine.md`).
+
+Later candidates: education curriculum with quizzes, weekly state-of-the-market brief, cross-sell suggester, partnership and M&A tracker, foreign peers, distribution channel tracker, geographic exposure view.
 
 ## Open questions
 
 - Relationship labels are assigned by group. TD Synnex, Wesco and ScanSource are listed as competitors because they are distributors, though they mostly sell IT and electrical products. Should they be reclassified?
 
 - Which distributors beyond Avnet and Arrow matter most for line cards?
-- Where will this be deployed for sellers, and how do they sign in (Avnet single sign-on or separate accounts)?
+- Where will this be deployed for sellers, and how do they sign in (Avnet single sign-on or separate accounts)? The app now builds as a container for Avnet infrastructure; the host and sign-in are still open.
+- Databricks or Oracle for the app's own saved results?
 - Budget ceiling for Claude and Treg usage.
 - Which technologies should the first three explainers cover?
 

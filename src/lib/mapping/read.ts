@@ -1,4 +1,5 @@
-import { SEGMENT_SHORT, type Confidence, type Mapping } from "@/lib/shells/mock-mapping";
+import type { Confidence, Mapping } from "@/lib/avnet/contracts";
+import { segmentShort } from "@/lib/avnet/format";
 
 // The Code Mapping read: coverage, the review queue's order and the lead
 // sentence. Pure, so the page and its tests read the same rule.
@@ -15,7 +16,7 @@ export interface Summary {
 }
 
 /** "WSTS › Memory › DRAM": source, segment, category. Never a slash (the brand rule). */
-export const categoryPath = (m: Mapping) => `${m.source} › ${SEGMENT_SHORT[m.segment]} › ${m.name}`;
+export const categoryPath = (m: Mapping) => `${m.source} › ${segmentShort(m.segment)} › ${m.name}`;
 
 export const needsReview = (m: Mapping) => m.status === "suggested" || m.status === "review";
 

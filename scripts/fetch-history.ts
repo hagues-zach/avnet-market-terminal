@@ -13,6 +13,7 @@ import { parseSeaj, SEAJ_INDEX, seajFileUrl, seajLinks } from "../src/lib/cycle/
 import { toMonthly, type CompanyQuarters } from "../src/lib/cycle/transform";
 import { existsSync, readFileSync } from "node:fs";
 import { loadFromSec } from "../src/lib/data/live/earnings";
+import { fred } from "../src/lib/data/live/fred";
 import { COMPANIES } from "../src/lib/data/live/earnings-model";
 
 const ROOT = path.join(process.cwd(), "data", "cycle");
@@ -22,22 +23,6 @@ const HISTORY = path.join(ROOT, "history");
 const CHIP_COHORTS = new Set(["manufacturer", "platform", "connectivity", "memory"]);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function fred(id: string): Promise<{ date: string; value: number }[]> {
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const res = await fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}`, { signal: AbortSignal.timeout(30_000) }).catch(() => null);
-    if (res?.ok) {
-      const rows = (await res.text()).trim().split("\n").slice(1);
-      return rows.flatMap((r) => {
-        const [date, v] = r.split(",");
-        const value = Number(v);
-        return v && v !== "." && Number.isFinite(value) ? [{ date, value }] : [];
-      });
-    }
-    await sleep(2000 * attempt);
-  }
-  throw new Error(`FRED didn't return ${id}`);
-}
 
 async function main() {
   mkdirSync(path.join(HISTORY, "fred"), { recursive: true });
@@ -52,7 +37,8 @@ async function main() {
   }
 
   const companies: CompanyQuarters[] = [];
-  for (const c of COMPANIES.filter((x) => CHIP_COHORTS.has(x.cohort))) {
+  // US GAAP filers only, as in the Market Cycle rollups (src/lib/data/live/cycle.ts).
+  for (const c of COMPANIES.filter((x) => CHIP_COHORTS.has(x.cohort) && !x.foreign)) {
     try {
       const e = await loadFromSec(c);
       companies.push({

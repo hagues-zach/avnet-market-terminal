@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { HOOKUPS, PILLAR_NAMES } from "@/lib/hookups";
 import { CONNECTION_ORDER } from "@/lib/data-hookups/order";
-import { PAGE_HOOKUPS } from "@/lib/data-hookups/pages";
+import { PAGE_HOOKUPS as ALL_PAGE_HOOKUPS } from "@/lib/data-hookups/pages";
+import { isHidden, visible } from "@/lib/visibility";
 import { byCloseness, countBy, lead, nextStep, readPages, readSteps, unscheduled } from "@/lib/data-hookups/read";
 import { NAV } from "@/components/layout/nav";
 import { PageBody } from "@/components/layout/page-body";
@@ -15,6 +16,9 @@ import { HookupsWorkbench } from "@/components/hookups/workbench";
 // nothing here is mock: changing a status to "live" changes this page.
 
 const link = "text-ink underline-offset-2 hover:underline";
+
+// Hidden pages (src/lib/visibility.ts) are left out of the page list and the connection steps.
+const PAGE_HOOKUPS = visible(ALL_PAGE_HOOKUPS);
 
 export default function DataHookupsPage() {
   const pages = readPages(HOOKUPS, PAGE_HOOKUPS);
@@ -68,9 +72,11 @@ export default function DataHookupsPage() {
           </span>{" "}
           and replace the mock module it names; every marker that uses it clears.
         </p>
-        <Link href="/learn#sources" className={`${link} ml-auto text-body-sm`}>
-          Sellers see these sources in plain words in the Learning Center
-        </Link>
+        {!isHidden("/learn") && (
+          <Link href="/learn#sources" className={`${link} ml-auto text-body-sm`}>
+            Sellers see these sources in plain words in the Learning Center
+          </Link>
+        )}
       </div>
     </PageBody>
   );

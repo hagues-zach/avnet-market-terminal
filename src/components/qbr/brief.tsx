@@ -43,12 +43,12 @@ function Figure({ label, value, delta }: { label: string; value: string; delta?:
 export async function QbrBrief({ setup }: { setup: BriefSetup }) {
   const { company, meeting, date, focus } = setup;
   const brief = await gatherBrief(setup);
-  const { supplier, earnings, commentary, digest, news, cycle, carriers, companyMoves, business, q, v, lines, gm, inv, onAvnet, summary } = brief;
+  const { lineCards, earnings, commentary, digest, news, cycle, carriers, companyMoves, business, q, v, lines, gm, inv, onAvnet, summary } = brief;
 
   const sections = [
     { id: "quarter", label: "The quarter in brief" },
     { id: "management", label: "What management said" },
-    { id: "distribution", label: supplier ? "Distribution position" : "Market backdrop" },
+    { id: "distribution", label: lineCards ? "Distribution position" : "Market backdrop" },
     { id: "news", label: "In the news" },
     { id: "business", label: "Our business with them" },
     { id: "talking", label: "Talking points" },
@@ -57,7 +57,7 @@ export async function QbrBrief({ setup }: { setup: BriefSetup }) {
   const sources: { label: string; status: DataStatus; asOf?: string }[] = [
     { label: "SEC filings", status: earnings.latestFiling ? "live" : "planned", asOf: earnings.latestFiling ? longDate(earnings.latestFiling.filed) : undefined },
     { label: "Earnings release", status: digest ? "live" : "planned", asOf: commentary.filed ? longDate(commentary.filed) : undefined },
-    ...(supplier ? [{ label: "Line cards", status: (carriers?.tracked ? "live" : "planned") as DataStatus }] : []),
+    ...(lineCards ? [{ label: "Line cards", status: (carriers?.tracked ? "live" : "planned") as DataStatus }] : []),
     { label: "Market News", status: "live" as DataStatus },
     { label: "Avnet billings", status: "mock" as DataStatus },
   ];
@@ -145,9 +145,9 @@ export async function QbrBrief({ setup }: { setup: BriefSetup }) {
           <Section
             id="distribution"
             n={3}
-            title={supplier ? "Distribution position" : "Market backdrop"}
+            title={lineCards ? "Distribution position" : "Market backdrop"}
             takeaway={
-              supplier && carriers
+              lineCards && carriers
                 ? `${carriers.carriers.length} of ${carriers.tracked} tracked distributor line cards list ${company.name}${
                     onAvnet === null ? "." : onAvnet ? ", including Avnet." : "; Avnet's imported line card doesn't."
                   }`
@@ -155,9 +155,9 @@ export async function QbrBrief({ setup }: { setup: BriefSetup }) {
                   ? `The semiconductor cycle is in ${cycle.phase.toLowerCase()} (${cycle.latest}).`
                   : undefined
             }
-            source={supplier ? "Source: stored distributor line cards and franchise news. A listing isn't proof of a franchise agreement." : "Source: SEC filings of the supply chain, rolled up on Market Cycle."}
+            source={lineCards ? "Source: stored distributor line cards and franchise news. A listing isn't proof of a franchise agreement." : "Source: SEC filings of the supply chain, rolled up on Market Cycle."}
           >
-            {supplier ? (
+            {lineCards ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <ul className="divide-y divide-hairline">
                   {(carriers?.carriers ?? []).map((c) => (

@@ -6,7 +6,7 @@ import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
 import { store } from "@/lib/store";
 import { arrow, avnet, company, cycle, earnings, economy, lineCard, news, supply } from "./answer";
 import { cacheKey, compose } from "./compose";
-import { depth, suggest } from "./route";
+import { depth, intentShown, suggest } from "./route";
 import { CANT, type Answer } from "./sentences";
 
 // Ask the Terminal, step 3.2: questions the rules can't route go to Claude,
@@ -117,12 +117,17 @@ function tools(question: string, parts: Answer[]) {
       inputSchema: z.object({}),
       run: () => run(() => economy(question)),
     }),
-    betaZodTool({
-      name: "supply",
-      description: "Whether component supply is tightening or easing, from fab utilisation, chip prices and inventory in the chain.",
-      inputSchema: z.object({}),
-      run: () => run(() => supply(question)),
-    }),
+    // Tools for answers whose page is hidden (src/lib/visibility.ts) are left out.
+    ...(intentShown("supply")
+      ? [
+          betaZodTool({
+            name: "supply",
+            description: "Whether component supply is tightening or easing, from fab utilisation, chip prices and inventory in the chain.",
+            inputSchema: z.object({}),
+            run: () => run(() => supply(question)),
+          }),
+        ]
+      : []),
     betaZodTool({
       name: "earnings_season",
       description: "The current earnings season: how many companies have reported, median growth, and who reports next.",
@@ -139,15 +144,19 @@ function tools(question: string, parts: Answer[]) {
       }),
       run: ({ company_slug, topic }) => run(() => news(question, company_slug ? firm(company_slug) : undefined, company_slug ? undefined : topic)),
     }),
-    betaZodTool({
-      name: "line_cards",
-      description: "Which collected distributor line cards list a supplier, from the latest snapshots.",
-      inputSchema: z.object({ supplier: z.string().min(2).max(60).describe("The supplier's name, for example Lattice") }),
-      run: ({ supplier }) => {
-        const c = COMPANIES.find((x) => x.name.toLowerCase() === supplier.toLowerCase());
-        return run(() => lineCard(question, supplier, c));
-      },
-    }),
+    ...(intentShown("linecard")
+      ? [
+          betaZodTool({
+            name: "line_cards",
+            description: "Which collected distributor line cards list a supplier, from the latest snapshots.",
+            inputSchema: z.object({ supplier: z.string().min(2).max(60).describe("The supplier's name, for example Lattice") }),
+            run: ({ supplier }) => {
+              const c = COMPANIES.find((x) => x.name.toLowerCase() === supplier.toLowerCase());
+              return run(() => lineCard(question, supplier, c));
+            },
+          }),
+        ]
+      : []),
     betaZodTool({
       name: "avnet_business",
       description: "Avnet's own billings, bookings, book-to-bill and backlog for the latest quarter. Mock figures until internal data is hooked up.",

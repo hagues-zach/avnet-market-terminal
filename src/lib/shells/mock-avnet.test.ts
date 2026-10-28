@@ -7,12 +7,12 @@ import {
   PIPELINE_BY_SEGMENT,
   PIPELINE_BY_SUPPLIER,
   PIPELINE_BY_VERTICAL,
-  PIPELINE_STAGES,
   TOP_CUSTOMERS,
   TTM_BILLINGS,
   TTM_BILLINGS_YEAR_AGO,
   VERTICALS,
 } from "./mock-avnet";
+import { PIPELINE_STAGES } from "@/lib/avnet/format";
 
 const near = (a: number, b: number, tol: number) => assert.ok(Math.abs(a - b) <= tol, `${a} vs ${b}`);
 

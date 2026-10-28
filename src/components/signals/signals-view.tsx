@@ -9,6 +9,7 @@ import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { SignalLines, type Row } from "./charts";
 import { IndicatorTabs, type Change, type IndicatorGroup } from "./indicators";
 import { cn } from "@/lib/utils";
+import { isHidden } from "@/lib/visibility";
 
 // Economic Signals: the read in words, four read tiles, production and
 // utilisation, then every indicator by group. All live, from five public sources.
@@ -242,9 +243,11 @@ export async function SignalsView() {
           footer={
             <>
               <SourceLine source="Federal Reserve G.17" asOf={util?.points.length ? when(util.points[util.points.length - 1].date) : undefined} />
-              <Link href="/supply-chain" className="ml-auto text-ink underline-offset-2 hover:underline">
-                Supply read on Supply Chain
-              </Link>
+              {!isHidden("/supply-chain") && (
+                <Link href="/supply-chain" className="ml-auto text-ink underline-offset-2 hover:underline">
+                  Supply read on Supply Chain
+                </Link>
+              )}
             </>
           }
         >
@@ -261,9 +264,11 @@ export async function SignalsView() {
         <Link href="/cycle" className="text-ink underline-offset-2 hover:underline">
           Market Cycle
         </Link>
-        <Link href="/supply-chain" className="text-ink underline-offset-2 hover:underline">
-          Supply Chain
-        </Link>
+        {!isHidden("/supply-chain") && (
+          <Link href="/supply-chain" className="text-ink underline-offset-2 hover:underline">
+            Supply Chain
+          </Link>
+        )}
         <Link href="/customers" className="text-ink underline-offset-2 hover:underline">
           Customers &amp; End Markets
         </Link>

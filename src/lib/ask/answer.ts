@@ -16,7 +16,7 @@ import type { LiveArticle } from "@/lib/data/live/shared";
 import { getSignals, yearChange } from "@/lib/data/live/signals";
 import { season } from "@/lib/earnings/season";
 import { getCarriers } from "@/lib/line-cards/analysis";
-import { PERFORMANCE } from "@/lib/shells/mock-avnet";
+import { getAvnet } from "@/lib/avnet";
 import { readsOf, sentence as economySentence, type Changes } from "@/lib/signals/read";
 import { store } from "@/lib/store";
 import { SIGNAL_KEYS, scoreSignals, sentence as supplySentence } from "@/lib/supply/read";
@@ -281,9 +281,10 @@ export async function lineCard(question: string, name: string, c?: Company): Pro
   };
 }
 
-export function avnet(question: string): Answer {
-  const latest = PERFORMANCE[PERFORMANCE.length - 1];
-  const yearAgo = PERFORMANCE[PERFORMANCE.length - 5];
+export async function avnet(question: string): Promise<Answer> {
+  const { performance, status } = await getAvnet();
+  const latest = performance[performance.length - 1];
+  const yearAgo = performance[performance.length - 5];
   return {
     intent: "avnet",
     question,
@@ -302,7 +303,7 @@ export function avnet(question: string): Answer {
       { label: "Book-to-bill", values: [latest.bookToBill.toFixed(2)] },
       { label: "Backlog", values: [usd(latest.backlog * 1e6)] },
     ],
-    sources: [{ status: "mock", label: "Mock" }],
+    sources: [status === "mock" ? { status: "mock", label: "Mock" } : { status: "live", label: "Avnet billings, bookings and backlog" }],
     links: [{ href: "/performance", label: "Performance Tracker" }],
     hookups: ["billings", "bookings", "backlog"],
   };
@@ -331,7 +332,7 @@ export async function answer(question: string): Promise<Answer> {
       case "linecard":
         return await lineCard(question, r.name ?? "", r.company);
       case "avnet":
-        return avnet(question);
+        return await avnet(question);
     }
   } catch {
     return failed(question, "Not answered", "the data for this answer", "/data-hookups", "What the app's data is");

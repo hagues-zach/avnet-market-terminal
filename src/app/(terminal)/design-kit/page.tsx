@@ -137,7 +137,7 @@ export default function DesignKitPage() {
             <EmptyState
               title="No franchise changes this quarter"
               body="Line card snapshots are compared weekly. The next comparison runs on Monday."
-              action={<ButtonLink href="/line-cards">Open line cards</ButtonLink>}
+              action={<ButtonLink href="/news">Open market news</ButtonLink>}
             />
           </Panel>
           <Panel title="Error">

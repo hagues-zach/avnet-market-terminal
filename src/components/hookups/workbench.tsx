@@ -74,7 +74,7 @@ function Detail({ h, step, usedOn }: { h: Hookup; step?: string; usedOn: { href:
           <p className="mt-1 text-body-sm text-ink">{h.refresh}</p>
         </div>
         <div>
-          <h3 className={LABEL}>Mock to replace</h3>
+          <h3 className={LABEL}>Where it plugs in</h3>
           {h.replaceIn ? (
             <p translate="no" className="mt-1 break-all font-mono text-micro text-ink">
               {h.replaceIn}

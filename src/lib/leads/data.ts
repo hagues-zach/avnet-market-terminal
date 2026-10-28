@@ -7,7 +7,7 @@ import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getLiveNews } from "@/lib/data/live/news";
 import type { LiveArticle } from "@/lib/data/live/shared";
 import type { Primer } from "@/lib/learn/content";
-import { avnetBusinessMock } from "@/components/network/company-profile";
+import { avnetBusiness } from "@/components/network/company-profile";
 import { CUSTOMERS, PRIMER_TERMS, rank, type Lead, type LeadInput } from "./rank";
 
 export interface Business {
@@ -57,8 +57,10 @@ export async function getLeads(primer: Primer): Promise<LeadRow[]> {
   const feed = (await getLiveNews().catch(() => null))?.articles ?? [];
   const inputs = await Promise.all(CUSTOMERS.map((c) => input(c, feed, PRIMER_TERMS[primer.slug], now)));
   const errors = new Map(inputs.map((i) => [i.company.slug, i.error]));
-  return rank(inputs, primer).map((l) => {
-    const b = avnetBusinessMock(l.company);
-    return { ...l, business: { rows: b.rows, hookups: b.hookups }, error: errors.get(l.company.slug) };
-  });
+  return Promise.all(
+    rank(inputs, primer).map(async (l) => {
+      const b = await avnetBusiness(l.company);
+      return { ...l, business: { rows: b.rows, hookups: b.hookups }, error: errors.get(l.company.slug) };
+    }),
+  );
 }

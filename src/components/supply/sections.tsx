@@ -6,8 +6,7 @@ import { getNewsAngles } from "@/lib/ai/news-angles";
 import { getCycle, type StageSeries } from "@/lib/data/live/cycle";
 import { getLiveNews } from "@/lib/data/live/news";
 import { getSignals, yearChange, type Signal } from "@/lib/data/live/signals";
-import { PERFORMANCE } from "@/lib/shells/mock-avnet";
-import { LEAD_TIMES, PURCHASING } from "@/lib/shells/mock-market";
+import { getAvnet } from "@/lib/avnet";
 import {
   CATEGORY_LINKS,
   firstSentence,
@@ -189,7 +188,8 @@ function ColHead({
 /** Server component: mock lead times and purchasing beside live prices and what each category's supplier said. */
 export async function ByCategory() {
   const [{ by }, commentary] = await Promise.all([loadSignals(), loadCommentary()]);
-  const max = Math.max(...LEAD_TIMES.map((l) => l.weeks));
+  const { leadTimes, purchasing, status } = await getAvnet();
+  const max = Math.max(...leadTimes.map((l) => l.weeks));
   return (
     <Panel
       title="By category"
@@ -206,26 +206,26 @@ export async function ByCategory() {
           <thead className="bg-surface-sunken">
             <tr className="border-y border-hairline">
               <ColHead align="left">Category</ColHead>
-              <ColHead align="left" mock>
+              <ColHead align="left" mock={status === "mock"}>
                 Lead time
               </ColHead>
-              <ColHead mock title="Change on a quarter ago">
+              <ColHead mock={status === "mock"} title="Change on a quarter ago">
                 Change
               </ColHead>
               <ColHead title="Producer price index, change on a year ago">Prices YoY</ColHead>
-              <ColHead mock>Avnet POs</ColHead>
-              <ColHead mock title="Change on a quarter ago">
+              <ColHead mock={status === "mock"}>Avnet POs</ColHead>
+              <ColHead mock={status === "mock"} title="Change on a quarter ago">
                 PO change
               </ColHead>
               <ColHead align="left">What the supplier said</ColHead>
             </tr>
           </thead>
           <tbody>
-            {LEAD_TIMES.map((l) => {
+            {leadTimes.map((l) => {
               const links = CATEGORY_LINKS[l.category];
               const ppi = links.prices ? by(SIGNAL_KEYS[links.prices]) : undefined;
               const ppiChange = ppi ? yearChange(ppi) : undefined;
-              const po = PURCHASING.find((p) => p.category === l.category);
+              const po = purchasing.find((p) => p.category === l.category);
               const c = commentary.get(links.supplier);
               const said = firstSentence(spoken(c?.digest?.leadTimes)) ?? firstSentence(spoken(c?.digest?.inventory));
               return (
@@ -459,8 +459,9 @@ export async function SupplyNews() {
 
 /* ---------- Avnet's order book (mock) ---------- */
 
-export function OrderBook() {
-  const latest = PERFORMANCE[PERFORMANCE.length - 1];
+export async function OrderBook() {
+  const { performance } = await getAvnet();
+  const latest = performance[performance.length - 1];
   return (
     <section aria-labelledby="order-book" className="space-y-3">
       <h2 id="order-book" className="font-display text-section-title text-ink">
@@ -477,10 +478,10 @@ export function OrderBook() {
             </Link>
           }
         >
-          <BacklogBars rows={PERFORMANCE} />
+          <BacklogBars rows={performance} />
         </Panel>
         <Panel title="Book-to-bill" subtitle={`Orders against shipments. ${latest.quarter}: ${latest.bookToBill.toFixed(2)}`}>
-          <BookToBill rows={PERFORMANCE} height={180} />
+          <BookToBill rows={performance} height={180} />
         </Panel>
       </div>
     </section>

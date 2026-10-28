@@ -1,6 +1,16 @@
 import { Suspense } from "react";
 import { getCompanyEarnings, getPeerRows } from "@/lib/data/live/earnings";
-import { COHORTS, COHORT_LABELS, COMPANIES, DEFAULT_COMPANY, type Cohort } from "@/lib/data/live/earnings-model";
+import {
+  COHORTS,
+  COHORT_LABELS,
+  COMPANIES,
+  DEFAULT_COMPANY,
+  comparability,
+  comparableValue,
+  type Cohort,
+  type Metric,
+  type Quarter,
+} from "@/lib/data/live/earnings-model";
 import { groupMedian, groupOf } from "@/lib/earnings/season";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
@@ -17,18 +27,44 @@ import { SeasonFallback, SeasonOverview } from "@/components/earnings/season";
 async function GroupSection({ company, group }: { company: string; group: Cohort | "all" }) {
   const all = await getPeerRows();
   const rows = groupOf(all, group);
+  // Medians are of the US GAAP filers, as in the Market Cycle rollups; foreign reporters sit in the table with their caveats.
   const median = Object.fromEntries(
-    (["revenueYoY", "grossMargin", "operatingMargin", "inventoryDays", "fcfMargin"] as const).map((m) => [m, groupMedian(rows, m)]),
+    (["revenueYoY", "grossMargin", "operatingMargin", "inventoryDays", "fcfMargin"] as const).map((m) => [m, groupMedian(rows.filter((r) => !r.company.foreign), m)]),
   );
+  const foreign = rows.some((r) => r.company.foreign);
   return (
     <Panel
       title={group === "all" ? `All ${COMPANIES.length} companies, latest quarter` : `${COHORT_LABELS[group]}, latest quarter`}
       subtitle="Each company on its most recent filed quarter. Select a column to sort, a company to open it"
       bodyClassName="p-0"
-      footer={<SourceLine source="SEC filings, GAAP as reported" />}
+      footer={
+        <SourceLine
+          source={
+            foreign
+              ? "SEC filings, GAAP as reported; Korean reporters from DART under K-IFRS, converted from won. Medians are of the US GAAP filers"
+              : "SEC filings, GAAP as reported"
+          }
+        />
+      }
     >
       <GroupTable
-        rows={rows.map((r) => ({ slug: r.company.slug, name: r.company.name, group: COHORT_LABELS[r.company.cohort], latest: r.latest }))}
+        rows={rows.map((r) => ({
+          slug: r.company.slug,
+          name: r.company.name,
+          group: COHORT_LABELS[r.company.cohort],
+          latest: r.latest && {
+            ...r.latest,
+            values: Object.fromEntries(
+              Object.entries(r.latest.values).map(([m, v]) => [m, comparableValue(r.company, m as Metric, v)]),
+            ) as Quarter["values"],
+          },
+          caveats: Object.fromEntries(
+            (["revenue", "revenueYoY", "grossMargin", "operatingMargin", "inventoryDays", "fcfMargin"] as const).flatMap((m) => {
+              const c = comparability(r.company, m);
+              return c?.level === "caveat" ? [[m, c.reason]] : [];
+            }),
+          ),
+        }))}
         current={company}
         groupParam={group}
         median={median}
@@ -49,7 +85,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
     <PageBody>
       <PageTitle
         title="Quarterly Earnings"
-        subtitle={`One reporting framework across ${COMPANIES.length} companies, from SEC filings`}
+        subtitle={`One reporting framework across ${COMPANIES.length} companies, from SEC filings and Korea's DART`}
         actions={<DataChip status="live" label="SEC filings" />}
       />
 

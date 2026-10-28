@@ -1,5 +1,6 @@
 // Start Here roles. No accounts yet (plan step 6), so the role lives in the URL
 // (?role=sales) and the browser remembers the last one. Safe for client and server.
+import { visible } from "@/lib/visibility";
 
 export type RoleId = "everyone" | "supplier" | "sales" | "strategy" | "executive" | "analyst";
 
@@ -17,7 +18,7 @@ export interface Role {
   steps: Step[];
 }
 
-export const ROLES: Role[] = [
+const ALL_ROLES: Role[] = [
   {
     id: "everyone",
     label: "Everyone",
@@ -82,6 +83,9 @@ export const ROLES: Role[] = [
     ],
   },
 ];
+
+/** Each role's steps, without hidden pages (src/lib/visibility.ts). */
+export const ROLES: Role[] = ALL_ROLES.map((r) => ({ ...r, steps: visible(r.steps) }));
 
 export const DEFAULT_ROLE: RoleId = "everyone";
 export const ROLE_STORAGE_KEY = "start-role";

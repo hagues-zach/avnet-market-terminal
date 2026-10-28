@@ -1,7 +1,7 @@
 // Every place the app needs real data, in one register. Pages and sections refer
 // to these by id, the Data Hookups page lists them, and the Learning Center uses
 // them as data source guides. When a source is connected, change its status to
-// "live" and replace the mock module named in `replaceIn`.
+// "live" and plug it in where `replaceIn` says.
 //
 // Data pillars follow the PRD (docs/superapp-plan.md links it): open data,
 // licensed third-party data, and Avnet internal data.
@@ -27,7 +27,7 @@ export interface Hookup {
   sources: string[];
   fields?: string[];
   refresh: string;
-  /** Mock module to replace when this goes live. */
+  /** Where it plugs in: the src/lib/avnet dataset and Databricks view (db/databricks/views), or the mock module still to replace. */
   replaceIn?: string;
   notes?: string;
 }
@@ -48,7 +48,7 @@ export const HOOKUPS: Hookup[] = [
     ],
     fields: ["posting_date", "extended_resale", "manufacturer_code", "technology_code", "drms_status"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: performance(), segments(), regions(), suppliers(), verticals() ← terminal_billings_base",
   },
   {
     id: "bookings",
@@ -59,7 +59,7 @@ export const HOOKUPS: Hookup[] = [
     sources: ["bda_prd_na_avt.silver_sales.bookings_primary_view", "bda_prd_asia_avt.silver_sales.book17_view"],
     fields: ["booking date", "order value"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: performance() ← terminal_performance",
   },
   {
     id: "backlog",
@@ -74,7 +74,7 @@ export const HOOKUPS: Hookup[] = [
     ],
     fields: ["CRD and MAD segmentation", "open value"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: performance(), regions() ← terminal_performance, terminal_regions",
   },
   {
     id: "quotes",
@@ -85,7 +85,7 @@ export const HOOKUPS: Hookup[] = [
     sources: ["bda_prd_apac_pf.silver_quote.quotelines", "bda_prd_apac_pf.silver_quote.vendavaodet"],
     fields: ["quote value", "won orders", "pricing", "discounts"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: account() ← terminal_accounts",
     notes: "Only APAC (Farnell) is listed in the PRD; other regions to confirm.",
   },
   {
@@ -97,7 +97,7 @@ export const HOOKUPS: Hookup[] = [
     sources: ["bda_prd_na_avt.silver_master.drms_detail"],
     fields: ["design_registration_number", "reg_status", "supplier", "approved_date", "material"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: pipeline() ← terminal_pipeline_*",
     notes: "DRMS status '04' marks design-approved billings (PRD module 2).",
   },
   {
@@ -118,7 +118,7 @@ export const HOOKUPS: Hookup[] = [
     ],
     fields: ["product_hierarchy", "product_category", "Commodity_code", "pcc_level_1", "pcc_level_2", "pcc_level_3", "manufacturer_part_number", "brand_name", "parent_brand_name"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-mapping.ts",
+    replaceIn: "src/lib/avnet: codeMap() ← terminal_code_map",
   },
   {
     id: "customer-master",
@@ -134,7 +134,7 @@ export const HOOKUPS: Hookup[] = [
     ],
     fields: ["EndCustomer", "SICC_Code", "GlobalEnvironmentc", "GlobalSubEnvironmentC", "ParentCompany", "Region"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: customers() ← terminal_customer_concentration, terminal_top_customers",
   },
   {
     id: "procurement",
@@ -151,7 +151,7 @@ export const HOOKUPS: Hookup[] = [
     ],
     fields: ["Vendor_No", "Purch_Doc_Date", "PO_Qty", "Net_Price_Purchasing_Doc"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: supply() ← terminal_supply",
   },
   {
     id: "fiscal-calendar",
@@ -189,7 +189,7 @@ export const HOOKUPS: Hookup[] = [
     description: "A seller's own accounts, open quotes and opportunities, for QBR prep and lead finding.",
     sources: ["CRM (system to confirm, PRD open question 15)"],
     refresh: "Daily",
-    replaceIn: "src/lib/shells/mock-avnet.ts",
+    replaceIn: "src/lib/avnet: account() ← terminal_accounts",
   },
 
   // ---- Licensed third-party (PRD section 2, pillar 2) ----
@@ -202,7 +202,7 @@ export const HOOKUPS: Hookup[] = [
     sources: ["WSTS files (format to confirm)"],
     fields: ["product category", "region", "month", "billings", "forecast"],
     refresh: "Monthly",
-    replaceIn: "src/lib/data/mock/tam.ts, src/lib/data/mock/forecast.ts, src/lib/shells/mock-market.ts",
+    replaceIn: "src/lib/data/mock/tam.ts, src/lib/data/mock/forecast.ts; src/lib/avnet: markets() ← terminal_segment_markets, terminal_region_markets",
   },
   {
     id: "gartner-forecast",
@@ -213,7 +213,7 @@ export const HOOKUPS: Hookup[] = [
     sources: ["Gartner files or API (to confirm)"],
     fields: ["device type", "application", "geography", "year"],
     refresh: "Quarterly",
-    replaceIn: "src/lib/shells/mock-market.ts",
+    replaceIn: "src/lib/avnet: markets() ← terminal_segment_markets, terminal_ai_devices",
   },
   {
     id: "gartner-capex",
@@ -241,7 +241,7 @@ export const HOOKUPS: Hookup[] = [
     description: "Interconnect, passive and electromechanical component forecasts.",
     sources: ["IP&E forecast files (provider to confirm)"],
     refresh: "Quarterly",
-    replaceIn: "src/lib/shells/mock-market.ts",
+    replaceIn: "src/lib/avnet: markets() ← terminal_segment_markets",
   },
   {
     id: "lead-times",
@@ -252,7 +252,7 @@ export const HOOKUPS: Hookup[] = [
     sources: ["ECIA lead time data (via Avnet)", "Sourceability lead time feed"],
     fields: ["manufacturer part number", "lead time weeks", "availability"],
     refresh: "Weekly",
-    replaceIn: "src/lib/shells/mock-market.ts",
+    replaceIn: "src/lib/avnet: supply() ← terminal_supply",
     notes: "Matched to the material master by manufacturer part number.",
   },
 
@@ -277,7 +277,7 @@ export const HOOKUPS: Hookup[] = [
       "validation_date",
     ],
     refresh: "As needed, versioned",
-    replaceIn: "src/lib/shells/mock-mapping.ts",
+    replaceIn: "src/lib/avnet: codeMap() ← terminal_code_map",
   },
   {
     id: "tam-sam-som",
@@ -287,7 +287,7 @@ export const HOOKUPS: Hookup[] = [
     description: "Pre-computed market size, serviceable market and Avnet share by segment and period.",
     sources: ["gold.market_intelligence.tam_sam_som_quarterly", "gold.market_intelligence.market_share_by_segment"],
     refresh: "Monthly",
-    replaceIn: "src/lib/shells/mock-market.ts",
+    replaceIn: "src/lib/avnet: segments(), markets() ← terminal_segments, terminal_segment_markets",
   },
   {
     id: "transcripts",

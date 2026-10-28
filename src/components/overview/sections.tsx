@@ -8,7 +8,7 @@ import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
 import { getLiveNews } from "@/lib/data/live/news";
 import { day, quarterName } from "@/lib/ask/sentences";
 import { REGION_LABEL, PRODUCT_LABEL, type TamSummary } from "@/lib/data/types";
-import { AI_DEVICES } from "@/lib/shells/mock-market";
+import { getAvnet } from "@/lib/avnet";
 import { PACE_WORDS, bn, forecastDrift, lead, pace, pct, split } from "@/lib/overview/read";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { Chip, DataChip } from "@/components/ui/chip";
@@ -25,7 +25,6 @@ import { MarketByYear } from "./market-chart";
 const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
 const LABEL = "font-display text-label uppercase text-ink-muted";
 const link = "text-ink underline underline-offset-2 hover:text-ink-muted";
-const DEVICES = AI_DEVICES.map((d) => d.device);
 const thisYear = () => new Date().getUTCFullYear();
 
 /** The supply-chain groups (customer groups left out), latest quarter against the one before. */
@@ -55,7 +54,8 @@ async function cycleOrNull() {
 
 export async function Lead({ tam, marketPrior }: { tam: TamSummary; marketPrior: number }) {
   const cycle = await cycleOrNull();
-  const s = split(AI_DEVICES, tam.tamUsdM, marketPrior);
+  const { aiDevices, status } = await getAvnet();
+  const s = split(aiDevices, tam.tamUsdM, marketPrior);
   const supply = cycle?.supply.find((p) => p.label === cycle.latest)?.growth;
   const top = cycle ? quarterRows(cycle)[0] : undefined;
   return (
@@ -67,14 +67,14 @@ export async function Lead({ tam, marketPrior }: { tam: TamSummary; marketPrior:
             market: tam.tamUsdM,
             growth: tam.yoyGrowth,
             forecast: tam.forecastNextYearUsdM,
-            devices: DEVICES,
+            devices: aiDevices.map((d) => d.device),
             rest: s.rest,
             quarter: cycle ? quarterName(cycle.latest) : undefined,
             supplyGrowth: supply,
             leader: top?.label,
           })}
         </span>
-        <DataChip status="mock" title="The split of AI devices against the rest is mock" />
+        <DataChip status={status} title={status === "mock" ? "The split of AI devices against the rest is mock" : undefined} />
       </p>
       <HookupMarker ids={["wsts", "gartner-forecast"]} />
     </div>
@@ -150,13 +150,14 @@ function Bar({ label, value, share, growth, ai }: { label: string; value: number
   );
 }
 
-export function WhatCarried({ tam, marketPrior, vintage }: { tam: TamSummary; marketPrior: number; vintage: string }) {
-  const s = split(AI_DEVICES, tam.tamUsdM, marketPrior);
+export async function WhatCarried({ tam, marketPrior, vintage }: { tam: TamSummary; marketPrior: number; vintage: string }) {
+  const { aiDevices, status } = await getAvnet();
+  const s = split(aiDevices, tam.tamUsdM, marketPrior);
   return (
     <Panel
       title="What carried the growth"
       subtitle={`${tam.latestYear} sales and growth on ${tam.latestYear - 1}: the devices AI spending lands on, against the rest of the market`}
-      actions={<DataChip status="mock" />}
+      actions={<DataChip status={status} />}
       className="xl:col-span-7"
     >
       <div className="space-y-3">
@@ -180,7 +181,7 @@ export function WhatCarried({ tam, marketPrior, vintage }: { tam: TamSummary; ma
             </tr>
           </thead>
           <tbody>
-            {AI_DEVICES.map((d) => (
+            {aiDevices.map((d) => (
               <tr key={d.device} className="border-b border-hairline">
                 <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
                   {d.device}

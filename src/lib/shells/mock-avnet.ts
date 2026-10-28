@@ -2,7 +2,8 @@
 // figures agree with each other: Start Here, Performance Tracker, Market Share,
 // TAM / SAM / SOM, Customers and the shell pages all read from here. None of
 // these numbers are real. Each section that uses them names its hookup
-// (src/lib/hookups.ts); replace this file with queries against those tables.
+// (src/lib/hookups.ts). The app reads it through the mock adapter in
+// src/lib/avnet/mock.ts; at Avnet, AVNET_DATA=databricks replaces it.
 //
 // How the pieces nest (trailing 12 months):
 //   billings (all of Avnet)                        ≈ $24B
@@ -10,6 +11,9 @@
 //     └ semiconductor billings (TAM's SOM)         = the semiconductor segments
 // Regions, suppliers, verticals and segments are shares of those totals, so
 // every breakdown adds back up to its parent.
+
+import type { Funnel, PipelineRow, StageFigures, TopCustomer } from "@/lib/avnet/contracts";
+import { PIPELINE_STAGES } from "@/lib/avnet/format";
 
 export const QUARTERS = ["FY25 Q2", "FY25 Q3", "FY25 Q4", "FY26 Q1", "FY26 Q2", "FY26 Q3", "FY26 Q4", "FY27 Q1"];
 
@@ -148,20 +152,6 @@ export const VERTICALS = VERTICAL_MIX.map((v) => ({ ...v, billings: TTM_BILLINGS
 // value approved but not yet billing: approved minus billing. Groups (supplier,
 // segment, vertical) take shares of the same totals, so every view adds back up.
 
-export type PipelineStage = "submitted" | "approved" | "production" | "billing";
-export const PIPELINE_STAGES: { id: PipelineStage; label: string }[] = [
-  { id: "submitted", label: "Submitted" },
-  { id: "approved", label: "Approved" },
-  { id: "production", label: "In production" },
-  { id: "billing", label: "Billing" },
-];
-
-export interface StageFigures {
-  count: number;
-  value: number; // $M estimated annual billings
-}
-export type Funnel = Record<PipelineStage, StageFigures>;
-
 export const PIPELINE: Funnel = {
   submitted: { count: 4200, value: 6100 },
   approved: { count: 2730, value: 4000 },
@@ -193,19 +183,6 @@ function funnelFor(share: number, tilt: number): Funnel {
     production: scale(PIPELINE.production, 1 + tilt),
     billing: scale(PIPELINE.billing, 1 + tilt),
   };
-}
-
-export interface PipelineRow {
-  name: string;
-  funnel: Funnel;
-  /** Approved but not yet billing, $M. */
-  pipeline: number;
-  /** Change in approved pipeline on a year ago. */
-  change: number;
-  /** Billings in the trailing 12 months, $M, for the pipeline-to-billings ratio. */
-  billings: number;
-  /** Approved over 12 months ago and not yet in production. */
-  stalled: number;
 }
 
 /** Rows for one view, rescaled stage by stage so the groups add back to the totals. */
@@ -285,19 +262,6 @@ const TOP_CUSTOMER_MIX = [
   { name: "Customer J", vertical: "Automotive", region: "Asia", share: 0.01, growth: -0.02, backlog: 0.37, pipe: 0.7 },
 ];
 
-export interface TopCustomer {
-  name: string;
-  vertical: string;
-  region: (typeof REGIONS)[number];
-  /** Billings in the last 12 months, $M. */
-  billings: number;
-  growth: number;
-  /** $M */
-  backlog: number;
-  /** Approved design pipeline not yet billing, $M. */
-  pipeline: number;
-}
-
 export const TOP_CUSTOMERS: TopCustomer[] = TOP_CUSTOMER_MIX.map((c) => {
   const billings = TTM_BILLINGS * c.share;
   const v = VERTICALS.find((x) => x.name === c.vertical)!;
@@ -306,8 +270,3 @@ export const TOP_CUSTOMERS: TopCustomer[] = TOP_CUSTOMER_MIX.map((c) => {
   const pipeline = p.pipeline * (billings / v.billings) * c.pipe;
   return { name: c.name, vertical: c.vertical, region: c.region as TopCustomer["region"], billings, growth: c.growth, backlog: billings * c.backlog, pipeline };
 });
-
-/* ---------- Formatting ---------- */
-
-export const fmtM = (v: number) => (Math.abs(v) >= 1000 ? `$${(v / 1000).toFixed(2)}B` : `$${Math.round(v)}M`);
-export const fmtPct = (v: number, signed = false) => `${signed && v >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%`;

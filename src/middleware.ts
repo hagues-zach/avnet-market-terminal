@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE } from "@/lib/auth";
-import { HIDDEN_PATHS } from "@/lib/visibility";
+import { isHidden } from "@/lib/visibility";
 
 // Cookie-based password gate for the demo deployment. Active only when
 // SITE_PASSWORD is set (prod/preview on Vercel); open in local dev when unset.
@@ -10,7 +10,7 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Hidden pages bounce to Market News so they aren't reachable by direct URL.
-  if (HIDDEN_PATHS.includes(pathname)) {
+  if (isHidden(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = "/news";
     url.search = "";

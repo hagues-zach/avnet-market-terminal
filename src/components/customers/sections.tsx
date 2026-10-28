@@ -4,7 +4,7 @@ import { getAllEarnings } from "@/lib/data/live/earnings";
 import { getCycle } from "@/lib/data/live/cycle";
 import { COHORT_LABELS, COMPANIES, type Cohort } from "@/lib/data/live/earnings-model";
 import { added, againstDemand, concentration, DEMAND_WORDS, MARKET_GROUP, trailingGrowth, type Demand } from "@/lib/customers/read";
-import { CONCENTRATION, PIPELINE_BY_VERTICAL, TOP_CUSTOMERS, TTM_BILLINGS, VERTICALS } from "@/lib/shells/mock-avnet";
+import { getAvnet, type AvnetModel } from "@/lib/avnet";
 import { DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -54,18 +54,18 @@ interface MarketRow {
   demand: Demand | null;
 }
 
-function marketRows(demand: Record<string, GroupDemand> | null): MarketRow[] {
-  return [...VERTICALS]
+function marketRows(m: AvnetModel, demand: Record<string, GroupDemand> | null): MarketRow[] {
+  return [...m.verticals]
     .map((v) => {
       const group = MARKET_GROUP[v.name];
       const groupGrowth = group ? demand?.[group]?.growth : undefined;
       return {
         name: v.name,
         billings: v.billings,
-        share: v.billings / TTM_BILLINGS,
+        share: v.billings / m.ttmBillings,
         growth: v.growth,
         added: added(v),
-        pipeline: PIPELINE_BY_VERTICAL.find((p) => p.name === v.name)?.pipeline ?? 0,
+        pipeline: m.pipelineByVertical.find((p) => p.name === v.name)?.pipeline ?? 0,
         group,
         groupGrowth,
         demand: againstDemand(v.growth, groupGrowth),
@@ -114,8 +114,8 @@ function HeaderChip({
 /* ---------- By end market, and the dot plot ---------- */
 
 export async function EndMarkets() {
-  const demand = await loadDemand();
-  const rows = marketRows(demand);
+  const [m, demand] = await Promise.all([getAvnet(), loadDemand()]);
+  const rows = marketRows(m, demand);
   const maxBillings = Math.max(...rows.map((r) => r.billings));
   const latest = demand ? Object.values(demand)[0]?.latest : undefined;
 
@@ -147,10 +147,10 @@ export async function EndMarkets() {
               <th scope="col" className={cn(TH, "px-2 py-1.5 text-left align-bottom")}>
                 End market
               </th>
-              <HeaderChip label="Billings, 12 months" status="mock" right={false} />
-              <HeaderChip label="Share" status="mock" />
-              <HeaderChip label="Growth YoY" status="mock" />
-              <HeaderChip label="Added" status="mock" title="Billings added on a year ago" />
+              <HeaderChip label="Billings, 12 months" status={m.status} right={false} />
+              <HeaderChip label="Share" status={m.status} />
+              <HeaderChip label="Growth YoY" status={m.status} />
+              <HeaderChip label="Added" status={m.status} title="Billings added on a year ago" />
               <HeaderChip
                 label="Customer growth"
                 status="live"
@@ -160,12 +160,12 @@ export async function EndMarkets() {
               />
               <HeaderChip
                 label="Against demand"
-                status="mock"
+                status={m.status}
                 chip="Mock vs live"
                 right={false}
                 title="Avnet's growth (mock) against customer growth (live): more than 5 points either way is ahead or behind"
               />
-              <HeaderChip label="Pipeline" status="mock" title="Approved design pipeline, not yet billing" />
+              <HeaderChip label="Pipeline" status={m.status} title="Approved design pipeline, not yet billing" />
             </tr>
           </thead>
           <tbody>
@@ -225,7 +225,8 @@ export async function EndMarkets() {
 }
 
 export async function DemandPlot() {
-  const rows = marketRows(await loadDemand());
+  const [m, demand] = await Promise.all([getAvnet(), loadDemand()]);
+  const rows = marketRows(m, demand);
   return (
     <Panel
       className="xl:col-span-4"
@@ -327,13 +328,14 @@ export function DemandPlotFallback() {
 
 /* ---------- Largest customers (mock) ---------- */
 
-export function LargestCustomers() {
+export async function LargestCustomers() {
+  const { concentration: c, topCustomers, status } = await getAvnet();
   return (
     <Panel
       className="xl:col-span-8"
       title="Largest customers"
-      subtitle={`${concentration(CONCENTRATION.top10.now, CONCENTRATION.top10.yearAgo)} The ten largest by parent company; names withheld in mock`}
-      actions={<DataChip status="mock" />}
+      subtitle={`${concentration(c.top10.now, c.top10.yearAgo)} The ten largest by parent company; names withheld in mock`}
+      actions={<DataChip status={status} />}
       bodyClassName="p-0"
     >
       <div role="region" aria-label="Largest customers" tabIndex={0} className="overflow-x-auto">
@@ -367,7 +369,7 @@ export function LargestCustomers() {
             </tr>
           </thead>
           <tbody>
-            {TOP_CUSTOMERS.map((c) => (
+            {topCustomers.map((c) => (
               <tr key={c.name} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
                 <th scope="row" className="whitespace-nowrap px-2 py-1.5 text-left font-normal text-ink">
                   {c.name}

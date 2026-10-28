@@ -54,7 +54,7 @@ export interface Usage {
 const SYSTEM = `You prepare Avnet sellers and supplier managers for a quarterly business review. Avnet is a global distributor of electronic components: semiconductors and interconnect, passive and electromechanical (IP&E) parts, sold to equipment makers. Arrow Electronics is its closest competitor.
 
 There are two kinds of meeting:
-- A supplier line review is with a manufacturer whose parts Avnet distributes. Avnet wants a bigger share of that supplier's channel, support for design wins, fair allocation and pricing, and to know where the supplier sees demand, inventory and lead times going. The supplier wants Avnet to sell more of its parts and win designs. Talk about Avnet's position against the other distributors that list the supplier.
+- A supplier line review is with a manufacturer whose parts Avnet distributes. Avnet wants a bigger share of that supplier's channel, support for design wins, fair allocation and pricing, and to know where the supplier sees demand, inventory and lead times going. The supplier wants Avnet to sell more of its parts and win designs. When the brief has distributor line cards, talk about Avnet's position against the other distributors that list the supplier.
 - A customer account review is with an equipment maker that buys components through Avnet. Avnet wants to understand its demand, build plans, inventory and supply risks, and where Avnet can help with supply assurance, design support or new programs.
 
 You are given the brief the person will read, in tagged sections. Write:
@@ -113,7 +113,7 @@ export function render(b: Brief, s: BriefSetup): string {
         b.commentary.filed ? `From the earnings release filed ${longDate(b.commentary.filed)}.` : "",
       ]
     : ["No summary of the latest earnings release."];
-  const distribution = b.supplier
+  const distribution = b.lineCards
     ? [
         b.carriers
           ? `${b.carriers.carriers.length} of ${b.carriers.tracked} tracked distributor line cards list ${s.company.name}: ${b.carriers.carriers.map((c) => `${c.name} (as of ${longDate(c.date)})`).join(", ") || "none"}.`
@@ -130,7 +130,7 @@ export function render(b: Brief, s: BriefSetup): string {
     tag("meeting", meeting.filter(Boolean).join("\n")),
     tag("quarter", quarter.join("\n")),
     tag("management", management.filter(Boolean).join("\n")),
-    tag("distribution", distribution.join("\n"), b.supplier ? "" : ' kind="market backdrop"'),
+    tag("distribution", distribution.join("\n"), b.lineCards ? "" : ' kind="market backdrop"'),
     tag("news", news.join("\n")),
     tag("business", business.join("\n"), ' mock="true"'),
   ].join("\n\n");

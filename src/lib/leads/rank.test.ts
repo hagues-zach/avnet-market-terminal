@@ -29,7 +29,7 @@ const sic = primer("sic-mosfets");
 const q = (url: string) => Object.fromEntries(new URL(url, "http://x").searchParams);
 
 // ---- Groups and primers ----
-assert.equal(CUSTOMERS.length, 23, "23 public customer companies");
+assert.equal(CUSTOMERS.length, 24, "24 public customer companies");
 for (const c of CUSTOMERS)
   assert.ok(
     GROUPS.some((g) => g.value === c.cohort),

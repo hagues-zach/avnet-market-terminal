@@ -1,12 +1,26 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { getCompanyNews } from "@/lib/data/live/company-news";
+import { getAccount } from "@/lib/avnet";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getNextRelease, TIMING_LABELS } from "@/lib/data/live/earnings-calendar";
-import { COHORT_LABELS, ROLE_SINGULAR, roleOf, type Company, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
+import {
+  COHORT_LABELS,
+  ROLE_SINGULAR,
+  comparability,
+  comparableValue,
+  currencyName,
+  roleOf,
+  sourceOf,
+  type Company,
+  type CompanyEarnings,
+  type Metric,
+  type Quarter,
+} from "@/lib/data/live/earnings-model";
 import { getRevenueMix, type RevenueMix } from "@/lib/data/live/revenue-mix";
 import { getCommentary, type Digest } from "@/lib/ai/commentary";
 import { getCarriers } from "@/lib/line-cards/analysis";
+import { isHidden } from "@/lib/visibility";
 import { companyColor } from "@/lib/colors";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { KpiTile } from "@/components/ui/kpi-tile";
@@ -52,11 +66,18 @@ export function glance(earnings: CompanyEarnings, mix: RevenueMix): string[] {
     }
     lines.push(`${line}.`);
   }
+  // Dollar growth for a foreign reporter includes the exchange rate; say what it was at home.
+  const local = earnings.local?.revenueYoY[q.end];
+  if (earnings.local && local !== undefined) {
+    lines.push(`In ${currencyName(earnings.local.currency)}, revenue was ${local >= 0 ? "up" : "down"} ${(Math.abs(local) * 100).toFixed(1)}% on a year earlier.`);
+  }
   if (v.grossMargin !== undefined) {
     const d = p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
     lines.push(
       `Gross margin is ${format("pct", v.grossMargin)}${d === undefined || Math.abs(d) < 0.0005 ? "" : `, ${d > 0 ? "up" : "down"} ${points(d)} on the year`}${
-        v.operatingMargin === undefined ? "" : `; operating margin is ${format("pct", v.operatingMargin)}`
+        v.operatingMargin === undefined
+          ? ""
+          : `; operating margin is ${format("pct", v.operatingMargin)}${comparability(earnings.company, "operatingMargin") ? ", as Korean accounting defines it" : ""}`
       }.`,
     );
   }
@@ -92,13 +113,13 @@ const linkClass = "text-ink underline-offset-2 hover:underline";
 export async function ProfileChips({ company }: { company: Company }) {
   const role = roleOf(company);
   let onAvnet = false;
-  if (role === "supplier") {
+  if (role === "supplier" && !isHidden("/line-cards")) {
     const { carriers, hasHome } = await getCarriers(company.name).catch(() => ({ carriers: [], hasHome: false }));
     onAvnet = hasHome && carriers.some((c) => c.slug === "avnet");
   }
   return (
     <>
-      <Chip>SEC filer</Chip>
+      <Chip>{sourceOf(company).chip}</Chip>
       {onAvnet && (
         <Chip>
           <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
@@ -169,18 +190,20 @@ export async function ProfileOverview({ company }: { company: Company }) {
   if (!q) {
     return (
       <Panel title="Overview">
-        <EmptyState title={`${company.name}'s filings couldn't be loaded from SEC EDGAR right now.`} body={earnings.error} />
+        <EmptyState title={`${company.name}'s figures couldn't be loaded from ${sourceOf(company).short} right now.`} body={earnings.error} />
       </Panel>
     );
   }
   const p = yearAgo(quarters, q);
-  const v = q.values;
+  // Figures that don't compare with the US filers are left out, the rest carry their caveat.
+  const v = Object.fromEntries(Object.entries(q.values).map(([m, x]) => [m, comparableValue(company, m as Metric, x)])) as Quarter["values"];
+  const caveat = (m: Metric) => comparability(company, m)?.reason;
   const lines = glance(earnings, mix);
   // Avnet Green only ever represents Avnet.
   const color = companyColor(company.slug);
   const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
   const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
-  const footer = <SourceLine source={`${company.name}'s SEC filings`} asOf={`quarter ended ${longDate(q.end)}`} />;
+  const footer = <SourceLine source={sourceOf(company).filings} asOf={`quarter ended ${longDate(q.end)}`} />;
 
   return (
     <div className="space-y-4">
@@ -188,17 +211,20 @@ export async function ProfileOverview({ company }: { company: Company }) {
         <KpiTile
           label={`Revenue, ${q.fiscalLabel}`}
           value={format("usd", v.revenue)}
+          caveat={caveat("revenue")}
           delta={v.revenueYoY === undefined ? undefined : { value: v.revenueYoY, period: "YoY" }}
         />
         <KpiTile
           label="Gross margin"
           value={format("pct", v.grossMargin)}
+          caveat={caveat("grossMargin")}
           delta={gmDelta === undefined ? undefined : { value: gmDelta, display: `${(Math.abs(gmDelta) * 100).toFixed(1)} pts`, period: "YoY" }}
         />
-        <KpiTile label="Operating margin" value={format("pct", v.operatingMargin)} />
+        <KpiTile label="Operating margin" value={format("pct", v.operatingMargin)} caveat={caveat("operatingMargin")} />
         <KpiTile
           label="Inventory days"
           value={format("days", v.inventoryDays)}
+          caveat={caveat("inventoryDays")}
           note={v.inventoryDays === undefined ? "Not reported" : undefined}
           delta={invDelta === undefined || invDelta === 0 ? undefined : { value: invDelta, display: `${Math.abs(invDelta)}`, period: "YoY", invert: true }}
         />
@@ -381,37 +407,33 @@ export async function ProfileNews({ company }: { company: Company }) {
   );
 }
 
-/** Deterministic mock figures per company, so a profile doesn't change between visits. */
-function seeded(slug: string, salt: number, min: number, max: number): number {
-  let h = 2166136261 ^ salt;
-  for (const ch of slug) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return min + ((h >>> 0) % 1000) / 1000 * (max - min);
-}
-
 /**
- * Avnet's business with a supplier or customer. MOCK until billings and account
- * data are hooked up; shared by the profile and the QBR brief so they agree.
+ * Avnet's business with a supplier or customer, from src/lib/avnet (mock until
+ * AVNET_DATA points at Avnet's tables); shared by the profile, the QBR brief,
+ * leads and the deck so they agree.
  */
-export function avnetBusinessMock(company: Company) {
+export async function avnetBusiness(company: Company) {
   const supplier = roleOf(company) === "supplier";
-  const billings = seeded(company.slug, 1, 40, 900);
+  const { figures: f, status } = await getAccount(company.slug, company.name, supplier);
+  const count = (v: number | undefined) => (v === undefined ? "n/a" : v.toLocaleString("en-US"));
   return {
     supplier,
-    rows: [
-      { label: "Billings, last 12 months", value: `$${billings.toFixed(1)}M` },
-      { label: "Backlog", value: `$${(billings * seeded(company.slug, 2, 0.3, 0.8)).toFixed(1)}M` },
-      supplier
-        ? { label: "Open design registrations", value: Math.round(seeded(company.slug, 3, 40, 1400)).toLocaleString("en-US") }
-        : { label: "Open quotes", value: Math.round(seeded(company.slug, 4, 20, 600)).toLocaleString("en-US") },
-    ],
+    status,
+    rows: f
+      ? [
+          { label: "Billings, last 12 months", value: `$${f.billings.toFixed(1)}M` },
+          { label: "Backlog", value: `$${f.backlog.toFixed(1)}M` },
+          supplier ? { label: "Open design registrations", value: count(f.openRegistrations) } : { label: "Open quotes", value: count(f.openQuotes) },
+        ]
+      : [{ label: "Billings, last 12 months", value: "None on record" }],
     hookups: supplier ? ["billings", "backlog", "drms"] : ["billings", "backlog", "quotes", "customer-master"],
   };
 }
 
-export function ProfileAvnetBusiness({ company }: { company: Company }) {
-  const { supplier, rows, hookups } = avnetBusinessMock(company);
+export async function ProfileAvnetBusiness({ company }: { company: Company }) {
+  const { supplier, rows, hookups, status } = await avnetBusiness(company);
   return (
-    <Panel title="Avnet business" subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`} actions={<DataChip status="mock" />}>
+    <Panel title="Avnet business" subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`} actions={<DataChip status={status} />}>
       <dl className="divide-y divide-hairline">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline justify-between gap-3 py-2 first:pt-0">

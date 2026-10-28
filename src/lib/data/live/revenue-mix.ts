@@ -249,8 +249,9 @@ async function load(slug: string, declaredAgent: string): Promise<RevenueMix> {
   const company = COMPANIES.find((c) => c.slug === slug)!;
   const recent = ((await (await fetchSec(`https://data.sec.gov/submissions/CIK${String(company.cik).padStart(10, "0")}.json`, DATA_USER_AGENT)).json()) as Submissions)
     .filings?.recent;
-  const i = recent?.form.findIndex((f) => f === "10-K" || f === "10-Q") ?? -1;
-  if (!recent || i < 0) throw new Error("No 10-K or 10-Q found");
+  // A 20-F filer's annual report carries the same tagged revenue breakdowns as a 10-K.
+  const i = recent?.form.findIndex((f) => f === "10-K" || f === "10-Q" || f === "20-F") ?? -1;
+  if (!recent || i < 0) throw new Error("No 10-K, 10-Q or 20-F found");
   const form = recent.form[i];
   const folder = `https://www.sec.gov/Archives/edgar/data/${company.cik}/${recent.accessionNumber[i].replace(/-/g, "")}`;
   // Inline XBRL filings publish the extracted instance beside the main document.
@@ -323,6 +324,9 @@ const loadCached = unstable_cache(load, ["revenue-mix-v3"], { revalidate: REVALI
 
 export async function getRevenueMix(slug: string): Promise<RevenueMix> {
   const company = COMPANIES.find((c) => c.slug === slug) ?? COMPANIES[0];
+  if (company.cik === undefined) {
+    return { company, breakdowns: [], customers: [], error: "Not available for companies that report through Korea's DART." };
+  }
   const declaredAgent = process.env.SEC_USER_AGENT;
   if (!declaredAgent) {
     return { company, breakdowns: [], customers: [], error: "SEC_USER_AGENT is not set, so filing documents on sec.gov cannot be read." };

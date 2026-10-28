@@ -2,7 +2,20 @@
 
 The working plan for turning the PRD into the finished app, one step at a time. It sits under the strategy in `docs/superapp-plan.md` and the product requirements in the PRD ("AMI Superapp", Google Doc, Oct 15 2026).
 
-Last updated: 2026-10-21
+Last updated: 2026-10-27
+
+## Where it stands
+
+| Phase | Status |
+|---|---|
+| 0. Shells | Done |
+| 1. Design foundation | Done |
+| 2. Page design passes | Done, all 23 pages |
+| 3. Make the tools work | 3.1 to 3.3 done; 3.4 to 3.6 open |
+| 4. Foundations | 4.1 storage built for Avnet's database, not yet run against a real one (PR #48 adds the live check); 4.2 not started; 4.3 CI and container done, sign-in not |
+| 5. Hook up real data | 5.1 decided; the Avnet data layer and Databricks adapter are on branch `avnet-data-layer`, not merged; 5.2 to 5.9 wait on the data team |
+
+Next: run `pnpm check:store` on the Avnet machine, open a PR for `avnet-data-layer`, then choose between 3.4 to 3.6 and 4.2.
 
 ## How the PRD maps onto the app
 
@@ -91,7 +104,7 @@ Order, by how often sellers and leaders will open the page:
 - [x] 2.12 Supply Chain (a tightening or easing read over three live signals, a by-category table with mock lead times and purchasing beside live prices and supplier quotes, chain inventory, prices and metals, supplier commentary and supply news, Avnet's mock order book; brief and mockups in `docs/design/pages/`)
 - [x] 2.13 Design Pipeline (funnel first, then the pipeline by supplier, segment or end market with a drill-down funnel per row and live customer growth by end market; the mock pipeline joins the shared model of Avnet; brief and mockups in `docs/design/pages/`)
 - [x] 2.14 Customers & End Markets (the market that added the most growth in words, a full-width end-market table with mock billings beside live customer-group growth and an "against demand" read, a dot plot of the two, the ten largest accounts withheld, then the 23 public customer companies linking to Company Profile and QBR Prep; concentration and accounts join the shared model of Avnet; brief and mockups in `docs/design/pages/`)
-- [x] 2.15 Economic Signals (readout layout, all live: the backdrop in words from four rule-written reads (demand, costs, financing, dollar), production beside utilisation, then every indicator in one card with a switch per group; to revisit for a proprietary "Semiconductor Economic Coincident Index" of leading and lagging indicators, planned in `docs/semis-cycle-engine-plan.md`; brief and mockups in `docs/design/pages/`)
+- [x] 2.15 Economic Signals (readout layout, all live: the backdrop in words from four rule-written reads (demand, costs, financing, dollar), production beside utilisation, then every indicator in one card with a switch per group; the cycle engine behind a proprietary "Semiconductor Economic Coincident Index" is built on public data (Phases 0 to 4 and the Asian sources, PRs #44 and #45; see `docs/cycle-engine.md`) and shown at `/signals/engine`; redesigning this page around it is still to do (the engine plan's Phase 5); brief and mockups in `docs/design/pages/`)
 - [x] 2.16 Code Mapping (workbench: coverage in words and four KPIs, a segment strip that filters, then one table of mappings switched between needs review, validated and not mapped, each row opening into its definition, reason and history; accept, edit and reject shown as planned for 3.5; the code map joins the shared model of Avnet; brief and mockups in `docs/design/pages/`)
 - [x] 2.17 Learning Center, with Nano Banana illustrations (paths by role, six technology primers with brand line illustrations, each opening into a reading page that ends with the suppliers in the app that make the part and their live growth, then a searchable glossary, the methods and every data source; brief and mockups in `docs/design/pages/`)
 - [x] 2.18 Data Hookups (the register in words with four KPIs, the phase 5 order as a strip of steps that filters the register, each source opening into its tables, fields, mock to replace and pages, beside every page with a marker and how close it is to live; "used on" now comes from a page usage register checked against each page's markers; all live from `src/lib/hookups.ts`; brief and mockups in `docs/design/pages/`)
@@ -105,24 +118,32 @@ Order, by how often sellers and leaders will open the page:
 
 Functional builds that do not need internal data.
 
-- [x] 3.1 QBR Prep: ~~assemble the brief from live public data (profile, commentary, news, line cards, cycle)~~ (done in 2.3) and have Claude write talking points and questions for the meeting and its focus, with sources. Avnet account numbers stay mock. Claude Sonnet 5.5 writes three to five points and questions from the brief itself (`src/lib/qbr/talking-points.ts`), each linked to the section it rests on; items with a figure the brief lacks are dropped; kept per company, meeting and focus until a new filing or week. Eval: 8 of 8 briefs at about 1.3 cents and 13 to 18 seconds each, streamed after the rest of the brief (`src/lib/qbr/eval.ts`).
+- [x] 3.1 QBR Prep: ~~assemble the brief from live public data (profile, commentary, news, line cards, cycle)~~ (done in 2.3) and have Claude write talking points and questions for the meeting and its focus, with sources. Avnet account numbers stay mock. Claude Sonnet 5.5 writes three to five points and questions from the brief itself (`src/lib/qbr/talking-points.ts`), each linked to the section it rests on; items with a figure the brief lacks are dropped; kept per company, meeting and focus until a new filing or week. Eval: 8 of 8 briefs at about 1.3 cents and 13 to 18 seconds each, streamed after the rest of the brief (`src/lib/qbr/eval.ts`). The brief prints and saves as PDF in the look of the Avnet FY27 template (PR #41).
 - [x] 3.2 Ask the Terminal: Claude with tools over the app's live data, answering with sources. Questions the rules route keep their rule answer (with "Ask Claude instead"); the rest go to Claude, whose tools are the nine answerers. Sources, page links and hookup markers come from the answerers that ran, each answerer's figures show under Claude's sentences, and answers are kept per question per day (`src/lib/ask/claude.ts`, `src/lib/ask/compose.ts`). Facts go to Claude Haiku 5.5, judgement and multi-topic questions to Claude Sonnet 5.5: 19 of 20 on the eval at 0.31 cents a question on average (`src/lib/ask/eval.ts`); off until `ANTHROPIC_API_KEY` is set and funded.
-- [x] 3.3 Pitch Deck Builder: export chosen views as Avnet-branded slides from the Avnet template. "Download PowerPoint" builds an editable .pptx on the server (`/api/deck/export`, `src/lib/deck/pptx.ts`, pptxgenjs) from the same previews as the screen: Avnet layouts drawn in code (the old template's masters still carry the slash mark), native charts (Avnet against Arrow, the company's revenue over eight quarters, supply-chain growth), "Mock data" in the footer of mock slides, and a sources slide. Decks from QBR Prep carry Claude's saved talking points and questions.
+- [x] 3.3 Pitch Deck Builder: export chosen views as Avnet-branded slides from the Avnet template. "Download PowerPoint" builds an editable .pptx on the server (`/api/deck/export`, `src/lib/deck/pptx.ts`, pptxgenjs) from the same previews as the screen, on the Avnet FY27 template (`assets/brand/avnet-template-fy27.pptx` through `src/lib/brand/pptx`, PR #42; no slash mark), native charts (Avnet against Arrow, the company's revenue over eight quarters, supply-chain growth), "Mock data" in the footer of mock slides, and a sources slide. Decks from QBR Prep carry Claude's saved talking points and questions, written on the spot if none are saved yet (PR #43).
 - [ ] 3.4 Scenario Modeler: real what-if maths over the market data (growth and share targets).
 - [ ] 3.5 Code Mapping: AI-suggested mappings with accept, edit and reject, and a change history.
 - [ ] 3.6 Lead Finder: search and ranking from public signals; Treg enrichment on request.
 
 ## Phase 4. Foundations
 
-- [ ] 4.1 Database. New Supabase project (not the read-only production one). Move line card snapshots, AI results, briefs and mappings off local files.
-- [ ] 4.2 Accounts and personas. Sign-in, a profile per user (role, region, suppliers, accounts) driving Start Here and personalised news.
-- [ ] 4.3 Deployment. Environment variables (`SEC_USER_AGENT`, `ANTHROPIC_API_KEY`, database), password gate replaced by sign-in.
+- [ ] 4.1 Database. Avnet's provisioned database, Databricks or Oracle (which one is not decided); this replaces the earlier plan for a new Supabase project. See `docs/storage.md`.
+  - [x] One storage interface, `src/lib/store`, for saved AI results and line card snapshots, chosen by `STORE_ADAPTER` (PR #43).
+  - [x] Databricks and Oracle adapters with table scripts in `db/migrations/` (PR #47). Tested against fakes only.
+  - [ ] Live check against the real database: `pnpm check:store` (PR #48, open), then run it on the Avnet machine.
+  - [ ] Briefs and mappings, once 3.5 and 4.2 need them saved.
+- [ ] 4.2 Accounts and personas. Sign-in, a profile per user (role, region, suppliers, accounts) driving Start Here and personalised news. Not started.
+- [ ] 4.3 Deployment.
+  - [x] Verifiable and deployable on Avnet infrastructure: `pnpm test`, `scripts/ci.sh` and a GitHub workflow (with an Azure Pipelines snippet in the README), a Dockerfile on Next's standalone output, and every environment variable documented in `.env.example` (PR #46). Fonts self-hosted so builds need no internet (PR #49).
+  - [ ] Password gate (`SITE_PASSWORD`) replaced by sign-in, with 4.2.
+  - [ ] A shared store across replicas: the file adapter keeps one copy per container until 4.1 is live.
 
 ## Phase 5. Hook up real data
 
 With the Avnet data team, following the PRD roadmap. Each step turns markers off on the pages listed in Data Hookups.
 
 - [x] 5.1 Decide the connection: query Databricks gold tables in place; no copy into the app's database (PRD open question 10, decided 2026-10-20).
+- [ ] 5.1b The Avnet data layer, on branch `avnet-data-layer` (not merged, no PR yet). Every Avnet figure is read through `src/lib/avnet` (`getAvnet()`), chosen by `AVNET_DATA` (`mock` or `databricks`); typed contracts per dataset, a contract suite, a Databricks adapter reading `terminal_*` views, and draft view definitions for the data team in `db/databricks/views`. Figures are unchanged on the mock. See `docs/data-contracts.md`. Each step below becomes building its view and switching the dataset off the mock.
 - [ ] 5.2 Avnet fiscal calendar and exchange rates.
 - [ ] 5.3 Billings, bookings and backlog → Performance Tracker, Start Here, QBR Prep.
 - [ ] 5.4 Material master and the code map → Code Mapping, Market Share.
@@ -138,3 +159,4 @@ With the Avnet data team, following the PRD roadmap. Each step turns markers off
 2. **Dark mode.** Light only for now. Every colour is a semantic token, so a dark theme can be added later without a rework.
 3. **Where internal data lives.** Query Databricks in place. Billings never leave Databricks; the app caches only short-lived aggregates. This answers 5.1.
 4. **Navigation.** Keep "Avnet performance" as a nav group and Start Here as everyone's home page.
+5. **Where the app saves its own results** (by 2026-10-26). Avnet's provisioned database, Databricks or Oracle, behind one storage interface, instead of a new Supabase project. This changes 4.1.

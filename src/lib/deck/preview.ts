@@ -14,10 +14,10 @@ import { cachedTalkingPoints, getTalkingPoints, type TalkingPoints } from "@/lib
 import { getLeads } from "@/lib/leads/data";
 import { groupLabel, inSentence, lead as leadsLead, techName } from "@/lib/leads/rank";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
-import { avnetBusinessMock } from "@/components/network/company-profile";
+import { avnetBusiness } from "@/components/network/company-profile";
+import { getAvnet } from "@/lib/avnet";
+import { fmtM } from "@/lib/avnet/format";
 import { lead as scenarioLead, money, pct, project, type Assumptions } from "@/lib/scenario/model";
-import { APPROVAL_RATE, APPROVED_PIPELINE, MONTHS_TO_BILLING, NEW_REGISTRATIONS, SEGMENT_BILLINGS, fmtM } from "@/lib/shells/mock-avnet";
-import { FORECAST_SPREAD, SEGMENT_FORECAST } from "@/lib/shells/mock-market";
 import {
   PRIMER_SEGMENT,
   SLIDES,
@@ -126,6 +126,8 @@ async function talking(s: Start, write: boolean): Promise<Preview> {
 
 async function build(id: SlideId, s: Start, company: () => Promise<Answer>, write: boolean): Promise<Preview> {
   const name = s.company?.name;
+  const avnet = await getAvnet();
+  const avnetLabel = avnet.status === "mock" ? MOCK_SOURCE : "Avnet data";
   switch (id) {
     case "cover":
       return {
@@ -218,30 +220,30 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>, writ
       };
     }
     case "account": {
-      const b = avnetBusinessMock(s.company!);
+      const b = await avnetBusiness(s.company!);
       return {
         headline: `Avnet's business with ${name}`,
         text: b.supplier ? `${name} as a supplier to Avnet.` : `${name} as an Avnet customer.`,
         facts: b.rows.map((r) => ({ label: r.label, values: [r.value] })),
-        source: MOCK_SOURCE,
+        source: avnetLabel,
         period: "Last 12 months",
         hookups: b.hookups,
       };
     }
     case "share": {
       const segment = s.primer ? PRIMER_SEGMENT[s.primer.slug] : undefined;
-      const row = SEGMENT_BILLINGS.find((r) => r.segment === segment);
+      const row = avnet.segmentBillings.find((r) => r.segment === segment);
       if (!row) {
-        const market = SEGMENT_BILLINGS.reduce((a, r) => a + r.market, 0);
-        const billings = SEGMENT_BILLINGS.reduce((a, r) => a + r.billings, 0);
+        const market = avnet.segmentBillings.reduce((a, r) => a + r.market, 0);
+        const billings = avnet.segmentBillings.reduce((a, r) => a + r.billings, 0);
         return {
           headline: `Avnet holds ${((billings / market) * 100).toFixed(1)}% of its mapped markets`,
           text: `Across the ten segments the code map joins to the market, a $${(market / 1000).toFixed(0)}B market.`,
-          facts: SEGMENT_BILLINGS.slice()
+          facts: avnet.segmentBillings.slice()
             .sort((x, y) => y.billings - x.billings)
             .slice(0, 4)
             .map((r) => ({ label: r.segment, values: [`${(r.share * 100).toFixed(1)}%`] })),
-          source: MOCK_SOURCE,
+          source: avnetLabel,
           period: "Last 12 months",
         };
       }
@@ -255,17 +257,17 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>, writ
           { label: "Change on a year ago", values: [`${pts >= 0 ? "+" : "−"}${Math.abs(pts).toFixed(1)} pts`] },
           { label: "Mapping confidence", values: [row.confidence] },
         ],
-        source: MOCK_SOURCE,
+        source: avnetLabel,
         period: "Last 12 months",
       };
     }
     case "scenario": {
-      const segments = SEGMENT_BILLINGS.map((r) => ({
+      const segments = avnet.segmentBillings.map((r) => ({
         segment: r.segment,
         market: r.market,
         share: r.share,
         billings: r.billings,
-        forecast: SEGMENT_FORECAST[r.segment],
+        forecast: avnet.segmentForecast[r.segment],
       }));
       const a: Assumptions = {
         years: s.scenario.years,
@@ -273,7 +275,7 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>, writ
         growth: {},
         shareChange: Object.fromEntries(segments.map((x) => [x.segment, s.scenario.share])),
       };
-      const p = project(segments, a, FORECAST_SPREAD);
+      const p = project(segments, a, avnet.forecastSpread);
       return {
         headline: `Avnet's mapped billings reach ${money(p.billingsAt)} in ${s.scenario.years === 1 ? "a year" : `${count(s.scenario.years)} years`}`,
         text: scenarioLead(p, a),
@@ -283,20 +285,20 @@ async function build(id: SlideId, s: Start, company: () => Promise<Answer>, writ
           { label: "Growth a year", values: [pct(p.cagr, 1, true)] },
           { label: "Against holding share", values: [money(p.billingsAt - p.holdAt, true)] },
         ],
-        source: MOCK_SOURCE,
+        source: avnetLabel,
         period: `${capital(count(s.scenario.years))} ${s.scenario.years === 1 ? "year" : "years"} ahead`,
       };
     }
     case "pipeline":
       return {
-        headline: `${fmtM(APPROVED_PIPELINE)} of approved designs not yet billing`,
-        text: `Avnet's design registrations across every supplier. Approved designs take about ${MONTHS_TO_BILLING} months to start billing.`,
+        headline: `${fmtM(avnet.approvedPipeline)} of approved designs not yet billing`,
+        text: `Avnet's design registrations across every supplier. Approved designs take about ${avnet.monthsToBilling} months to start billing.`,
         facts: [
-          { label: "New registrations this quarter", values: [NEW_REGISTRATIONS.thisQuarter.toLocaleString("en-US")] },
-          { label: "Approval rate", values: [`${(APPROVAL_RATE.now * 100).toFixed(0)}%`] },
-          { label: "Months to first billing", values: [String(MONTHS_TO_BILLING)] },
+          { label: "New registrations this quarter", values: [avnet.newRegistrations.thisQuarter.toLocaleString("en-US")] },
+          { label: "Approval rate", values: [`${(avnet.approvalRate.now * 100).toFixed(0)}%`] },
+          { label: "Months to first billing", values: [String(avnet.monthsToBilling)] },
         ],
-        source: MOCK_SOURCE,
+        source: avnetLabel,
         period: "Latest quarter",
       };
     case "leads": {

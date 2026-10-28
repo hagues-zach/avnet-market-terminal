@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { lead } from "@/lib/customers/read";
-import { CONCENTRATION, TTM_BILLINGS, TTM_BILLINGS_YEAR_AGO, VERTICALS } from "@/lib/shells/mock-avnet";
+import { getAvnet } from "@/lib/avnet";
 import { PageBody } from "@/components/layout/page-body";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -16,15 +16,16 @@ import {
   PublicCustomersFallback,
 } from "@/components/customers/sections";
 
-// Rendered per request for the live customer groups and companies; everything Avnet's own is the shared mock model.
+// Rendered per request for the live customer groups and companies; everything Avnet's own comes from src/lib/avnet.
 export const dynamic = "force-dynamic";
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
-export default function CustomersPage() {
-  const growth = TTM_BILLINGS / TTM_BILLINGS_YEAR_AGO - 1;
-  const top10 = CONCENTRATION.top10;
-  const top100 = CONCENTRATION.top100;
+export default async function CustomersPage() {
+  const { ttmBillings, ttmBillingsYearAgo, concentration, verticals, status } = await getAvnet();
+  const growth = ttmBillings / ttmBillingsYearAgo - 1;
+  const top10 = concentration.top10;
+  const top100 = concentration.top100;
   const pts = (a: { now: number; yearAgo: number }) => Math.round((a.now - a.yearAgo) * 1000) / 10;
 
   return (
@@ -36,8 +37,8 @@ export default function CustomersPage() {
 
       <section aria-labelledby="customers-lead" className="space-y-3">
         <h2 id="customers-lead" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-pretty text-xl leading-snug text-ink">
-          <span>{lead(VERTICALS)}</span>
-          <DataChip status="mock" />
+          <span>{lead(verticals)}</span>
+          <DataChip status={status} />
         </h2>
         <HookupMarker ids={["billings", "customer-master", "backlog", "drms"]} />
       </section>
@@ -45,30 +46,30 @@ export default function CustomersPage() {
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiTile
           label="Billings, last 12 months"
-          value={`$${(TTM_BILLINGS / 1000).toFixed(1)}B`}
+          value={`$${(ttmBillings / 1000).toFixed(1)}B`}
           delta={{ value: growth, display: `${(growth * 100).toFixed(1)}%`, period: "YoY" }}
-          source={{ status: "mock" }}
+          source={{ status }}
         />
         <KpiTile
           label="Top 10 customers"
           value={pct(top10.now)}
           note="of billings"
           delta={{ value: pts(top10), display: `${Math.abs(pts(top10)).toFixed(1)} pts`, period: "YoY", neutral: true }}
-          source={{ status: "mock" }}
+          source={{ status }}
         />
         <KpiTile
           label="Top 100 customers"
           value={pct(top100.now)}
           note="of billings"
           delta={{ value: pts(top100), display: `${Math.abs(pts(top100)).toFixed(1)} pts`, period: "YoY", neutral: true }}
-          source={{ status: "mock" }}
+          source={{ status }}
         />
         <KpiTile
           label="Active customers"
-          value={`${(CONCENTRATION.active / 1e6).toFixed(1)}M`}
+          value={`${(concentration.active / 1e6).toFixed(1)}M`}
           note="parent companies"
-          delta={{ value: CONCENTRATION.newCustomerGrowth, display: `${(CONCENTRATION.newCustomerGrowth * 100).toFixed(1)}% new`, period: "YoY" }}
-          source={{ status: "mock" }}
+          delta={{ value: concentration.newCustomerGrowth, display: `${(concentration.newCustomerGrowth * 100).toFixed(1)}% new`, period: "YoY" }}
+          source={{ status }}
         />
       </div>
 

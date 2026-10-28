@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { getAvnet } from "@/lib/avnet";
 import { dataProvider } from "@/lib/data/provider";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
@@ -34,8 +35,8 @@ function Loading({ title, lines = 5, className }: { title: string; lines?: numbe
   );
 }
 
-export default function OverviewPage() {
-  const { value: tam, vintage = "WSTS" } = dataProvider.getTam();
+export default async function OverviewPage() {
+  const { value: tam, vintage = "WSTS" } = dataProvider.getTam((await getAvnet()).semiBillings);
   const marketPrior = tam.trend.find((p) => p.year === tam.latestYear - 1)?.tamUsdM ?? tam.tamUsdM / (1 + tam.yoyGrowth);
   const vintages = dataProvider.getForecast().value.vintages.map((v) => ({ vintage: v.vintage, value: v.proj2026 }));
 

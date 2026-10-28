@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { calendarLabel, quarterly, type Fact as PeriodFact } from "./earnings";
-import { COMPANIES, type Company } from "./earnings-model";
+import { COMPANIES, isUsFiler, type Company } from "./earnings-model";
 import {
   BROAD_REGION,
   CONSOLIDATION_AXIS,
@@ -192,6 +192,7 @@ const loadCached = unstable_cache(load, ["segment-history-v1"], { revalidate: RE
 
 export async function getSegmentHistory(slug: string): Promise<SegmentHistory> {
   const company = COMPANIES.find((c) => c.slug === slug) ?? COMPANIES[0];
+  if (!isUsFiler(company)) return { company, segments: [], regions: [], error: `Segment history is read from 10-Q and 10-K filings, which ${company.name} doesn't file.` };
   const declaredAgent = process.env.SEC_USER_AGENT;
   if (!declaredAgent) return { company, segments: [], regions: [], error: "SEC_USER_AGENT is not set, so filing documents on sec.gov cannot be read." };
   try {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { avnetExposure, type Topic, type TopicFacet } from "@/lib/news/briefing";
-import { fmtM, fmtPct } from "@/lib/shells/mock-avnet";
+import { avnetExposure, type ExposureBillings, type Topic, type TopicFacet } from "@/lib/news/briefing";
+import { fmtM, fmtPct } from "@/lib/avnet/format";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { Panel } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
@@ -18,10 +18,12 @@ const LIMIT = 6;
  */
 export function Topics({
   byFacet,
+  avnet,
   selected,
   onSelect,
 }: {
   byFacet: Record<TopicFacet, Topic[]>;
+  avnet: ExposureBillings;
   selected: Record<TopicFacet, string[]>;
   onSelect: (facet: TopicFacet, name: string) => void;
 }) {
@@ -30,7 +32,7 @@ export function Topics({
   const max = Math.max(1, ...list.map((t) => t.count));
   const exposure = list.map((t) => ({
     name: t.name,
-    value: avnetExposure(t.name, facet),
+    value: avnetExposure(t.name, facet, avnet),
   }));
 
   return (

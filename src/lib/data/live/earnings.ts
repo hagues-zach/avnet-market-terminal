@@ -12,6 +12,11 @@ import {
   type PeerRow,
   type Quarter,
 } from "./earnings-model";
+import { fetchDart, fetchDartSegment } from "./foreign/dart";
+import { convert, FRED_RATE } from "./foreign/fx";
+import { parseInterim, type ConceptFact } from "./foreign/st-6k";
+import { fred } from "./fred";
+import { fetchSec } from "./revenue-mix";
 
 // SEC EDGAR "company facts": every number a company has tagged in its 10-Q and
 // 10-K filings, as one JSON document per company. Server-only. The documents are
@@ -32,11 +37,17 @@ export interface Fact {
   form?: string;
   filed?: string;
   accn?: string;
+  /** The document the figure was read from, when it isn't an SEC filing folder. */
+  url?: string;
 }
 
 interface CompanyFacts {
   facts?: { "us-gaap"?: Record<string, { units?: Record<string, Fact[]> }> };
 }
+
+// 10-Q/10-K, a 20-F filer's annual report and interim 6-Ks, and DART reports.
+// "Manual" is a segment kept by hand from the group's own releases.
+const PERIODIC_FORMS = /^(10-Q|10-K|20-F|6-K|DART|Manual)/;
 
 const ms = (d: string) => Date.parse(`${d}T00:00:00Z`);
 const daysBetween = (a: string, b: string) => Math.round((ms(b) - ms(a)) / DAY);
@@ -48,7 +59,7 @@ function factsFor(doc: CompanyFacts, concept: string): Fact[] {
   if (!units) return [];
   return Object.values(units)
     .flat()
-    .filter((f) => f.form?.startsWith("10-Q") || f.form?.startsWith("10-K"));
+    .filter((f) => PERIODIC_FORMS.test(f.form ?? ""));
 }
 
 /** Per (start,end) period keep the most recently filed value, so restatements win. */
@@ -254,11 +265,11 @@ function latestFiling(company: Company, doc: CompanyFacts, end: string | undefin
   return {
     form: first.form ?? "",
     filed: first.filed!,
-    url: `https://www.sec.gov/Archives/edgar/data/${company.cik}/${first.accn!.replace(/-/g, "")}/`,
+    url: first.url ?? `https://www.sec.gov/Archives/edgar/data/${company.cik}/${first.accn!.replace(/-/g, "")}/`,
   };
 }
 
-async function load(company: Company, keep = QUARTERS_KEPT): Promise<CompanyEarnings> {
+async function secFacts(company: Company): Promise<CompanyFacts> {
   const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${String(company.cik).padStart(10, "0")}.json`;
   const res = await fetch(url, {
     headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
@@ -266,7 +277,90 @@ async function load(company: Company, keep = QUARTERS_KEPT): Promise<CompanyEarn
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`SEC returned ${res.status} for ${company.name}`);
-  return build(company, (await res.json()) as CompanyFacts, keep);
+  return (await res.json()) as CompanyFacts;
+}
+
+// Three years of first-to-third-quarter interim reports; the fourth quarter is
+// the 20-F's full year less the nine months.
+const INTERIM_REPORTS = 9;
+
+/**
+ * Add facts read outside company facts to a document. Each goes under the concept
+ * the document already uses for the same metric, so a quarter and the full year
+ * it is backed out of are always one concept.
+ */
+export function mergeFacts(doc: CompanyFacts, extra: ConceptFact[], unit = "USD"): CompanyFacts {
+  const gaap = { ...(doc.facts?.["us-gaap"] ?? {}) };
+  const lists = [...Object.values(FLOW_CONCEPTS), ...Object.values(INSTANT_CONCEPTS)];
+  for (const { concept, ...fact } of extra) {
+    const list = lists.find((l) => l.includes(concept));
+    const target = list?.find((c) => gaap[c]?.units) ?? concept;
+    const units = { ...(gaap[target]?.units ?? {}) };
+    units[unit] = [...(units[unit] ?? []), fact];
+    gaap[target] = { units };
+  }
+  return { facts: { ...doc.facts, "us-gaap": gaap } };
+}
+
+/** A 20-F filer: annual facts from the SEC, quarters from its interim 6-Ks. */
+async function twentyFFacts(company: Company & { foreign: { source: "sec-20f"; interim: string } }): Promise<CompanyFacts> {
+  const declaredAgent = process.env.SEC_USER_AGENT;
+  if (!declaredAgent) throw new Error(`SEC_USER_AGENT is not set, so ${company.name}'s quarterly 6-K reports on sec.gov cannot be read.`);
+  const [doc, submissions] = await Promise.all([
+    secFacts(company),
+    fetchSec(`https://data.sec.gov/submissions/CIK${String(company.cik).padStart(10, "0")}.json`, USER_AGENT).then(
+      (r) => r.json() as Promise<{ filings?: { recent?: { form: string[]; accessionNumber: string[]; primaryDocument: string[]; filingDate: string[] } } }>,
+    ),
+  ]);
+  const recent = submissions.filings?.recent;
+  if (!recent) return doc;
+  const pattern = new RegExp(company.foreign.interim, "i");
+  const reports = recent.form
+    .map((form, i) => ({ form, i }))
+    .filter(({ form, i }) => form === "6-K" && pattern.test(recent.primaryDocument[i]))
+    .slice(0, INTERIM_REPORTS)
+    .map(({ i }) => ({
+      accn: recent.accessionNumber[i],
+      filed: recent.filingDate[i],
+      url: `https://www.sec.gov/Archives/edgar/data/${company.cik}/${recent.accessionNumber[i].replace(/-/g, "")}/${recent.primaryDocument[i]}`,
+    }));
+  const read = await Promise.all(
+    reports.map((r) =>
+      fetchSec(r.url, declaredAgent)
+        .then((res) => res.text())
+        .then((html) => parseInterim(html, r))
+        .catch((): ConceptFact[] => []),
+    ),
+  );
+  return mergeFacts(doc, read.flat());
+}
+
+type DartCompany = Company & { foreign: { source: "dart"; corpCode: string; currency: "KRW"; segment?: "DS" } };
+
+/** A DART filer's facts in won: the group's statements, or one segment's note. */
+async function dartFacts(company: DartCompany): Promise<ConceptFact[]> {
+  const key = process.env.DART_API_KEY;
+  if (!key) throw new Error("DART_API_KEY is not set, so Korean filings can't be read.");
+  const { corpCode, segment } = company.foreign;
+  return segment ? fetchDartSegment(corpCode, key, segment) : fetchDart(corpCode, key);
+}
+
+/** Built in the reporting currency, so every ratio is exact, then converted to dollars. */
+async function loadDart(company: DartCompany, keep: number): Promise<CompanyEarnings> {
+  const currency = company.foreign.currency;
+  const local = build(company, mergeFacts({}, await dartFacts(company), currency), keep);
+  const first = local.quarters[0]?.end;
+  if (!first) return local;
+  const since = new Date(Date.parse(`${first}T00:00:00Z`) - 120 * DAY).toISOString().slice(0, 10);
+  const { quarters, localYoY } = convert(local.quarters, await fred(FRED_RATE[currency], since));
+  return { ...local, quarters, local: { currency, revenueYoY: localYoY } };
+}
+
+async function load(company: Company, keep = QUARTERS_KEPT): Promise<CompanyEarnings> {
+  const foreign = company.foreign;
+  if (foreign?.source === "sec-20f") return build(company, await twentyFFacts({ ...company, foreign }), keep);
+  if (foreign?.source === "dart") return loadDart({ ...company, foreign }, keep);
+  return build(company, await secFacts(company), keep);
 }
 
 /** One company's filings straight from SEC, uncached, with every quarter they hold: for scripts that run outside Next (scripts/fetch-history.ts). */
@@ -274,14 +368,18 @@ export const loadFromSec = (company: Company) => load(company, Infinity);
 
 // Failures throw, so they are never cached; the next request retries. Once a
 // result is cached, later requests are served from it while it refreshes.
-const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-v4"], {
+const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-v5"], {
   revalidate: REVALIDATE_SECONDS,
+});
+// Foreign reporters change once a quarter, and DART limits calls per day.
+const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v2"], {
+  revalidate: 24 * 60 * 60,
 });
 
 export async function getCompanyEarnings(slug: string): Promise<CompanyEarnings> {
   const company = COMPANIES.find((c) => c.slug === slug) ?? COMPANIES[0];
   try {
-    return await loadCached(company.slug);
+    return await (company.foreign ? loadForeignCached : loadCached)(company.slug);
   } catch (e) {
     return { company, quarters: [], latestFiling: null, error: e instanceof Error ? e.message : "Unavailable" };
   }

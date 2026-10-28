@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Delta } from "./delta";
+import { CaveatMark } from "./caveat-mark";
 import { DataChip, type DataStatus } from "./chip";
 
 /**
@@ -13,6 +14,7 @@ export function KpiTile({
   source,
   asOf,
   note,
+  caveat,
   className,
 }: {
   label: string;
@@ -22,12 +24,17 @@ export function KpiTile({
   asOf?: string;
   /** A short qualifier under the figure, e.g. "Non-GAAP". */
   note?: string;
+  /** Why the figure doesn't compare cleanly with other companies' (accounting rules, a segment). */
+  caveat?: string;
   className?: string;
 }) {
   return (
     <div className={cn("flex min-w-0 flex-col rounded-sm border border-hairline bg-surface px-4 py-3", className)}>
       <div className="flex items-start justify-between gap-2">
-        <span className="font-display text-label uppercase text-ink-muted">{label}</span>
+        <span className="font-display text-label uppercase text-ink-muted">
+          {label}
+          <CaveatMark reason={caveat} />
+        </span>
         {source && <DataChip status={source.status} label={source.label} />}
       </div>
       <div className="mt-1.5 flex items-baseline gap-2">

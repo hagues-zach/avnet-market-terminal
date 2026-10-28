@@ -2,17 +2,8 @@ import Link from "next/link";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getSegmentHistory } from "@/lib/data/live/segment-history";
 import { VIZ } from "@/lib/colors";
-import {
-  DESIGN_APPROVED_SHARE,
-  PERFORMANCE,
-  QUARTERS,
-  REGION_PERFORMANCE,
-  SUPPLIERS,
-  TTM_BILLINGS,
-  TTM_BILLINGS_YEAR_AGO,
-  VERTICALS,
-  fmtM,
-} from "@/lib/shells/mock-avnet";
+import { getAvnet } from "@/lib/avnet";
+import { fmtM } from "@/lib/avnet/format";
 import { fullQuarter, shortQuarter } from "@/lib/share/peers";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -23,38 +14,36 @@ import { EmptyState, ErrorState, LoadingBlock } from "@/components/ui/states";
 import { BillingsBookingsChart, BookToBillChart, Key, SegmentRevenueChart } from "./charts";
 import { RegionTable } from "./region-table";
 
-// Avnet's own numbers are MOCK, from the shared model in src/lib/shells/mock-avnet.ts,
-// until billings, bookings and backlog are hooked up. "What Avnet reports" is live
-// SEC data, kept in its own section.
+// Avnet's own numbers come from src/lib/avnet (mock until AVNET_DATA points at
+// Avnet's tables). "What Avnet reports" is live SEC data, kept in its own section.
 
-const latest = PERFORMANCE[PERFORMANCE.length - 1];
-const yearAgo = PERFORMANCE[PERFORMANCE.length - 5];
-const QUARTER = QUARTERS[QUARTERS.length - 1];
-
-/** Quarters in a row, counting back from the latest, with book-to-bill above 1. */
-const quartersAboveOne = (() => {
-  let n = 0;
-  for (let i = PERFORMANCE.length - 1; i >= 0 && PERFORMANCE[i].bookToBill > 1; i--) n++;
-  return n;
-})();
+/** The latest quarter, the same quarter a year ago, and the run of book-to-bill above 1. */
+async function figures() {
+  const m = await getAvnet();
+  const p = m.performance;
+  let aboveOne = 0;
+  for (let i = p.length - 1; i >= 0 && p[i].bookToBill > 1; i--) aboveOne++;
+  return { m, latest: p[p.length - 1], yearAgo: p[p.length - 5], quarter: m.quarters[m.quarters.length - 1], quartersAboveOne: aboveOne };
+}
 
 /* ---------- Headline ---------- */
 
-export function PerformanceKpis() {
-  const ttmGrowth = TTM_BILLINGS / TTM_BILLINGS_YEAR_AGO - 1;
+export async function PerformanceKpis() {
+  const { m, latest, yearAgo, quartersAboveOne } = await figures();
+  const ttmGrowth = m.ttmBillings / m.ttmBillingsYearAgo - 1;
   const backlogGrowth = latest.backlog / yearAgo.backlog - 1;
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <KpiTile label="Billings, last 12 months" value={fmtM(TTM_BILLINGS)} delta={{ value: ttmGrowth, period: "YoY" }} source={{ status: "mock" }} />
+        <KpiTile label="Billings, last 12 months" value={fmtM(m.ttmBillings)} delta={{ value: ttmGrowth, period: "YoY" }} source={{ status: m.status }} />
         <KpiTile
           label="Book-to-bill"
           value={latest.bookToBill.toFixed(2)}
           note={quartersAboveOne ? `above 1 for ${quartersAboveOne} quarters` : "below 1"}
-          source={{ status: "mock" }}
+          source={{ status: m.status }}
         />
-        <KpiTile label="Backlog" value={fmtM(latest.backlog)} delta={{ value: backlogGrowth, period: "YoY" }} source={{ status: "mock" }} />
-        <KpiTile label="Design-approved billings" value={`${Math.round(DESIGN_APPROVED_SHARE * 100)}%`} note="share of billings" source={{ status: "mock" }} />
+        <KpiTile label="Backlog" value={fmtM(latest.backlog)} delta={{ value: backlogGrowth, period: "YoY" }} source={{ status: m.status }} />
+        <KpiTile label="Design-approved billings" value={`${Math.round(m.designApprovedShare * 100)}%`} note="share of billings" source={{ status: m.status }} />
       </div>
       <HookupMarker ids={["billings", "bookings", "backlog", "drms"]} />
     </div>
@@ -63,7 +52,8 @@ export function PerformanceKpis() {
 
 /* ---------- Billings, bookings, book-to-bill ---------- */
 
-export function DemandRow() {
+export async function DemandRow() {
+  const { m, latest, yearAgo, quarter, quartersAboveOne } = await figures();
   const bookingsGrowth = latest.bookings / yearAgo.bookings - 1;
   return (
     <div className="space-y-2">
@@ -71,22 +61,22 @@ export function DemandRow() {
         <Panel
           className="xl:col-span-8"
           title="Billings and bookings"
-          subtitle={`${QUARTER}: billings ${fmtM(latest.billings)}, bookings ${fmtM(latest.bookings)}, up ${Math.round(bookingsGrowth * 100)}% on a year ago`}
+          subtitle={`${quarter}: billings ${fmtM(latest.billings)}, bookings ${fmtM(latest.bookings)}, up ${Math.round(bookingsGrowth * 100)}% on a year ago`}
           actions={<Key items={[{ label: "Billings", color: VIZ.avnet }, { label: "Bookings", color: VIZ.avnet2 }]} />}
-          footer={<SourceLine source="Avnet billings and bookings by fiscal quarter" asOf={QUARTER} />}
+          footer={<SourceLine source="Avnet billings and bookings by fiscal quarter" asOf={quarter} />}
         >
           <div className="h-64">
-            <BillingsBookingsChart data={PERFORMANCE.map((p) => ({ quarter: p.quarter, billings: p.billings, bookings: p.bookings }))} />
+            <BillingsBookingsChart data={m.performance.map((p) => ({ quarter: p.quarter, billings: p.billings, bookings: p.bookings }))} />
           </div>
         </Panel>
         <Panel
           className="xl:col-span-4"
           title="Book-to-bill"
           subtitle={quartersAboveOne ? `Orders have run ahead of billings for ${quartersAboveOne} quarters` : "Orders are running behind billings"}
-          footer={<SourceLine source="Bookings ÷ billings" asOf={QUARTER} />}
+          footer={<SourceLine source="Bookings ÷ billings" asOf={quarter} />}
         >
           <div className="h-64">
-            <BookToBillChart data={PERFORMANCE.map((p) => ({ quarter: p.quarter.replace(/^FY(\d{2}) (Q\d)$/, "$2 FY$1"), bookToBill: p.bookToBill }))} />
+            <BookToBillChart data={m.performance.map((p) => ({ quarter: p.quarter.replace(/^FY(\d{2}) (Q\d)$/, "$2 FY$1"), bookToBill: p.bookToBill }))} />
           </div>
         </Panel>
       </div>
@@ -97,9 +87,10 @@ export function DemandRow() {
 
 /* ---------- By region ---------- */
 
-export function RegionCard() {
-  const total = REGION_PERFORMANCE.reduce((s, r) => s + r.billings, 0);
-  const rows = REGION_PERFORMANCE.map((r) => ({ ...r, share: r.billings / total }));
+export async function RegionCard() {
+  const { m, quarter } = await figures();
+  const total = m.regionPerformance.reduce((s, r) => s + r.billings, 0);
+  const rows = m.regionPerformance.map((r) => ({ ...r, share: r.billings / total }));
   const fastest = [...rows].sort((a, b) => b.growth - a.growth)[0];
   return (
     <div className="space-y-2">
@@ -107,7 +98,7 @@ export function RegionCard() {
         title="By region"
         subtitle={`${fastest.region} is growing fastest, ${Math.round(fastest.growth * 100)}% on a year ago`}
         bodyClassName="px-0 pb-0"
-        footer={<SourceLine source="Avnet billings, bookings and backlog by region, in US dollars at constant rates" asOf={QUARTER} />}
+        footer={<SourceLine source="Avnet billings, bookings and backlog by region, in US dollars at constant rates" asOf={quarter} />}
       >
         <RegionTable rows={rows} />
       </Panel>
@@ -142,33 +133,35 @@ function BarRows({ items }: { items: { label: string; value: number; display: st
   );
 }
 
-export function SupplierCard() {
-  const named = SUPPLIERS.filter((s) => s.revenue > 0);
+export async function SupplierCard() {
+  const { m } = await figures();
+  const named = m.suppliers.filter((s) => s.revenue > 0);
   const topShare = named.reduce((s, x) => s + x.share, 0);
   return (
     <Panel
       title="Supplier concentration"
       subtitle={`The top ${named.length} suppliers make up ${Math.round(topShare * 100)}% of billings. Names withheld in mock`}
-      actions={<DataChip status="mock" />}
+      actions={<DataChip status={m.status} />}
       footer={<SourceLine source="Avnet billings by manufacturer, last 12 months" />}
       className="h-full"
     >
-      <BarRows items={SUPPLIERS.map((s) => ({ label: s.name, value: s.billings, display: fmtM(s.billings), growth: s.growth, grey: s.revenue === 0 }))} />
+      <BarRows items={m.suppliers.map((s) => ({ label: s.name, value: s.billings, display: fmtM(s.billings), growth: s.growth, grey: s.revenue === 0 }))} />
     </Panel>
   );
 }
 
-export function EndMarketCard() {
-  const fastest = [...VERTICALS].sort((a, b) => b.growth - a.growth)[0];
+export async function EndMarketCard() {
+  const { m } = await figures();
+  const fastest = [...m.verticals].sort((a, b) => b.growth - a.growth)[0];
   return (
     <Panel
       title="End markets"
       subtitle={`${fastest.name} is growing fastest, ${Math.round(fastest.growth * 100)}% on a year ago`}
-      actions={<DataChip status="mock" />}
+      actions={<DataChip status={m.status} />}
       footer={<SourceLine source="Avnet billings by customer vertical, last 12 months" />}
       className="h-full"
     >
-      <BarRows items={VERTICALS.map((v) => ({ label: v.name, value: v.billings, display: fmtM(v.billings), growth: v.growth }))} />
+      <BarRows items={m.verticals.map((v) => ({ label: v.name, value: v.billings, display: fmtM(v.billings), growth: v.growth }))} />
     </Panel>
   );
 }
@@ -176,6 +169,7 @@ export function EndMarketCard() {
 /* ---------- What Avnet reports (live) ---------- */
 
 export async function ReportedCard() {
+  const { latest } = await figures();
   const [history, earnings] = await Promise.all([getSegmentHistory("avnet"), getCompanyEarnings("avnet")]);
   const total = earnings.quarters.filter((q) => q.values.revenue !== undefined).slice(-8);
   if (!total.length) {

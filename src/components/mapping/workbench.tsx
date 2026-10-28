@@ -3,7 +3,8 @@
 import { Fragment, useId, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { categoryPath as path, matches, needsReview, reviewOrder, type SegmentCoverage } from "@/lib/mapping/read";
-import { SEGMENT_SHORT, STATUS_LABEL, type Confidence, type Mapping } from "@/lib/shells/mock-mapping";
+import type { Confidence, Mapping } from "@/lib/avnet/contracts";
+import { STATUS_LABEL, segmentShort } from "@/lib/avnet/format";
 import { Chip, DataChip } from "@/components/ui/chip";
 import { cn } from "@/lib/utils";
 
@@ -159,7 +160,7 @@ export function MappingWorkbench({
                   active ? "border-ink bg-surface-selected" : "border-hairline hover:bg-surface-sunken",
                 )}
               >
-                <span className="truncate text-body-sm text-ink">{SEGMENT_SHORT[c.segment]}</span>
+                <span className="truncate text-body-sm text-ink">{segmentShort(c.segment)}</span>
                 <span className="mt-0.5 flex items-baseline justify-between gap-2">
                   <span className="font-display text-card-title tabular-nums text-ink">{pct(c.validatedShare)}</span>
                   <span className="text-caption text-ink-muted">{confidence[c.segment]}</span>

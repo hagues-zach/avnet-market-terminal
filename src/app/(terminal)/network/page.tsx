@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { getPeerRows } from "@/lib/data/live/earnings";
 import { getEarningsCalendar } from "@/lib/data/live/earnings-calendar";
-import { COHORT_LABELS, COMPANIES, ROLES, ROLE_LABELS, roleOf, type Role } from "@/lib/data/live/earnings-model";
+import { COHORT_LABELS, COMPANIES, ROLES, ROLE_LABELS, comparability, comparableValue, roleOf, type Role } from "@/lib/data/live/earnings-model";
+import { CaveatMark } from "@/components/ui/caveat-mark";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { Panel } from "@/components/ui/panel";
@@ -78,9 +79,18 @@ async function Directory({ role }: { role: Role | "all" }) {
                   </th>
                   <td className="px-3 py-1.5 text-left text-ink-muted">{ROLE_LABELS[roleOf(c)].replace(/s$/, "")}</td>
                   <td className="px-3 py-1.5 text-left text-ink-muted">{COHORT_LABELS[c.cohort]}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("usd", q?.values.revenue)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("growth", q?.values.revenueYoY)}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{format("pct", q?.values.operatingMargin)}</td>
+                  {(
+                    [
+                      ["revenue", "usd"],
+                      ["revenueYoY", "growth"],
+                      ["operatingMargin", "pct"],
+                    ] as const
+                  ).map(([m, kind]) => (
+                    <td key={m} className="px-3 py-1.5 text-right tabular-nums text-ink">
+                      {format(kind, comparableValue(c, m, q?.values[m]))}
+                      {q?.values[m] !== undefined && <CaveatMark reason={comparability(c, m)?.reason} />}
+                    </td>
+                  ))}
                   <td className="px-3 py-1.5 text-left text-ink-muted">
                     {e ? `${longDate(e.date)}${e.status === "due" ? ", due, not filed" : ""}` : NA}
                   </td>
