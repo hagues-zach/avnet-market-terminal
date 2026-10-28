@@ -4,7 +4,19 @@ import { getCompanyNews } from "@/lib/data/live/company-news";
 import { getAccount } from "@/lib/avnet";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getNextRelease, TIMING_LABELS } from "@/lib/data/live/earnings-calendar";
-import { COHORT_LABELS, ROLE_SINGULAR, roleOf, type Company, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
+import {
+  COHORT_LABELS,
+  ROLE_SINGULAR,
+  comparability,
+  comparableValue,
+  currencyName,
+  roleOf,
+  sourceOf,
+  type Company,
+  type CompanyEarnings,
+  type Metric,
+  type Quarter,
+} from "@/lib/data/live/earnings-model";
 import { getRevenueMix, type RevenueMix } from "@/lib/data/live/revenue-mix";
 import { getCommentary, type Digest } from "@/lib/ai/commentary";
 import { getCarriers } from "@/lib/line-cards/analysis";
@@ -54,11 +66,18 @@ export function glance(earnings: CompanyEarnings, mix: RevenueMix): string[] {
     }
     lines.push(`${line}.`);
   }
+  // Dollar growth for a foreign reporter includes the exchange rate; say what it was at home.
+  const local = earnings.local?.revenueYoY[q.end];
+  if (earnings.local && local !== undefined) {
+    lines.push(`In ${currencyName(earnings.local.currency)}, revenue was ${local >= 0 ? "up" : "down"} ${(Math.abs(local) * 100).toFixed(1)}% on a year earlier.`);
+  }
   if (v.grossMargin !== undefined) {
     const d = p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
     lines.push(
       `Gross margin is ${format("pct", v.grossMargin)}${d === undefined || Math.abs(d) < 0.0005 ? "" : `, ${d > 0 ? "up" : "down"} ${points(d)} on the year`}${
-        v.operatingMargin === undefined ? "" : `; operating margin is ${format("pct", v.operatingMargin)}`
+        v.operatingMargin === undefined
+          ? ""
+          : `; operating margin is ${format("pct", v.operatingMargin)}${comparability(earnings.company, "operatingMargin") ? ", as Korean accounting defines it" : ""}`
       }.`,
     );
   }
@@ -100,7 +119,7 @@ export async function ProfileChips({ company }: { company: Company }) {
   }
   return (
     <>
-      <Chip>SEC filer</Chip>
+      <Chip>{sourceOf(company).chip}</Chip>
       {onAvnet && (
         <Chip>
           <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
@@ -171,18 +190,20 @@ export async function ProfileOverview({ company }: { company: Company }) {
   if (!q) {
     return (
       <Panel title="Overview">
-        <EmptyState title={`${company.name}'s filings couldn't be loaded from SEC EDGAR right now.`} body={earnings.error} />
+        <EmptyState title={`${company.name}'s figures couldn't be loaded from ${sourceOf(company).short} right now.`} body={earnings.error} />
       </Panel>
     );
   }
   const p = yearAgo(quarters, q);
-  const v = q.values;
+  // Figures that don't compare with the US filers are left out, the rest carry their caveat.
+  const v = Object.fromEntries(Object.entries(q.values).map(([m, x]) => [m, comparableValue(company, m as Metric, x)])) as Quarter["values"];
+  const caveat = (m: Metric) => comparability(company, m)?.reason;
   const lines = glance(earnings, mix);
   // Avnet Green only ever represents Avnet.
   const color = companyColor(company.slug);
   const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
   const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
-  const footer = <SourceLine source={`${company.name}'s SEC filings`} asOf={`quarter ended ${longDate(q.end)}`} />;
+  const footer = <SourceLine source={sourceOf(company).filings} asOf={`quarter ended ${longDate(q.end)}`} />;
 
   return (
     <div className="space-y-4">
@@ -190,17 +211,20 @@ export async function ProfileOverview({ company }: { company: Company }) {
         <KpiTile
           label={`Revenue, ${q.fiscalLabel}`}
           value={format("usd", v.revenue)}
+          caveat={caveat("revenue")}
           delta={v.revenueYoY === undefined ? undefined : { value: v.revenueYoY, period: "YoY" }}
         />
         <KpiTile
           label="Gross margin"
           value={format("pct", v.grossMargin)}
+          caveat={caveat("grossMargin")}
           delta={gmDelta === undefined ? undefined : { value: gmDelta, display: `${(Math.abs(gmDelta) * 100).toFixed(1)} pts`, period: "YoY" }}
         />
-        <KpiTile label="Operating margin" value={format("pct", v.operatingMargin)} />
+        <KpiTile label="Operating margin" value={format("pct", v.operatingMargin)} caveat={caveat("operatingMargin")} />
         <KpiTile
           label="Inventory days"
           value={format("days", v.inventoryDays)}
+          caveat={caveat("inventoryDays")}
           note={v.inventoryDays === undefined ? "Not reported" : undefined}
           delta={invDelta === undefined || invDelta === 0 ? undefined : { value: invDelta, display: `${Math.abs(invDelta)}`, period: "YoY", invert: true }}
         />

@@ -1,6 +1,6 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
+import { COMPANIES, releasePattern, type Company } from "@/lib/data/live/earnings-model";
 import { DATA_USER_AGENT, fetchSec } from "@/lib/data/live/revenue-mix";
 import { store } from "@/lib/store";
 import { plainDeep } from "./dashes";
@@ -96,14 +96,28 @@ export interface Release {
   text: string;
 }
 
-/** Finds and reads the press release attached to the company's latest results 8-K. */
+/**
+ * Finds and reads the press release attached to the company's latest results 8-K.
+ * A 20-F filer furnishes the release itself as a 6-K's primary document.
+ */
 export async function findRelease(company: Company, declaredAgent: string): Promise<Release> {
+  if (company.cik === undefined) throw new Error("Not available for companies that report through Korea's DART.");
   const recent = ((await (await fetchSec(`https://data.sec.gov/submissions/CIK${String(company.cik).padStart(10, "0")}.json`, DATA_USER_AGENT)).json()) as Submissions)
     .filings?.recent;
-  const i = recent?.form.findIndex((f, n) => f === "8-K" && (recent.items[n] ?? "").split(",").includes("2.02")) ?? -1;
-  if (!recent || i < 0) throw new Error("No earnings 8-K found");
+  const sixK = releasePattern(company);
+  const i =
+    recent?.form.findIndex((f, n) =>
+      sixK ? f === "6-K" && sixK.test(recent.primaryDocument[n]) : f === "8-K" && (recent.items[n] ?? "").split(",").includes("2.02"),
+    ) ?? -1;
+  if (!recent || i < 0) throw new Error(sixK ? "No earnings release 6-K found" : "No earnings 8-K found");
   const accession = recent.accessionNumber[i];
   const folder = `https://www.sec.gov/Archives/edgar/data/${company.cik}/${accession.replace(/-/g, "")}`;
+  if (sixK) {
+    const url = `${folder}/${recent.primaryDocument[i]}`;
+    const text = htmlToText(await (await fetchSec(url, declaredAgent)).text());
+    if (text.length < 500) throw new Error("The earnings release 6-K was empty");
+    return { accession, filed: recent.filingDate[i], url, text };
+  }
   const index = (await (await fetchSec(`${folder}/index.json`, declaredAgent)).json()) as { directory?: { item?: { name: string; size?: string }[] } };
   const pages = (index.directory?.item ?? []).filter((f) => /\.html?$/i.test(f.name) && !/^R\d+\.htm$/i.test(f.name) && !/index/i.test(f.name));
   // The release is filed as Exhibit 99.1. File names vary ("ex99-1.htm",
@@ -129,6 +143,7 @@ interface Stored {
  * searched by company. Null when nothing is cached.
  */
 export async function cachedCommentary(company: Company): Promise<{ digest: Digest; filed: string; releaseUrl: string } | null> {
+  if (company.cik === undefined) return null;
   const cached = await store.getAll<Stored>(CACHE);
   const prefix = String(company.cik).padStart(10, "0");
   const hits = Object.entries(cached)

@@ -40,16 +40,39 @@ export const isDemand = (c: Cohort) => DEMAND_COHORTS.includes(c);
 
 export const COHORTS = Object.keys(COHORT_LABELS) as Cohort[];
 
+/**
+ * Where a company outside the 10-Q/10-K framework reports from. A 20-F filer has
+ * annual US GAAP facts on the SEC and its quarters in interim 6-Ks, whose primary
+ * document matches `interim`; its earnings release is the 6-K matching `release`
+ * (regex sources: Company crosses into client components, so it stays plain
+ * data). A DART filer reports to Korea's regulator
+ * under K-IFRS in won, found by its KRX stock code (DART's own corp code is looked
+ * up from that); `segment` takes one segment of the group instead of the whole.
+ */
+export type Foreign =
+  | { source: "sec-20f"; interim: string; release: string }
+  | { source: "dart"; stockCode: string; currency: "KRW"; segment?: "DS" };
+
 export interface Company {
   slug: string;
   name: string;
-  cik: number;
+  /** SEC registrant number; absent for companies that don't file with the SEC. */
+  cik?: number;
   cohort: Cohort;
+  foreign?: Foreign;
 }
 
-// Every company here files 10-Q/10-K with the SEC under US GAAP, so its numbers
-// arrive in the same structured format and refresh without manual work. Each CIK
-// was checked against the registrant name on EDGAR. To add a company, add a row.
+/** Files 10-Q and 10-K with the SEC: the filings every SEC-only feature reads. */
+export const isUsFiler = (c: Company): c is Company & { cik: number } => c.cik !== undefined && !c.foreign;
+
+/** The 6-K that carries a 20-F filer's earnings release, by primary document name; null for other companies. */
+export const releasePattern = (c: Company): RegExp | null => (c.foreign?.source === "sec-20f" ? new RegExp(c.foreign.release, "i") : null);
+
+// Every company here is in one metric framework. Most file 10-Q/10-K with the SEC
+// under US GAAP, so their numbers arrive in the same structured format and refresh
+// without manual work; the `foreign` rows are read from their own sources into the
+// same metrics (src/lib/data/live/foreign). Each CIK was checked against the
+// registrant name on EDGAR. To add a US filer, add a row.
 export const COMPANIES: Company[] = [
   { slug: "avnet", name: "Avnet", cik: 8858, cohort: "distributor" },
   { slug: "arrow", name: "Arrow Electronics", cik: 7536, cohort: "distributor" },
@@ -68,6 +91,7 @@ export const COMPANIES: Company[] = [
   { slug: "wolfspeed", name: "Wolfspeed", cik: 895419, cohort: "manufacturer" },
   { slug: "silicon-labs", name: "Silicon Labs", cik: 1038074, cohort: "manufacturer" },
   { slug: "power-integrations", name: "Power Integrations", cik: 833640, cohort: "manufacturer" },
+  { slug: "stmicro", name: "STMicroelectronics", cik: 932787, cohort: "manufacturer", foreign: { source: "sec-20f", interim: "6-?k_q", release: "earnings ?pr" } },
   { slug: "allegro", name: "Allegro MicroSystems", cik: 866291, cohort: "manufacturer" },
   { slug: "diodes", name: "Diodes", cik: 29002, cohort: "manufacturer" },
   { slug: "semtech", name: "Semtech", cik: 88941, cohort: "manufacturer" },
@@ -96,6 +120,8 @@ export const COMPANIES: Company[] = [
   { slug: "sandisk", name: "Sandisk", cik: 2023554, cohort: "memory" },
   { slug: "seagate", name: "Seagate", cik: 1137789, cohort: "memory" },
   { slug: "gsi-technology", name: "GSI Technology", cik: 1126741, cohort: "memory" },
+  { slug: "sk-hynix", name: "SK hynix", cohort: "memory", foreign: { source: "dart", stockCode: "000660", currency: "KRW" } },
+  { slug: "samsung-ds", name: "Samsung Device Solutions", cohort: "memory", foreign: { source: "dart", stockCode: "005930", currency: "KRW", segment: "DS" } },
   { slug: "applied-materials", name: "Applied Materials", cik: 6951, cohort: "equipment" },
   { slug: "lam-research", name: "Lam Research", cik: 707549, cohort: "equipment" },
   { slug: "kla", name: "KLA", cik: 319201, cohort: "equipment" },
@@ -114,6 +140,7 @@ export const COMPANIES: Company[] = [
   { slug: "corning", name: "Corning", cik: 24741, cohort: "components" },
   { slug: "itt", name: "ITT", cik: 216228, cohort: "components" },
   { slug: "cts", name: "CTS", cik: 26058, cohort: "components" },
+  { slug: "samsung-em", name: "Samsung Electro-Mechanics", cohort: "components", foreign: { source: "dart", stockCode: "009150", currency: "KRW" } },
   { slug: "jabil", name: "Jabil", cik: 898293, cohort: "ems" },
   { slug: "flex", name: "Flex", cik: 866374, cohort: "ems" },
   { slug: "sanmina", name: "Sanmina", cik: 897723, cohort: "ems" },
@@ -274,7 +301,84 @@ export interface CompanyEarnings {
   company: Company;
   quarters: Quarter[]; // oldest → newest
   latestFiling: Filing | null;
+  /** Converted to USD from this currency; dollar figures move with the exchange rate. */
+  local?: { currency: string; revenueYoY: Record<string, number> };
   error?: string;
+}
+
+/** The accounting basis a company's figures are prepared on. */
+export type Basis = "us-gaap" | "kifrs" | "kifrs-segment";
+
+export const basisOf = (c: Company): Basis =>
+  c.foreign?.source === "dart" ? (c.foreign.segment ? "kifrs-segment" : "kifrs") : "us-gaap";
+
+export const BASIS_LABELS: Record<Basis, string> = {
+  "us-gaap": "US GAAP",
+  kifrs: "K-IFRS",
+  "kifrs-segment": "K-IFRS, one segment",
+};
+
+/** How far a metric can be set beside the US GAAP filers: with a caveat, or not at all. */
+export interface Comparability {
+  level: "caveat" | "none";
+  reason: string;
+}
+
+const IFRS_OPERATING = "IFRS has no defined operating profit until IFRS 18 (2027); Korean operating profit leaves out other income and expenses.";
+const IFRS_CASH = "Under IFRS 16 lease payments sit in financing, which lifts operating cash flow against US GAAP.";
+const SEGMENT = "A segment of the group, before sales between segments are eliminated.";
+const SEGMENT_ONLY = "Not reported for the segment on its own.";
+
+// Metrics not listed compare directly. Ratios and days are currency-free; dollar
+// amounts for won reporters are converted at the quarter's exchange rate.
+export const COMPARABILITY: Record<Basis, Partial<Record<Metric, Comparability>>> = {
+  "us-gaap": {},
+  kifrs: {
+    operatingIncome: { level: "caveat", reason: IFRS_OPERATING },
+    operatingMargin: { level: "caveat", reason: IFRS_OPERATING },
+    sga: { level: "caveat", reason: "Korean income statements report R&D inside selling and administrative expenses." },
+    sgaPct: { level: "caveat", reason: "Korean income statements report R&D inside selling and administrative expenses." },
+    rd: { level: "none", reason: "Not shown on the face of Korean income statements." },
+    rdPct: { level: "none", reason: "Not shown on the face of Korean income statements." },
+    operatingCashFlow: { level: "caveat", reason: IFRS_CASH },
+    freeCashFlow: { level: "caveat", reason: IFRS_CASH },
+    fcfMargin: { level: "caveat", reason: IFRS_CASH },
+    epsDiluted: { level: "none", reason: "Reported in won per share." },
+  },
+  "kifrs-segment": {
+    revenue: { level: "caveat", reason: SEGMENT },
+    revenueYoY: { level: "caveat", reason: SEGMENT },
+    revenueQoQ: { level: "caveat", reason: SEGMENT },
+    operatingIncome: { level: "caveat", reason: `${SEGMENT} ${IFRS_OPERATING}` },
+    operatingMargin: { level: "caveat", reason: `${SEGMENT} ${IFRS_OPERATING}` },
+  },
+};
+
+const CURRENCY_NAMES: Record<string, string> = { KRW: "won" };
+export const currencyName = (code: string) => CURRENCY_NAMES[code] ?? code;
+
+/** Where a company's figures come from: a short chip, and the phrase for source lines. */
+export function sourceOf(c: Company): { chip: string; filings: string; short: string } {
+  const f = c.foreign;
+  if (f?.source === "sec-20f") return { chip: "SEC 20-F filer, US GAAP", filings: `${c.name}'s 20-F and interim 6-K reports`, short: "SEC EDGAR" };
+  if (f?.source === "dart" && f.segment) {
+    return { chip: "Segment, K-IFRS, from won", filings: `${c.name}'s figures from the group's earnings releases, converted from won`, short: "the group's releases" };
+  }
+  if (f?.source === "dart") return { chip: "DART filer, K-IFRS, from won", filings: `${c.name}'s DART filings, converted from won`, short: "Korea's DART" };
+  return { chip: "SEC filer", filings: `${c.name}'s SEC filings`, short: "SEC EDGAR" };
+}
+
+/** A metric's value as it may be shown beside the US filers: left out when it doesn't compare. */
+export function comparableValue(c: Company, m: Metric, v: number | undefined): number | undefined {
+  return comparability(c, m)?.level === "none" ? undefined : v;
+}
+
+/** The caveat on a metric for this company, if any. Segment reporters show only what the segment note carries. */
+export function comparability(c: Company, m: Metric): Comparability | undefined {
+  const basis = basisOf(c);
+  const listed = COMPARABILITY[basis][m];
+  if (listed || basis !== "kifrs-segment") return listed;
+  return { level: "none", reason: SEGMENT_ONLY };
 }
 
 /** One row of the cross-company table: a company and its most recent reported quarter. */

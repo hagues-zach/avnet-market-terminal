@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { BookOpenCheck } from "lucide-react";
-import { COMPANIES, ROLE_SINGULAR, roleOf } from "@/lib/data/live/earnings-model";
+import { COMPANIES, ROLE_SINGULAR, roleOf, sourceOf } from "@/lib/data/live/earnings-model";
 import { isHidden } from "@/lib/visibility";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
@@ -33,7 +33,11 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
     <PageBody>
       <PageTitle
         title={company.name}
-        subtitle="From SEC filings, the latest earnings release and the Market News feed"
+        subtitle={
+          company.foreign?.source === "dart"
+            ? `From ${sourceOf(company).short} and the Market News feed, converted to US dollars`
+            : "From SEC filings, the latest earnings release and the Market News feed"
+        }
         breadcrumb={[{ label: "Company Profiles", href: role === "avnet" ? "/network" : `/network?role=${role}` }, { label: company.name }]}
         actions={
           <>

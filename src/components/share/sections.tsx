@@ -19,7 +19,8 @@ import { LabelledLines } from "./line-chart";
 // their own sections so the two never mix.
 
 const SHARE_HOOKUPS = ["billings", "wsts", "gartner-forecast", "code-map"];
-const MAKERS = COMPANIES.filter((c) => c.cohort === "manufacturer").length;
+// The makers in the Market Cycle rollup, which counts US GAAP filers only.
+const MAKERS = COMPANIES.filter((c) => c.cohort === "manufacturer" && !c.foreign).length;
 
 const cycleData = cache(getCycle);
 const avnetData = cache(() => getCompanyEarnings("avnet"));

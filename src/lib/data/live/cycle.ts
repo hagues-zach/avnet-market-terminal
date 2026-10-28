@@ -77,7 +77,11 @@ export const STAGES: { id: StageId; name: string; detail: string; cohorts: Cohor
  */
 const CHIP_COHORTS: Cohort[] = ["manufacturer", "platform", "connectivity", "memory"];
 const NOT_CHIP_SALES = new Set(["western-digital", "seagate", "coherent", "lumentum"]);
-export const CHIP_MAKERS = COMPANIES.filter((c) => CHIP_COHORTS.includes(c.cohort) && !NOT_CHIP_SALES.has(c.slug));
+// Rollups count US GAAP filers only: foreign reporters are converted from other
+// currencies and accounting rules, and adding them would restate every series'
+// history. Including them is a separate decision.
+const IN_ROLLUPS = COMPANIES.filter((c) => !c.foreign);
+export const CHIP_MAKERS = IN_ROLLUPS.filter((c) => CHIP_COHORTS.includes(c.cohort) && !NOT_CHIP_SALES.has(c.slug));
 
 export interface StageSeries {
   id: StageId;
@@ -182,7 +186,7 @@ export async function getCycle(): Promise<Cycle> {
   const all = await getAllEarnings();
   const byLabel = new Map<string, ByLabel>(all.map((e: CompanyEarnings) => [e.company.slug, new Map(e.quarters.map((q) => [q.calendarLabel, q]))]));
   const membersOf = (filter: (c: Cohort) => boolean) =>
-    COMPANIES.filter((c) => filter(c.cohort)).map((c) => byLabel.get(c.slug) ?? new Map());
+    IN_ROLLUPS.filter((c) => filter(c.cohort)).map((c) => byLabel.get(c.slug) ?? new Map());
 
   const supplyMembers = membersOf((c) => !isDemand(c));
   const allLabels = Array.from(new Set(all.flatMap((e) => e.quarters.map((q) => q.calendarLabel)))).sort((a, b) => order(a) - order(b));

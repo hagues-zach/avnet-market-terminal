@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Quarter } from "@/lib/data/live/earnings-model";
+import { CaveatMark } from "@/components/ui/caveat-mark";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 import { earningsHref, format, longDate } from "./format";
@@ -11,6 +12,8 @@ export interface GroupRow {
   name: string;
   group: string;
   latest: Quarter | null;
+  /** Why a figure doesn't compare cleanly with the US GAAP filers', by metric. */
+  caveats?: Partial<Record<keyof Values, string>>;
 }
 
 type Values = Quarter["values"];
@@ -39,7 +42,12 @@ export function GroupTable({
     header,
     numeric: true,
     sortValue: sortNum(m),
-    render: (r) => format(kind, val(r, m)),
+    render: (r) => (
+      <>
+        {format(kind, val(r, m))}
+        <CaveatMark reason={r.caveats?.[m]} />
+      </>
+    ),
   });
   const columns: Column<GroupRow>[] = [
     {

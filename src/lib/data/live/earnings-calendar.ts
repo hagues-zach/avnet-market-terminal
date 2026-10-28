@@ -1,4 +1,4 @@
-import { COMPANIES, type Company } from "./earnings-model";
+import { COMPANIES, releasePattern, type Company } from "./earnings-model";
 
 // Earnings release calendar. SEC data has no forward-looking dates, so upcoming
 // releases are ESTIMATES: companies report on a very regular cadence, so the next
@@ -84,6 +84,9 @@ const addDays = (d: string, n: number) => new Date(ms(d) + n * DAY).toISOString(
 const gap = (a: string, b: string) => Math.round((ms(b) - ms(a)) / DAY);
 
 async function releases(company: Company): Promise<Release[]> {
+  if (company.cik === undefined) return [];
+  // A 20-F filer furnishes its release on a 6-K, picked out by document name.
+  const sixK = releasePattern(company);
   const res = await fetch(`https://data.sec.gov/submissions/CIK${String(company.cik).padStart(10, "0")}.json`, {
     headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -95,7 +98,10 @@ async function releases(company: Company): Promise<Release[]> {
   const out: Release[] = [];
   for (let i = 0; i < r.form.length; i++) {
     // Item 2.02 = "Results of Operations and Financial Condition": the earnings release.
-    if (r.form[i] !== "8-K" || !(r.items[i] ?? "").split(",").includes("2.02")) continue;
+    const isRelease = sixK
+      ? r.form[i] === "6-K" && sixK.test(r.primaryDocument[i])
+      : r.form[i] === "8-K" && (r.items[i] ?? "").split(",").includes("2.02");
+    if (!isRelease) continue;
     const accepted = new Date(r.acceptanceDateTime[i]);
     if (Number.isNaN(accepted.getTime())) continue;
     const { date, minutes } = inEastern(accepted);
@@ -136,8 +142,10 @@ export async function getEarningsCalendar(): Promise<EarningsCalendar> {
   const today = inEastern(new Date()).date;
   const events: ReleaseEvent[] = [];
   const failed: string[] = [];
-  for (let i = 0; i < COMPANIES.length; i += BATCH) {
-    const batch = COMPANIES.slice(i, i + BATCH);
+  // Companies outside the SEC have no filings to project a date from.
+  const filers = COMPANIES.filter((c) => c.cik !== undefined);
+  for (let i = 0; i < filers.length; i += BATCH) {
+    const batch = filers.slice(i, i + BATCH);
     const settled = await Promise.allSettled(batch.map(releases));
     settled.forEach((s, j) => {
       if (s.status === "fulfilled") events.push(...eventsFor(batch[j], s.value, today));

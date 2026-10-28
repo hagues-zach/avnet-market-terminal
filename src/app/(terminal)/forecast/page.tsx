@@ -27,7 +27,7 @@ async function realityCheck(): Promise<RealityCheck> {
   const last = f.points.filter((p) => p.actual !== undefined).at(-1)!;
   const next = f.points.find((p) => p.year === last.year + 1);
   const base = {
-    supplyCompanies: COMPANIES.filter((c) => !isDemand(c.cohort)).length,
+    supplyCompanies: COMPANIES.filter((c) => !isDemand(c.cohort) && !c.foreign).length,
     wsts: next?.base !== undefined ? next.base / last.actual! - 1 : 0,
     wstsYear: last.year + 1,
   };
