@@ -16,6 +16,8 @@ export interface FakeSql extends SqlClient {
   log: { kind: StatementKind; sql: string; params: Record<string, SqlValue> }[];
   /** When set, every statement rejects, as if the database were down. */
   down: boolean;
+  /** The most statements that were running at once. */
+  maxInFlight: number;
 }
 
 export function fakeSql(): FakeSql {
@@ -27,9 +29,11 @@ export function fakeSql(): FakeSql {
     return m;
   };
 
+  let inFlight = 0;
   const fake: FakeSql = {
     log: [],
     down: false,
+    maxInFlight: 0,
     async query(sql, params = {}) {
       const kind = /^\/\* store (\S+) \*\//.exec(sql)?.[1] as StatementKind | undefined;
       if (!kind) throw new Error(`fake sql: statement has no store tag: ${sql.slice(0, 60)}`);
@@ -38,8 +42,11 @@ export function fakeSql(): FakeSql {
       for (const m of markers) if (!passed.has(m)) throw new Error(`fake sql: ${kind} uses :${m} but it wasn't passed`);
       for (const p of passed) if (!markers.has(p)) throw new Error(`fake sql: ${kind} was passed ${p} but doesn't use it`);
       fake.log.push({ kind, sql, params });
-      // Let other writes interleave, as a real round trip would.
+      // Let other statements interleave, as a real round trip would.
+      inFlight++;
+      fake.maxInFlight = Math.max(fake.maxInFlight, inFlight);
       await new Promise((r) => setImmediate(r));
+      inFlight--;
       if (fake.down) throw new Error("fake sql: the database is down");
 
       const p = params as Record<string, string | null>;
@@ -67,6 +74,18 @@ export function fakeSql(): FakeSql {
           const doc = snaps.get(p.distributor!)?.get(p.snap_date!);
           return doc === undefined ? [] : [{ document: doc }];
         }
+        case "check.ping":
+          return [{ ok: 1 }];
+        case "check.countKv":
+          return [{ n: [...kv.values()].reduce((n, m) => n + m.size, 0) }];
+        case "check.countSnapshots":
+          return [{ n: [...snaps.values()].reduce((n, m) => n + m.size, 0) }];
+        case "check.cleanupKv":
+          for (const name of [...kv.keys()]) if (name.startsWith(p.prefix!.replace(/%$/, ""))) kv.delete(name);
+          return [];
+        case "check.cleanupSnapshots":
+          for (const name of [...snaps.keys()]) if (name.startsWith(p.prefix!.replace(/%$/, ""))) snaps.delete(name);
+          return [];
         case "snap.write": {
           let m = snaps.get(p.distributor!);
           if (!m) snaps.set(p.distributor!, (m = new Map()));

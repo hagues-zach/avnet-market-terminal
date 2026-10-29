@@ -182,6 +182,17 @@ async function main() {
     });
   }
 
+  // A network failure says why, from fetch's cause.
+  {
+    const refused = (async () => {
+      throw Object.assign(new TypeError("fetch failed"), { cause: new Error("connect ECONNREFUSED 10.0.0.1:443") });
+    }) as unknown as typeof fetch;
+    await assert.rejects(databricksQuery("SELECT 1", {}, { settings, fetch: refused }), {
+      kind: "http",
+      message: "Databricks request failed: fetch failed (connect ECONNREFUSED 10.0.0.1:443)",
+    });
+  }
+
   // A statement still running at the deadline is canceled, and the error says so.
   {
     const running = { body: { statement_id: "st-5", status: { state: "RUNNING" } } };

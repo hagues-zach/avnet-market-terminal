@@ -1,4 +1,4 @@
-import { isJsonParam, oracleDialect, sqlSnapshots, sqlStore, type SqlClient, type SqlValue } from "./sql";
+import { isJsonParam, oracleDialect, sqlSnapshots, sqlStore, type Dialect, type SqlClient, type SqlValue } from "./sql";
 
 // The Oracle adapter: both stores over oracledb in thin mode (pure JavaScript, so
 // no Oracle Instant Client to install). oracledb is loaded with a dynamic import
@@ -40,6 +40,7 @@ interface Connection {
 
 interface Pool {
   getConnection(): Promise<Connection>;
+  close(drainTime?: number): Promise<void>;
 }
 
 export interface OracleDb {
@@ -49,8 +50,14 @@ export interface OracleDb {
   createPool(config: { user: string; password: string; connectString: string; poolMin: number; poolMax: number }): Promise<Pool>;
 }
 
-/** A SqlClient over a pool from `load`. Exported so a test can pass a fake oracledb. */
-export function oracleClient(settings: OracleSettings, load: () => Promise<OracleDb>): SqlClient {
+/**
+ * A SqlClient over a pool from `load`, plus `close` to end the pool (the app never
+ * needs to; a script does, so it can exit). Exported so a test can pass a fake oracledb.
+ */
+export function oracleClient(
+  settings: OracleSettings,
+  load: () => Promise<OracleDb>,
+): SqlClient & { close(): Promise<void> } {
   let ready: Promise<{ db: OracleDb; pool: Pool }> | undefined;
   const connect = () =>
     (ready ??= (async () => {
@@ -64,6 +71,11 @@ export function oracleClient(settings: OracleSettings, load: () => Promise<Oracl
     }));
 
   return {
+    async close() {
+      const open = ready;
+      ready = undefined;
+      if (open) await (await open).pool.close(0);
+    },
     async query(sql, params = {}) {
       const { db, pool } = await connect();
       const binds = Object.fromEntries(
@@ -89,14 +101,27 @@ function bind(db: OracleDb, name: string, value: SqlValue): unknown {
   return value;
 }
 
-/** Both stores on Oracle, from the ORACLE_* settings. */
-export function oracleStores(env: Record<string, string | undefined> = process.env) {
-  // oracledb belongs in serverExternalPackages in next.config.mjs, so it is
-  // required at run time from node_modules rather than bundled.
-  const client = oracleClient(oracleSettings(env), async () => {
+/**
+ * The client and dialect for the ORACLE_* settings, and a description of where they
+ * point (no password). Throws naming any setting that's missing.
+ */
+export function oracleConnection(env: Record<string, string | undefined> = process.env): {
+  client: SqlClient & { close(): Promise<void> };
+  dialect: Dialect;
+  target: string;
+} {
+  const settings = oracleSettings(env);
+  // oracledb is in serverExternalPackages in next.config.mjs, so it is required at
+  // run time from node_modules rather than bundled.
+  const client = oracleClient(settings, async () => {
     const mod = (await import("oracledb")) as OracleDb & { default?: OracleDb };
     return mod.default ?? mod;
   });
-  const dialect = oracleDialect();
+  return { client, dialect: oracleDialect(), target: `${settings.user} at ${settings.connectString}` };
+}
+
+/** Both stores on Oracle, from the ORACLE_* settings. */
+export function oracleStores(env: Record<string, string | undefined> = process.env) {
+  const { client, dialect } = oracleConnection(env);
   return { kv: sqlStore(client, dialect), snapshots: sqlSnapshots(client, dialect) };
 }

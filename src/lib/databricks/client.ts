@@ -115,7 +115,10 @@ export async function databricksQuery(
         signal: AbortSignal.timeout(Math.max(1_000, deadline - Date.now() + 5_000)),
       });
     } catch (e) {
-      throw new DatabricksError("http", scrub(`Databricks request failed: ${(e as Error).message}`, settings.token));
+      // fetch says only "fetch failed"; the reason (DNS, refused, TLS) is in its cause.
+      const cause = (e as { cause?: { message?: string } }).cause?.message;
+      const why = `${(e as Error).message}${cause ? ` (${cause})` : ""}`;
+      throw new DatabricksError("http", scrub(`Databricks request failed: ${why}`, settings.token));
     }
     const text = await res.text();
     let json: unknown;

@@ -8,7 +8,8 @@
     "start": "next start -p 3002",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/test.ts"
+    "test": "tsx scripts/test.ts",
+    "check:store": "tsx scripts/check-store.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
