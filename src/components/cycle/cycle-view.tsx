@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { getCycle, type CompanySeries, type GroupPoint, type GroupSeries, type StageSeries } from "@/lib/data/live/cycle";
 import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
-import { getAvnet } from "@/lib/avnet";
-import { fmtM, fmtPct } from "@/lib/avnet/format";
 import { NA, earningsHref, format } from "@/components/earnings/format";
 import { Delta } from "@/components/ui/delta";
-import { HookupMarker } from "@/components/ui/hookup-marker";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
-import { BookToBill, CapexBars, GrowthBars, InventoryLines } from "./charts";
+import { CapexBars, GrowthBars, InventoryLines } from "./charts";
 import { Spark } from "./spark";
 import { cn } from "@/lib/utils";
 
@@ -109,18 +106,13 @@ export async function CycleView() {
 
       <Chain stages={stages} avnet={avnet} arrow={arrow} latest={latest} prior={prior} yearAgo={yearAgo} labels={labels} />
 
-      <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
-        <Panel
-          className="xl:col-span-8"
-          title="How we got here"
-          subtitle="Supply-chain revenue growth on a year ago, by calendar quarter, with the phase each quarter was in"
-          footer={<SourceLine source="SEC filings" asOf={latest} />}
-          bodyClassName="flex flex-col"
-        >
-          <GrowthBars fill rows={supply.map((p, i) => ({ label: p.label, growth: p.growth, phase: phases[i] }))} />
-        </Panel>
-        <OrderBook />
-      </div>
+      <Panel
+        title="How we got here"
+        subtitle="Supply-chain revenue growth on a year ago, by calendar quarter, with the phase each quarter was in"
+        footer={<SourceLine source="SEC filings" asOf={latest} />}
+      >
+        <GrowthBars rows={supply.map((p, i) => ({ label: p.label, growth: p.growth, phase: phases[i] }))} />
+      </Panel>
 
       <div className="grid gap-4 xl:grid-cols-2 [&>*]:min-w-0">
         <Panel
@@ -256,48 +248,6 @@ function Chain({
           );
         })}
       </ol>
-    </Panel>
-  );
-}
-
-/* ---------- Avnet's order book (mock) ---------- */
-
-async function OrderBook() {
-  const { performance } = await getAvnet();
-  const latest = performance[performance.length - 1];
-  const yearAgo = performance[performance.length - 5];
-  return (
-    <Panel
-      className="xl:col-span-4"
-      title="Avnet's order book"
-      subtitle="The leading signal filings can't give: orders against shipments"
-      footer={
-        <>
-          <Link href="/performance" className={link}>
-            Performance Tracker
-          </Link>
-          <Link href="/competitive" className={link}>
-            Avnet vs Arrow
-          </Link>
-        </>
-      }
-      bodyClassName="space-y-3"
-    >
-      <HookupMarker ids={["bookings", "backlog"]} />
-      <BookToBill rows={performance} />
-      <dl className="grid grid-cols-2 gap-3 border-t border-hairline pt-3">
-        <div>
-          <dt className="font-display text-label uppercase text-ink-muted">Book-to-bill, {latest.quarter}</dt>
-          <dd className="font-display text-figure tabular-nums text-ink">{latest.bookToBill.toFixed(2)}</dd>
-        </div>
-        <div>
-          <dt className="font-display text-label uppercase text-ink-muted">Backlog</dt>
-          <dd className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-display text-figure tabular-nums text-ink">{fmtM(latest.backlog)}</span>
-            <Delta value={latest.backlog / yearAgo.backlog - 1} display={fmtPct(latest.backlog / yearAgo.backlog - 1)} period="YoY" />
-          </dd>
-        </div>
-      </dl>
     </Panel>
   );
 }

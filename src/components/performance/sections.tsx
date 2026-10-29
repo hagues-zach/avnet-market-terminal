@@ -143,25 +143,8 @@ export async function SupplierCard() {
       subtitle={`The top ${named.length} suppliers make up ${Math.round(topShare * 100)}% of billings. Names withheld in mock`}
       actions={<DataChip status={m.status} />}
       footer={<SourceLine source="Avnet billings by manufacturer, last 12 months" />}
-      className="h-full"
     >
       <BarRows items={m.suppliers.map((s) => ({ label: s.name, value: s.billings, display: fmtM(s.billings), growth: s.growth, grey: s.revenue === 0 }))} />
-    </Panel>
-  );
-}
-
-export async function EndMarketCard() {
-  const { m } = await figures();
-  const fastest = [...m.verticals].sort((a, b) => b.growth - a.growth)[0];
-  return (
-    <Panel
-      title="End markets"
-      subtitle={`${fastest.name} is growing fastest, ${Math.round(fastest.growth * 100)}% on a year ago`}
-      actions={<DataChip status={m.status} />}
-      footer={<SourceLine source="Avnet billings by customer vertical, last 12 months" />}
-      className="h-full"
-    >
-      <BarRows items={m.verticals.map((v) => ({ label: v.name, value: v.billings, display: fmtM(v.billings), growth: v.growth }))} />
     </Panel>
   );
 }

@@ -1,0 +1,1 @@
+self.__NEXT_FONT_MANIFEST="{\"pages\":{},\"app\":{\"/Users/zachhagues/avnet-repos/web-applications-mock/apps/terminal/.claude/worktrees/hub-navigation/src/app/layout\":[\"static/media/6c596dfcddeca1e9-s.p.woff2\",\"static/media/9d12c80ad321ecaa-s.p.woff2\"]},\"appUsingSizeAdjust\":true,\"pagesUsingSizeAdjust\":false}"

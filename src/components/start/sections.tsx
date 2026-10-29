@@ -251,7 +251,7 @@ export async function AvnetCard() {
 
 export function NextSteps({ role }: { role: Role }) {
   return (
-    <Panel title={role.id === "everyone" ? "Where to start" : "Your next steps"} subtitle={role.id === "everyone" ? "One page for each role" : undefined}>
+    <Panel title="Your next steps">
       <ol className="divide-y divide-hairline">
         {role.steps.map((s, i) => (
           <li key={s.href}>

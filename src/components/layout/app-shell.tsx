@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { AppTopbar } from "./app-topbar";
+import { HubTabs } from "./hub-tabs";
 
 /**
  * Sidebar, top bar and the scrolling canvas. From 1024px the sidebar is fixed;
@@ -66,7 +67,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col print:block" inert={open || undefined}>
         <AppTopbar onMenu={() => setOpen(true)} menuOpen={open} />
-        <main id="main" tabIndex={-1} className="relative flex-1 overflow-y-auto bg-canvas focus:outline-none print:overflow-visible print:bg-surface">
+        <main id="main" tabIndex={-1} className="relative flex-1 scroll-pt-12 overflow-y-auto bg-canvas focus:outline-none print:overflow-visible print:bg-surface">
+          <HubTabs />
           {children}
         </main>
       </div>

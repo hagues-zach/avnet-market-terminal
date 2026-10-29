@@ -84,53 +84,6 @@ export function topics(articles: LiveArticle[], fetchedAt: string, facet: TopicF
   return Array.from(counts, ([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
-/* ---------- Where a topic touches Avnet (mock) ---------- */
-
-// News segments and end markets (rule-based tags) against the segments and
-// verticals of Avnet's billings in the shared mock model. A topic with no
-// match is one Avnet does not bill under (fabs and equipment, for instance).
-const SEGMENT_MAP: Record<string, string[]> = {
-  Memory: ["Memory"],
-  "Analog & Power": ["Analog", "Discretes & power"],
-  "Logic & Processors": ["Logic & FPGA"],
-  "MCU & Embedded": ["Microcontrollers & processors"],
-  "Sensors & Opto": ["Sensors", "Optoelectronics"],
-  "IP&E": ["Connectors", "Passives", "Electromechanical"],
-};
-
-const END_MARKET_MAP: Record<string, string> = {
-  "AI & Data Center": "Data center & computing",
-  Automotive: "Automotive",
-  Industrial: "Industrial",
-  Consumer: "Consumer",
-  "Aerospace & Defense": "Aerospace & defense",
-  Communications: "Communications",
-  Medical: "Medical",
-};
-
-/** Avnet's billings by segment and by end market: what news topics are measured against. Small enough to send to the browser. */
-export interface ExposureBillings {
-  segments: { segment: string; billings: number; growth: number }[];
-  verticals: { name: string; billings: number; growth: number }[];
-}
-
-export const exposureBillings = (m: { segmentBillings: ExposureBillings["segments"]; verticals: ExposureBillings["verticals"] }): ExposureBillings => ({
-  segments: m.segmentBillings.map(({ segment, billings, growth }) => ({ segment, billings, growth })),
-  verticals: m.verticals.map(({ name, billings, growth }) => ({ name, billings, growth })),
-});
-
-/** Avnet's trailing 12 month billings ($M) and growth for a news topic, or null when Avnet doesn't bill under it. */
-export function avnetExposure(topic: string, facet: TopicFacet, avnet: ExposureBillings): { billings: number; growth: number } | null {
-  const rows =
-    facet === "segments"
-      ? avnet.segments.filter((s) => SEGMENT_MAP[topic]?.includes(s.segment))
-      : avnet.verticals.filter((v) => v.name === END_MARKET_MAP[topic]);
-  if (!rows.length) return null;
-  const billings = rows.reduce((n, r) => n + r.billings, 0);
-  const yearAgo = rows.reduce((n, r) => n + r.billings / (1 + r.growth), 0);
-  return { billings, growth: billings / yearAgo - 1 };
-}
-
 /* ---------- Links into the rest of the app ---------- */
 
 // Supplier tags whose label differs from the company's name in COMPANIES.

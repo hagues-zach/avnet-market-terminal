@@ -1,0 +1,9 @@
+{
+  "/(terminal)/overview/page": "app/(terminal)/overview/page.js",
+  "/(terminal)/copilot/page": "app/(terminal)/copilot/page.js",
+  "/(terminal)/tam/page": "app/(terminal)/tam/page.js",
+  "/(terminal)/news/page": "app/(terminal)/news/page.js",
+  "/(terminal)/earnings/page": "app/(terminal)/earnings/page.js",
+  "/(terminal)/line-cards/page": "app/(terminal)/line-cards/page.js",
+  "/(terminal)/competitive/page": "app/(terminal)/competitive/page.js"
+}

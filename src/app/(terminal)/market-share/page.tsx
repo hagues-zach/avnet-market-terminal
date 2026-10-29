@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import {
-  ArrowCard,
   BreakdownCard,
   CardFallback,
   GrowthCard,
@@ -15,7 +14,7 @@ import {
 } from "@/components/share/sections";
 
 // Avnet's share figures are mock until billings and the code map are hooked up
-// (see src/lib/hookups.ts). The Arrow and component-maker comparisons are live.
+// (see src/lib/hookups.ts). The component-maker comparison is live.
 export const dynamic = "force-dynamic";
 
 export default function MarketSharePage() {
@@ -40,14 +39,10 @@ export default function MarketSharePage() {
         <TrendRowMarker />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Suspense fallback={<CardFallback title="Avnet against Arrow" />}>
-          <ArrowCard />
-        </Suspense>
-        <Suspense fallback={<CardFallback title="Growth against component makers" />}>
-          <GrowthCard />
-        </Suspense>
-      </div>
+      {/* Avnet against Arrow is on the Avnet vs Arrow page. */}
+      <Suspense fallback={<CardFallback title="Growth against component makers" />}>
+        <GrowthCard />
+      </Suspense>
     </PageBody>
   );
 }

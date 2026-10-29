@@ -1,31 +1,24 @@
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
-import { answer } from "@/lib/ask/answer";
-import { plainDashes } from "@/lib/ai/dashes";
-import type { Angle } from "@/lib/ai/news-angles";
 import { getCycle, type Cycle } from "@/lib/data/live/cycle";
 import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
-import { getLiveNews } from "@/lib/data/live/news";
-import { day, quarterName } from "@/lib/ask/sentences";
+import { quarterName } from "@/lib/ask/sentences";
 import { REGION_LABEL, PRODUCT_LABEL, type TamSummary } from "@/lib/data/types";
 import { getAvnet } from "@/lib/avnet";
-import { PACE_WORDS, bn, forecastDrift, lead, pace, pct, split } from "@/lib/overview/read";
+import { bn, forecastDrift, lead, pace, pct, split } from "@/lib/overview/read";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { Chip, DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
-import { store } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { MarketByYear } from "./market-chart";
 
 // Market Overview sections. Published WSTS figures carry their vintage; live
-// reads (SEC filings, economic signals, news) carry Live; the split of the
-// devices AI spending lands on is mock until WSTS detail and Gartner are hooked up.
+// reads from SEC filings carry Live; the split of the devices AI spending
+// lands on is mock until WSTS detail and Gartner are hooked up.
 
 const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
 const LABEL = "font-display text-label uppercase text-ink-muted";
 const link = "text-ink underline underline-offset-2 hover:text-ink-muted";
-const thisYear = () => new Date().getUTCFullYear();
 
 /** The supply-chain groups (customer groups left out), latest quarter against the one before. */
 function quarterRows(c: Cycle) {
@@ -158,7 +151,6 @@ export async function WhatCarried({ tam, marketPrior, vintage }: { tam: TamSumma
       title="What carried the growth"
       subtitle={`${tam.latestYear} sales and growth on ${tam.latestYear - 1}: the devices AI spending lands on, against the rest of the market`}
       actions={<DataChip status={status} />}
-      className="xl:col-span-7"
     >
       <div className="space-y-3">
         <Bar label="DRAM, Flash, MPUs, GPUs and AI accelerators" value={s.ai.usdM} share={s.ai.share} growth={s.ai.growth} ai />
@@ -249,61 +241,7 @@ export async function WhatCarried({ tam, marketPrior, vintage }: { tam: TamSumma
   );
 }
 
-/* ---------- This quarter in the filings ---------- */
-
-export async function ThisQuarter() {
-  const cycle = await cycleOrNull();
-  const rows = cycle ? quarterRows(cycle) : [];
-  return (
-    <Panel
-      title="This quarter in the filings"
-      subtitle={`Revenue growth on a year ago${cycle ? `, ${quarterName(cycle.latest)}` : ""}, by company group, and whether it sped up or slowed on the quarter before`}
-      actions={<DataChip status="live" />}
-      className="xl:col-span-5"
-      footer={
-        <SourceLine source="SEC filings">
-          <Link href="/cycle" className={link}>
-            Market Cycle
-          </Link>
-        </SourceLine>
-      }
-    >
-      {rows.length ? (
-        <table className="w-full border-collapse font-body text-table">
-          <caption className="sr-only">Revenue growth by company group, latest quarter, and against the quarter before.</caption>
-          <thead className="bg-surface-sunken">
-            <tr className="border-y border-hairline text-right">
-              <th scope="col" className={cn(TH, "text-left")}>
-                Group
-              </th>
-              <th scope="col" className={TH}>
-                Growth
-              </th>
-              <th scope="col" className={TH}>
-                Pace
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.cohort} className="border-b border-hairline last:border-b-0">
-                <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
-                  {r.label}
-                </th>
-                <td className="px-3 py-1.5 text-right tabular-nums text-ink">{pct(r.growth)}</td>
-                <td className="px-3 py-1.5 text-right text-ink">{r.pace ? PACE_WORDS[r.pace] : "n/a"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="text-body-sm text-ink-muted">The latest filings couldn&apos;t be read just now. Try again in a few minutes.</p>
-      )}
-    </Panel>
-  );
-}
-
-/* ---------- Forecast, regions, backdrop ---------- */
+/* ---------- Forecast and regions ---------- */
 
 function Bars({ items, highlight }: { items: { label: string; value: number; note?: React.ReactNode }[]; highlight?: string }) {
   const max = Math.max(...items.map((i) => i.value));
@@ -351,96 +289,6 @@ export function RegionsCard({ tam, vintage }: { tam: TamSummary; vintage: string
       footer={<SourceLine source={vintage} />}
     >
       <Bars items={rows.map((r) => ({ label: REGION_LABEL[r.region], value: r.usdM, note: <Delta value={r.yoy} neutral /> }))} />
-    </Panel>
-  );
-}
-
-export async function Backdrop() {
-  const a = await answer("What is the economy doing?");
-  return (
-    <Panel
-      title="The backdrop"
-      subtitle={a.period}
-      actions={<DataChip status="live" />}
-      footer={
-        <SourceLine source={a.sources.map((s) => s.label).join(", ") || "n/a"}>
-          <Link href="/signals" className={link}>
-            Economic Signals
-          </Link>
-        </SourceLine>
-      }
-    >
-      <p className="text-body-sm text-ink">{a.text}</p>
-      {a.facts && (
-        <dl className="mt-3 divide-y divide-hairline border-y border-hairline">
-          {a.facts.map((f) => (
-            <div key={f.label} className="flex items-baseline justify-between gap-3 py-1.5">
-              <dt className="text-body-sm text-ink-muted">{f.label}</dt>
-              <dd className="text-body-sm text-ink">{f.values[0]}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </Panel>
-  );
-}
-
-/* ---------- What is being said ---------- */
-
-const MARKET_TAGS = ["Memory", "Logic & Processors", "Foundry & Equipment"];
-
-export async function Stories() {
-  const [news, angles] = await Promise.all([
-    getLiveNews().catch(() => null),
-    store.getAll<Angle>("news-angles-v1").catch(() => ({}) as Record<string, Angle>),
-  ]);
-  const stories = (news?.articles ?? []).filter((a) => a.kind === "news" && a.segments.some((s) => MARKET_TAGS.includes(s))).slice(0, 4);
-  return (
-    <Panel
-      title="What is being said"
-      subtitle="The latest stories on memory, processors, AI and the fabs"
-      actions={<DataChip status="live" />}
-      footer={
-        <SourceLine source="Trade press and GDELT">
-          <Link href="/news" className={link}>
-            Market News
-          </Link>
-        </SourceLine>
-      }
-    >
-      {stories.length ? (
-        <ul className="divide-y divide-hairline">
-          {stories.map((s) => {
-            const angle = (angles as Record<string, Angle>)[s.id]?.angle;
-            return (
-              <li key={s.id} className="py-2 first:pt-0 last:pb-0">
-                <div className="flex items-baseline justify-between gap-3">
-                  <a
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-w-0 text-body-sm font-medium text-ink underline-offset-2 hover:underline"
-                  >
-                    {s.title}
-                    <span className="sr-only"> (opens the source)</span>
-                    <ExternalLink className="ml-1 inline h-3 w-3 text-ink-muted" strokeWidth={1.5} aria-hidden />
-                  </a>
-                  <span className="shrink-0 whitespace-nowrap text-caption text-ink-muted">
-                    {s.outlet}, {day(s.publishedAt.slice(0, 10), thisYear())}
-                  </span>
-                </div>
-                {angle && (
-                  <p className="mt-0.5 text-caption text-ink-muted">
-                    <span className="text-ink">Why it matters, written by Claude:</span> {plainDashes(angle)}
-                  </p>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p className="text-body-sm text-ink-muted">No market stories in the feed just now.</p>
-      )}
     </Panel>
   );
 }

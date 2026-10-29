@@ -419,7 +419,7 @@ Nothing in the app is smaller than 11px. Text stays left-aligned except numeric 
 | Wide | ≥ 1584px | Content capped; extra width goes to the margins |
 | Desktop | 1280–1583px | Full layout, 4-up KPI row |
 | Laptop | 1024–1279px | Sidebar stays; KPI row 3-up or 2-up; page padding 16px |
-| Tablet | 768–1023px | Sidebar collapses to icons (56px) or a drawer; 2-up cards |
+| Tablet | 768–1023px | Sidebar opens as a drawer (a 56px icon rail of the hubs is planned); 2-up cards |
 | Phone | < 768px | Read-only summaries: Start Here, Company Profile, Market News. Tables scroll inside their card. |
 
 Desktop and laptop are the design targets. Every page is checked at 1440px and 1280px.
@@ -457,8 +457,9 @@ Avnet's graphic elements are strong and rare. In a working tool they appear even
 
 The `components:` front matter holds the token-level specs (colours, type, size). The behaviour and the details the format has no field for are below. Borders are 1px `hairline` unless stated; cards never have shadows.
 
-- **Sidebar.** Nav groups (Start Here, Knowledge, Network, Avnet performance, Tools, Setup) get `label` headings. The active item has the `surface-selected` fill, a 3px green left rule and black text. Mock pages keep their small yellow ring.
-- **Top bar.** Search, or later the command palette, on the left; persona switch, data freshness and the user on the right. 48px high.
+- **Sidebar.** One row per hub: Start Here, News, Market, Companies and Avnet performance, then QBR Prep and Pitch Deck Builder under a `Tools` heading, and Setup at the foot above the demo note. A hub with several pages shows them as hub tabs. The active hub has the `surface-selected` fill, a 3px green left rule and black text, on any of its pages. A hub keeps the small yellow ring only when all its pages are mock. Hubs and their pages are defined in `nav.ts`.
+- **Hub tabs.** The current hub's pages as `tab` / `tab-selected` links in a white band with a hairline bottom, pinned to the top of the canvas and lined up with the page content. The selected tab has the 2px green underline; a mock page keeps the yellow ring after its label. Hidden for hubs with one page. Every tab is its own route, so links and the back button work. The page keeps its own header under the band.
+- **Top bar.** The Ask the Terminal box on the left (opens Ask the Terminal with the question); data freshness, and later the persona switch and the user, on the right. 48px high.
 - **Page header.** Title, a one-line subtitle in `ink-muted`, and page actions on the right (export, share).
 - **KPI tile.** The label on top, the figure, then the delta (arrow, sign, %, comparison period) and the source chip. Mock values keep the hookup marker.
 - **Data table.** Sticky header on `surface-sunken`, `label` header text, sortable columns, right-aligned tabular numbers, the row hover fill, and column alignment that holds across pages. A Company name cell links to its profile.
