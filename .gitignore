@@ -4,6 +4,7 @@
 # next.js
 /.next
 /.next-kit
+/.next-hubs
 /out
 
 # production
