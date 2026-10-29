@@ -1,6 +1,7 @@
 "use client";
 
 import { CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART, VIZ } from "@/lib/colors";
 import { money } from "@/lib/scenario/model";
 
@@ -32,7 +33,7 @@ export function HorizonChart({ rows, height = 240 }: { rows: { label: string; sc
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={rows} margin={{ top: 16, right: 150, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.label)), "label")}
         <YAxis
           tick={tick}
           axisLine={false}

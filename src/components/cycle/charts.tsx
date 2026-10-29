@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART, VIZ } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 
@@ -132,7 +133,7 @@ export function InventoryLines({
     <Frame fill={fill} height={height}>
       <LineChart data={rows} margin={{ ...MARGIN, right: 124 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.label)), "label")}
         <YAxis
           tickFormatter={(v: number) => `${Math.round(v)}d`}
           tick={tick}
@@ -181,7 +182,7 @@ export function CapexBars({ rows, height = 150 }: { rows: { label: string; capex
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={rows} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.label)), "label")}
         <YAxis tickFormatter={(v: number) => formatUsdMillions(v / 1e6)} tick={tick} axisLine={false} tickLine={false} width={52} />
         <Tooltip
           cursor={{ fill: "rgba(0,0,0,0.03)" }}
@@ -201,7 +202,7 @@ export function BookToBill({ rows, height = 150 }: { rows: { quarter: string; bo
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={rows} margin={{ top: 16, right: 28, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.quarter)), "quarter")}
         <YAxis tick={tick} axisLine={false} tickLine={false} width={36} domain={[0.9, "auto"]} tickFormatter={(v: number) => v.toFixed(2)} />
         <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => [v.toFixed(2), "Book-to-bill (mock)"]} />
         <ReferenceLine

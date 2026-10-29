@@ -1,6 +1,7 @@
 "use client";
 
 import { CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART } from "@/lib/colors";
 
 export interface LineSeries {
@@ -56,7 +57,7 @@ export function LabelledLines({
       <LineChart data={data} margin={{ top: 12, right: rightMargin, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
         {signed && <ReferenceLine y={0} stroke={CHART.axis} />}
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(data.map((r) => String(r.label)), "label")}
         <YAxis
           tick={tick}
           axisLine={false}

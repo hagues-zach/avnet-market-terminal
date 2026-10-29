@@ -76,7 +76,7 @@ export async function DemandRow() {
           footer={<SourceLine source="Bookings ÷ billings" asOf={quarter} />}
         >
           <div className="h-64">
-            <BookToBillChart data={m.performance.map((p) => ({ quarter: p.quarter.replace(/^FY(\d{2}) (Q\d)$/, "$2 FY$1"), bookToBill: p.bookToBill }))} />
+            <BookToBillChart data={m.performance.map((p) => ({ quarter: p.quarter, bookToBill: p.bookToBill }))} />
           </div>
         </Panel>
       </div>

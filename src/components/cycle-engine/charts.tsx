@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART, VIZ } from "@/lib/colors";
 
 // Cycle engine charts, on the shared CHART tokens. Nothing here is Avnet's, so
@@ -63,7 +64,7 @@ export function AiGapBars({ rows, height = 240 }: { rows: { quarter: string; ai:
       <BarChart data={rows} margin={MARGIN}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
         <ReferenceLine y={0} stroke={CHART.axis} />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} minTickGap={24} />
+        {fiscalXAxis(rows.map((r) => String(r.quarter)), "quarter", { minTickGap: 24 })}
         <YAxis tickFormatter={(v: number) => `${Math.round(v * 100)}%`} tick={tick} axisLine={false} tickLine={false} width={44} />
         <Tooltip contentStyle={TOOLTIP} formatter={(v: number, name: string) => [pct(v), name]} />
         <Legend wrapperStyle={{ fontSize: CHART.tickFontSize }} />

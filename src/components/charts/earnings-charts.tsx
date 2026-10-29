@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 import type { Metric, Quarter } from "@/lib/data/live/earnings-model";
@@ -44,7 +45,7 @@ function Bars({
     <ResponsiveContainer width="100%" height={HEIGHT}>
       <BarChart data={data} margin={MARGIN}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(data.map((r) => String(r.quarter)), "quarter")}
         <YAxis tickFormatter={axisFormat} tick={tick} axisLine={false} tickLine={false} width={52} />
         <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} formatter={(v: number, n) => [valueFormat(v), n]} contentStyle={CHART.tooltip} />
         <ReferenceLine y={0} stroke={CHART.axis} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART, VIZ } from "@/lib/colors";
 
 // Design Pipeline charts on the shared CHART tokens. Both series are Avnet's
@@ -43,7 +44,7 @@ export function PipelineTrend({ rows, height = 250 }: { rows: { quarter: string;
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 16, right: 140, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(data.map((r) => String(r.quarter)), "quarter")}
         <YAxis
           tick={tick}
           axisLine={false}
