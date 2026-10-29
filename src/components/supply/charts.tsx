@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART, VIZ } from "@/lib/colors";
 import { Segmented } from "@/components/ui/tabs";
 
@@ -116,7 +117,7 @@ export function BacklogBars({ rows, height = 180 }: { rows: { quarter: string; b
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={rows} margin={{ top: 20, right: 4, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.quarter)), "quarter")}
         <YAxis tick={tick} axisLine={false} tickLine={false} width={48} tickFormatter={fmt} />
         <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} contentStyle={TOOLTIP} formatter={(v: number) => [fmt(v), "Backlog (mock)"]} />
         <Bar dataKey="backlog" fill={VIZ.avnet} maxBarSize={32} isAnimationActive={false}>

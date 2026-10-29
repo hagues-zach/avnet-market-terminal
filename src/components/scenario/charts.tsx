@@ -1,6 +1,8 @@
 "use client";
 
-import { CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 import { CHART, VIZ } from "@/lib/colors";
 import { money } from "@/lib/scenario/model";
 
@@ -11,28 +13,11 @@ import { money } from "@/lib/scenario/model";
 const tick = { fontSize: CHART.tickFontSize, fill: CHART.tick };
 
 export function HorizonChart({ rows, height = 240 }: { rows: { label: string; scenario: number; hold: number }[]; height?: number }) {
-  const last = rows.length - 1;
-  const a = rows[last].scenario;
-  const b = rows[last].hold;
-  const values = rows.flatMap((r) => [r.scenario, r.hold]);
-  const lo = Math.min(...values);
-  const hi = Math.max(...values);
-  const px = ((a - b) / (hi - lo || 1)) * (height - 50);
-  const apart = Math.abs(px) < 16 ? (16 - Math.abs(px)) / 2 : 0;
-  const shift = { scenario: a >= b ? -apart : apart, hold: a >= b ? apart : -apart };
-  const end = (label: string, key: "scenario" | "hold") =>
-    function EndLabel({ x, y, index, value }: { x?: number | string; y?: number | string; index?: number; value?: number | string }) {
-      return index === last ? (
-        <text x={Number(x) + 8} y={Number(y) + shift[key]} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
-          {label} {money(Number(value))}
-        </text>
-      ) : null;
-    };
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={rows} margin={{ top: 16, right: 150, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.label)), "label")}
         <YAxis
           tick={tick}
           axisLine={false}
@@ -52,9 +37,7 @@ export function HorizonChart({ rows, height = 240 }: { rows: { label: string; sc
           dot={false}
           activeDot={CHART.activeDot}
           isAnimationActive={false}
-        >
-          <LabelList dataKey="hold" content={end("Holding share", "hold")} />
-        </Line>
+        />
         <Line
           dataKey="scenario"
           name="Scenario (mock)"
@@ -64,9 +47,8 @@ export function HorizonChart({ rows, height = 240 }: { rows: { label: string; sc
           dot={false}
           activeDot={CHART.activeDot}
           isAnimationActive={false}
-        >
-          <LabelList dataKey="scenario" content={end("Scenario", "scenario")} />
-        </Line>
+        />
+        {endLabels((key, v) => `${key === "hold" ? "Holding share" : "Scenario"} ${money(v)}`)}
       </LineChart>
     </ResponsiveContainer>
   );

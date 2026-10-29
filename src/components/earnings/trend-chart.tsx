@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import type { Metric, Quarter } from "@/lib/data/live/earnings-model";
 import { CHART, VIZ } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 import { Segmented } from "@/components/ui/tabs";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 
 // One chart with a measure switch, on the shared CHART tokens. A single series
 // is the company's colour (Avnet Green for Avnet, Dark Blue for anyone else);
@@ -78,6 +80,7 @@ export function TrendChart({ quarters, isAvnet, height = 260 }: { quarters: Quar
   const single = spec.metrics.length === 1;
   const color = (i: number) => (single ? (isAvnet ? VIZ.avnet : VIZ.arrow) : ORDER[i]);
   const last = rows.length - 1;
+  const labels = rows.map((r) => r.label);
 
   return (
     <div className="space-y-3">
@@ -91,7 +94,7 @@ export function TrendChart({ quarters, isAvnet, height = 260 }: { quarters: Quar
           {spec.kind === "bar" ? (
             <BarChart data={rows} margin={{ top: 20, right: 8, left: 4, bottom: 0 }}>
               <CartesianGrid stroke={CHART.grid} vertical={false} />
-              <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+              {fiscalXAxis(labels, "label")}
               <YAxis tickFormatter={AXIS[spec.unit]} tick={tick} axisLine={false} tickLine={false} width={56} />
               <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} contentStyle={TOOLTIP} formatter={(v: number, n: string) => [VALUE[spec.unit](v), n]} />
               <ReferenceLine y={0} stroke={CHART.tick} />
@@ -123,7 +126,7 @@ export function TrendChart({ quarters, isAvnet, height = 260 }: { quarters: Quar
           ) : (
             <LineChart data={rows} margin={{ top: 16, right: 110, left: 4, bottom: 0 }}>
               <CartesianGrid stroke={CHART.grid} vertical={false} />
-              <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+              {fiscalXAxis(labels, "label")}
               <YAxis tickFormatter={AXIS[spec.unit]} tick={tick} axisLine={false} tickLine={false} width={44} domain={["auto", "auto"]} />
               <Tooltip contentStyle={TOOLTIP} formatter={(v: number, n: string) => [VALUE[spec.unit](v), n]} />
               {spec.metrics.map((m, i) => (
@@ -138,19 +141,9 @@ export function TrendChart({ quarters, isAvnet, height = 260 }: { quarters: Quar
                   activeDot={CHART.activeDot}
                   connectNulls
                   isAnimationActive={false}
-                >
-                  <LabelList
-                    dataKey={m.metric}
-                    content={({ x, y, index, value }) =>
-                      index === last && typeof value === "number" ? (
-                        <text x={Number(x) + 8} y={Number(y)} dy={4 + (i - 1) * 2} fontSize={CHART.tickFontSize} fill={CHART.label}>
-                          {m.name} {VALUE[spec.unit](value)}
-                        </text>
-                      ) : null
-                    }
-                  />
-                </Line>
+                />
               ))}
+              {endLabels((key, v) => `${spec.metrics.find((m) => m.metric === key)?.name} ${VALUE[spec.unit](v)}`)}
             </LineChart>
           )}
         </ResponsiveContainer>

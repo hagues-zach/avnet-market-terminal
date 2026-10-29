@@ -1,6 +1,8 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 import { CHART, VIZ } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 
@@ -54,18 +56,14 @@ export function GrowthBars({
     <Frame fill={fill} height={height}>
       <BarChart data={rows} margin={{ ...MARGIN, bottom: 18 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis
-          dataKey="label"
-          axisLine={{ stroke: CHART.axis }}
-          tickLine={false}
-          interval={0}
-          height={36}
-          tick={({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => {
+        {fiscalXAxis(rows.map((r) => r.label), "label", {}, {
+          quarterHeight: 36,
+          quarterTick: ({ x, y, payload }) => {
             const phase = byLabel.get(payload.value);
             return (
               <g transform={`translate(${x},${y})`}>
                 <text dy={12} textAnchor="middle" fontSize={CHART.tickFontSize} fill={CHART.label}>
-                  {payload.value}
+                  {payload.value.slice(5)}
                 </text>
                 {/* The bar's sign already says expansion or contraction; the word under it says which way it is moving. */}
                 {phase && (
@@ -75,8 +73,8 @@ export function GrowthBars({
                 )}
               </g>
             );
-          }}
-        />
+          },
+        })}
         <YAxis tickFormatter={(v: number) => `${Math.round(v * 100)}%`} tick={tick} axisLine={false} tickLine={false} width={44} />
         <Tooltip
           cursor={{ fill: "rgba(0,0,0,0.03)" }}
@@ -111,28 +109,11 @@ export function InventoryLines({
   fill?: boolean;
 }) {
   if (!rows.some((r) => series.some((s) => typeof r[s] === "number"))) return <Empty height={height} />;
-  const lastIndex = (s: string) => rows.reduce((last, r, i) => (typeof r[s] === "number" ? i : last), -1);
-  // Keep end labels at least 13px apart: work out each line's end in pixels, then push neighbours apart.
-  // With fill the plot can only be taller than this, which only widens the gaps.
-  const values = rows.flatMap((r) => series.map((s) => r[s]).filter((v): v is number => typeof v === "number"));
-  const lo = Math.min(...values);
-  const hi = Math.max(...values);
-  const plot = height - MARGIN.top - 30;
-  const ends = series
-    .map((s) => ({ s, y: ((hi - (rows[lastIndex(s)]?.[s] as number)) / (hi - lo || 1)) * plot }))
-    .filter((e) => Number.isFinite(e.y))
-    .sort((a, b) => a.y - b.y);
-  const nudge: Record<string, number> = {};
-  ends.forEach((e, i) => {
-    const prev = ends[i - 1];
-    const y = prev ? Math.max(e.y, prev.y + (nudge[prev.s] ?? 0) + 13) : e.y;
-    nudge[e.s] = y - e.y;
-  });
   return (
     <Frame fill={fill} height={height}>
       <LineChart data={rows} margin={{ ...MARGIN, right: 124 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.label)), "label")}
         <YAxis
           tickFormatter={(v: number) => `${Math.round(v)}d`}
           tick={tick}
@@ -142,9 +123,7 @@ export function InventoryLines({
           domain={["auto", "auto"]}
         />
         <Tooltip contentStyle={TOOLTIP} formatter={(v: number, n: string) => [`${Math.round(v)} days`, n]} />
-        {series.map((s, i) => {
-          const end = lastIndex(s);
-          return (
+        {series.map((s, i) => (
             <Line
               key={s}
               type="monotone"
@@ -155,20 +134,9 @@ export function InventoryLines({
               activeDot={CHART.activeDot}
               connectNulls
               isAnimationActive={false}
-            >
-              <LabelList
-                dataKey={s}
-                content={({ x, y, index, value }) =>
-                  index === end && typeof value === "number" ? (
-                    <text x={Number(x) + 8} y={Number(y) + (nudge[s] ?? 0)} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
-                      {short[s] ?? s} {Math.round(value)}d
-                    </text>
-                  ) : null
-                }
-              />
-            </Line>
-          );
-        })}
+            />
+        ))}
+        {endLabels((s, v) => `${short[s] ?? s} ${Math.round(v)}d`)}
       </LineChart>
     </Frame>
   );
@@ -181,7 +149,7 @@ export function CapexBars({ rows, height = 150 }: { rows: { label: string; capex
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={rows} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.label)), "label")}
         <YAxis tickFormatter={(v: number) => formatUsdMillions(v / 1e6)} tick={tick} axisLine={false} tickLine={false} width={52} />
         <Tooltip
           cursor={{ fill: "rgba(0,0,0,0.03)" }}
@@ -201,7 +169,7 @@ export function BookToBill({ rows, height = 150 }: { rows: { quarter: string; bo
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={rows} margin={{ top: 16, right: 28, left: 4, bottom: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(rows.map((r) => String(r.quarter)), "quarter")}
         <YAxis tick={tick} axisLine={false} tickLine={false} width={36} domain={[0.9, "auto"]} tickFormatter={(v: number) => v.toFixed(2)} />
         <Tooltip contentStyle={TOOLTIP} formatter={(v: number) => [v.toFixed(2), "Book-to-bill (mock)"]} />
         <ReferenceLine

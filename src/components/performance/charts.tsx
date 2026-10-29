@@ -1,6 +1,8 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 import { CHART, VIZ } from "@/lib/colors";
 
 const tick = { fontSize: CHART.tickFontSize, fill: CHART.tick };
@@ -26,7 +28,7 @@ export function BillingsBookingsChart({ data }: { data: { quarter: string; billi
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barGap={2} barCategoryGap="22%">
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval={0} />
+        {fiscalXAxis(data.map((r) => String(r.quarter)), "quarter", { interval: 0 })}
         <YAxis tick={tick} axisLine={false} tickLine={false} width={44} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}B`} />
         <Tooltip
           cursor={{ fill: "rgba(0,0,0,0.03)" }}
@@ -53,7 +55,7 @@ export function BookToBillChart({ data }: { data: { quarter: string; bookToBill:
           strokeDasharray="4 4"
           label={{ value: "Bookings equal billings", position: "insideBottomRight", fontSize: 11, fill: CHART.tick }}
         />
-        <XAxis dataKey="quarter" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(data.map((r) => String(r.quarter)), "quarter")}
         <YAxis tick={tick} axisLine={false} tickLine={false} width={36} domain={[0.9, 1.15]} ticks={[0.9, 0.95, 1, 1.05, 1.1, 1.15]} tickFormatter={(v: number) => v.toFixed(2)} />
         <Tooltip contentStyle={CHART.tooltip} formatter={(v: number) => [v.toFixed(2), "Book-to-bill"]} />
         <Line dataKey="bookToBill" stroke={VIZ.avnet} strokeWidth={CHART.lineWidth} dot={false} activeDot={CHART.activeDot} isAnimationActive={false}>
@@ -75,33 +77,19 @@ export function BookToBillChart({ data }: { data: { quarter: string; bookToBill:
 
 /** Avnet's reported revenue by segment and quarter, $M, labelled at the line ends. */
 export function SegmentRevenueChart({ data, series }: { data: Record<string, number | string | undefined>[]; series: { key: string; name: string; color: string }[] }) {
-  const lastIndex = (key: string) => data.map((r) => r[key]).findLastIndex((v) => typeof v === "number");
   // Room for the longest end label ("Electronic Components $7.8B") at about 7px a character.
   const right = Math.max(...series.map((s) => (s.name.length + 7) * 7)) + 8;
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 12, right, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(data.map((r) => String(r.label)), "label")}
         <YAxis tick={tick} axisLine={false} tickLine={false} width={44} domain={[0, "auto"]} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}B`} />
         <Tooltip contentStyle={CHART.tooltip} formatter={(v: number, name: string) => [billions(v), name]} />
-        {series.map((s) => {
-          const end = lastIndex(s.key);
-          return (
-            <Line key={s.key} dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={CHART.lineWidth} dot={false} activeDot={CHART.activeDot} connectNulls isAnimationActive={false}>
-              <LabelList
-                dataKey={s.key}
-                content={({ x, y, value, index }) =>
-                  index === end ? (
-                    <text x={Number(x) + 8} y={Number(y) + 4} fontSize={12} fill={CHART.label}>
-                      {`${s.name} ${billions(Number(value))}`}
-                    </text>
-                  ) : null
-                }
-              />
-            </Line>
-          );
-        })}
+        {series.map((s) => (
+          <Line key={s.key} dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={CHART.lineWidth} dot={false} activeDot={CHART.activeDot} connectNulls isAnimationActive={false} />
+        ))}
+        {endLabels((key, v) => `${series.find((s) => s.key === key)?.name} ${billions(v)}`, { fontSize: 12 })}
       </LineChart>
     </ResponsiveContainer>
   );

@@ -26,8 +26,8 @@ const shortDate = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "sh
 
 /* ---------- Cycle ---------- */
 
-/** "CY26 Q2" or "CY2026 Q2" → "Q2 '26". */
-const quarterLabel = (label: string) => label.replace(/^CY(?:20)?(\d{2}) (Q\d)$/, "$2 '$1");
+/** "CY2026 Q2" → "CY26 Q2", the label the chart axis reads. */
+const quarterLabel = (label: string) => label.replace(/^CY20(\d{2}) /, "CY$1 ");
 /** "CY26 Q2" → "CY2026 Q2". */
 const fullQuarter = (label: string) => label.replace(/^CY(\d{2}) /, "CY20$1 ");
 

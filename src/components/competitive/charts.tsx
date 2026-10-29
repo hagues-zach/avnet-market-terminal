@@ -1,6 +1,8 @@
 "use client";
 
-import { CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 import { CHART, VIZ } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 
@@ -52,22 +54,10 @@ export function PairLines({
       </p>
     );
   }
-  const last = (k: "avnet" | "arrow") => rows.reduce((l, r, i) => (r[k] === undefined ? l : i), -1);
-  const ends = { avnet: last("avnet"), arrow: last("arrow") };
-  // Push the two end labels apart when the lines finish close together. With fill the plot
-  // can only be taller than height, which only widens the gap.
-  const a = rows[ends.avnet]?.avnet;
-  const b = rows[ends.arrow]?.arrow;
-  const values = rows.flatMap((r) => [r.avnet, r.arrow]).filter((v): v is number => v !== undefined);
-  const range = Math.max(...values) - Math.min(...values) || 1;
-  const px = (((a ?? 0) - (b ?? 0)) / range) * (height - 50);
-  const apart = a !== undefined && b !== undefined && Math.abs(px) < 13 ? (13 - Math.abs(px)) / 2 : 0;
-  const offset = { avnet: (a ?? 0) >= (b ?? 0) ? -apart : apart, arrow: (a ?? 0) >= (b ?? 0) ? apart : -apart };
-
   const chart = (
     <LineChart data={rows} margin={{ top: 12, right: 92, left: 4, bottom: 0 }}>
       <CartesianGrid stroke={CHART.grid} vertical={false} />
-      <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+      {fiscalXAxis(rows.map((r) => r.label), "label")}
       <YAxis tickFormatter={AXIS[unit]} tick={tick} axisLine={false} tickLine={false} width={44} domain={["auto", "auto"]} />
       <Tooltip contentStyle={{ ...CHART.tooltip, padding: "6px 8px" }} formatter={(v: number, n: string) => [VALUE[unit](v), n]} />
       {(["avnet", "arrow"] as const).map((k) => (
@@ -82,19 +72,9 @@ export function PairLines({
           activeDot={CHART.activeDot}
           connectNulls
           isAnimationActive={false}
-        >
-          <LabelList
-            dataKey={k}
-            content={({ x, y, index, value }) =>
-              index === ends[k] && typeof value === "number" ? (
-                <text x={Number(x) + 8} y={Number(y) + offset[k]} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
-                  {names[k].split(" ")[0]} {VALUE[unit](value)}
-                </text>
-              ) : null
-            }
-          />
-        </Line>
+        />
       ))}
+      {endLabels((k, v) => `${names[k as "avnet" | "arrow"].split(" ")[0]} ${VALUE[unit](v)}`)}
     </LineChart>
   );
   if (!fill) return <ResponsiveContainer width="100%" height={height}>{chart}</ResponsiveContainer>;
