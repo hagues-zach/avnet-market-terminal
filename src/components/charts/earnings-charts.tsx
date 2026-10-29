@@ -7,7 +7,8 @@ import { formatUsdMillions } from "@/lib/format";
 import type { Metric, Quarter } from "@/lib/data/live/earnings-model";
 
 // One company's revenue or growth by quarter, in its own colour: Avnet Green for
-// Avnet, Dark Blue for Arrow, grey for everyone else (one-colour bars).
+// Avnet, Dark Blue for Arrow, grey for everyone else (one-colour bars). Tooltip
+// values are in ink, never the series colour.
 
 const HEIGHT = 220;
 const MARGIN = { top: 12, right: 12, left: 4, bottom: 0 };
@@ -47,7 +48,7 @@ function Bars({
         <CartesianGrid stroke={CHART.grid} vertical={false} />
         {fiscalXAxis(data.map((r) => String(r.quarter)), "quarter")}
         <YAxis tickFormatter={axisFormat} tick={tick} axisLine={false} tickLine={false} width={52} />
-        <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} formatter={(v: number, n) => [valueFormat(v), n]} contentStyle={CHART.tooltip} />
+        <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} formatter={(v: number, n) => [valueFormat(v), n]} contentStyle={CHART.tooltip} itemStyle={{ color: CHART.label }} />
         <ReferenceLine y={0} stroke={CHART.axis} />
         <Bar dataKey={label} fill={color} maxBarSize={28} isAnimationActive={false} />
       </BarChart>

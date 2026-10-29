@@ -30,8 +30,11 @@ export const VIZ = {
   benchmark: AVNET.grayMedium, // "All other" or benchmark as a line
 } as const;
 
-/** One company's own one-colour series: Avnet Green for Avnet, Dark Blue for Arrow, grey for everyone else. */
-export const companyColor = (slug: string): string => (slug === "avnet" ? VIZ.avnet : slug === "arrow" ? VIZ.arrow : VIZ.other);
+/**
+ * One company's own one-colour series: Avnet Green for Avnet, Dark Blue for Arrow,
+ * Medium Gray for everyone else (Light Gray is too faint for a company's own bars).
+ */
+export const companyColor = (slug: string): string => (slug === "avnet" ? VIZ.avnet : slug === "arrow" ? VIZ.arrow : VIZ.benchmark);
 
 /**
  * Non-Avnet series order, validated for adjacent pairs (bars, stacks, lines):
