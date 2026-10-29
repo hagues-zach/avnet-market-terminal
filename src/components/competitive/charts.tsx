@@ -1,6 +1,7 @@
 "use client";
 
-import { CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART, VIZ } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 
@@ -67,7 +68,7 @@ export function PairLines({
   const chart = (
     <LineChart data={rows} margin={{ top: 12, right: 92, left: 4, bottom: 0 }}>
       <CartesianGrid stroke={CHART.grid} vertical={false} />
-      <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+      {fiscalXAxis(rows.map((r) => r.label), "label")}
       <YAxis tickFormatter={AXIS[unit]} tick={tick} axisLine={false} tickLine={false} width={44} domain={["auto", "auto"]} />
       <Tooltip contentStyle={{ ...CHART.tooltip, padding: "6px 8px" }} formatter={(v: number, n: string) => [VALUE[unit](v), n]} />
       {(["avnet", "arrow"] as const).map((k) => (

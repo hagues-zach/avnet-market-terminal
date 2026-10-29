@@ -88,7 +88,7 @@ export function TrendRowMarker() {
 
 export async function TrendCard() {
   const { m, latestTrend, yearAgoTrend } = await shareFigures();
-  const data = m.shareTrend.map((r) => ({ label: r.label.replace(/^FY(\d{2}) (Q\d)$/, "$2 FY$1"), share: r["Avnet share of mapped TAM"] }));
+  const data = m.shareTrend.map((r) => ({ label: r.label, share: r["Avnet share of mapped TAM"] }));
   return (
     <Panel
       className="h-full"
@@ -220,7 +220,7 @@ export async function ArrowCard() {
     {share.length > 1 ? (
       <div className="h-56">
         <LabelledLines
-          data={share.map((p) => ({ label: shortQuarter(p.label), avnet: p.avnet, arrow: p.arrow }))}
+          data={share.map((p) => ({ label: p.label, avnet: p.avnet, arrow: p.arrow }))}
           series={[
             { key: "avnet", name: "Avnet", color: VIZ.avnet },
             { key: "arrow", name: "Arrow", color: VIZ.arrow },
@@ -262,7 +262,7 @@ export async function GrowthCard() {
       <div className="h-56">
         <LabelledLines
           signed
-          data={points.map((p) => ({ label: shortQuarter(p.label), avnet: p.avnet, makers: p.makers }))}
+          data={points.map((p) => ({ label: p.label, avnet: p.avnet, makers: p.makers }))}
           series={[
             { key: "avnet", name: "Avnet", color: VIZ.avnet },
             { key: "makers", name: "Makers", color: VIZ.benchmark, light: true },

@@ -4,7 +4,7 @@ import { getSegmentHistory } from "@/lib/data/live/segment-history";
 import { VIZ } from "@/lib/colors";
 import { getAvnet } from "@/lib/avnet";
 import { fmtM } from "@/lib/avnet/format";
-import { fullQuarter, shortQuarter } from "@/lib/share/peers";
+import { fullQuarter } from "@/lib/share/peers";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { DataChip } from "@/components/ui/chip";
@@ -188,7 +188,7 @@ export async function ReportedCard() {
     ? segments.map((s, i) => ({ key: `s${i}`, name: s.label.replace(/ segment$/i, ""), color: colors[i] }))
     : [{ key: "total", name: "Revenue", color: VIZ.avnet }];
   const data = labels.map((label) => {
-    const row: Record<string, number | string | undefined> = { label: shortQuarter(label) };
+    const row: Record<string, number | string | undefined> = { label };
     const toM = (v?: number) => (v === undefined ? undefined : v / 1e6); // filings report whole dollars
     if (segments.length) segments.forEach((s, i) => (row[`s${i}`] = toM(s.points.find((p) => p.label === label)?.revenue)));
     else row.total = toM(total.find((q) => q.calendarLabel === label)?.values.revenue);

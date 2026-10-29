@@ -1,6 +1,7 @@
 "use client";
 
-import { CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART, VIZ } from "@/lib/colors";
 
 /** Supply-chain revenue growth by quarter. Grey: this is the market, not Avnet. */
@@ -12,7 +13,7 @@ export function GrowthChart({ data }: { data: { label: string; growth: number }[
       <LineChart data={data} margin={{ top: 8, right: 56, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
         <ReferenceLine y={0} stroke={CHART.axis} />
-        <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" />
+        {fiscalXAxis(data.map((r) => r.label), "label")}
         <YAxis tick={tick} axisLine={false} tickLine={false} width={40} tickFormatter={(v: number) => `${Math.round(v * 100)}%`} />
         <Tooltip contentStyle={CHART.tooltip} formatter={(v: number) => [`${(v * 100).toFixed(1)}%`, "Revenue growth, YoY"]} />
         <Line dataKey="growth" stroke={VIZ.benchmark} strokeWidth={CHART.lineWidthLight} dot={false} activeDot={CHART.activeDot} isAnimationActive={false}>

@@ -2,15 +2,15 @@ import type { ComponentProps, ReactElement } from "react";
 import { XAxis } from "recharts";
 import { CHART } from "@/lib/colors";
 
-// A two-level x-axis for fiscal quarters: the quarter under each bar or point,
-// the fiscal year centred under its quarters, hairline dividers between years
-// through both rows. Used only when every label reads like "FY26 Q2"; anything
-// else (calendar quarters, months) keeps the plain axis.
+// A two-level x-axis for quarters: the quarter under each bar or point, the
+// fiscal or calendar year centred under its quarters, hairline dividers between
+// years through both rows. Used only when every label reads like "FY26 Q2" or
+// every label like "CY26 Q2"; anything else (months, years) keeps the plain axis.
 //
 // Recharts reads its axes from the chart's direct children, so this returns the
 // axis elements as children rather than a component: {fiscalXAxis(...)}.
 
-const FISCAL = /^FY(\d{2}) (Q[1-4])$/;
+const QUARTER = /^(FY|CY)\d{2} Q[1-4]$/;
 const tick = { fontSize: CHART.tickFontSize, fill: CHART.tick };
 const QUARTER_HEIGHT = 22;
 const YEAR_HEIGHT = 24;
@@ -28,7 +28,7 @@ const groupsOf = (labels: string[]): Group[] =>
 
 type TickProps = { x: number; y: number; width: number; payload: { index: number; offset: number } };
 
-function YearTick({ x, y, width: axisWidth, payload, groups }: TickProps & { groups: Group[] }) {
+function YearTick({ x, y, width: axisWidth, payload, groups, quarterHeight }: TickProps & { groups: Group[]; quarterHeight: number }) {
   const g = groups[payload.index];
   if (!g?.start) return null;
   const n = groups.length;
@@ -44,7 +44,7 @@ function YearTick({ x, y, width: axisWidth, payload, groups }: TickProps & { gro
   const divider = x - step / 2;
   return (
     <g>
-      {!first && <line x1={divider} x2={divider} y1={y - QUARTER_HEIGHT - 8} y2={y + 16} stroke={CHART.axis} />}
+      {!first && <line x1={divider} x2={divider} y1={y - quarterHeight - 8} y2={y + 16} stroke={CHART.axis} />}
       <text x={(left + right) / 2} y={y} dy={10} textAnchor="middle" fontSize={CHART.tickFontSize} fontWeight={600} fill={CHART.label}>
         {label}
       </text>
@@ -52,12 +52,22 @@ function YearTick({ x, y, width: axisWidth, payload, groups }: TickProps & { gro
   );
 }
 
+type QuarterTickProps = { x: number; y: number; payload: { value: string; index: number } };
+
 /**
- * The x-axis for a chart keyed by quarter label. Fiscal labels get the quarter
- * and fiscal-year rows; anything else gets the plain axis with `plain` applied.
+ * The x-axis for a chart keyed by quarter label. Quarter labels get the quarter
+ * and year rows; anything else gets the plain axis with `plain` applied.
+ * `quarterTick` replaces the quarter row's label (it gets the full label as
+ * payload.value) with `quarterHeight` room.
  */
-export function fiscalXAxis(labels: string[], dataKey: string, plain: Partial<ComponentProps<typeof XAxis>> = {}): ReactElement[] {
-  if (labels.length === 0 || !labels.every((l) => FISCAL.test(l))) {
+export function fiscalXAxis(
+  labels: string[],
+  dataKey: string,
+  plain: Partial<ComponentProps<typeof XAxis>> = {},
+  { quarterTick, quarterHeight = QUARTER_HEIGHT }: { quarterTick?: (props: QuarterTickProps) => ReactElement<SVGElement>; quarterHeight?: number } = {},
+): ReactElement[] {
+  const kind = labels[0]?.slice(0, 2);
+  if (labels.length === 0 || !labels.every((l) => QUARTER.test(l) && l.startsWith(kind))) {
     return [<XAxis key="x" dataKey={dataKey} tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" {...plain} />];
   }
   const groups = groupsOf(labels);
@@ -66,11 +76,11 @@ export function fiscalXAxis(labels: string[], dataKey: string, plain: Partial<Co
       key="x"
       dataKey={dataKey}
       tickFormatter={(v: string) => v.slice(5)}
-      tick={tick}
+      tick={quarterTick ?? tick}
       axisLine={{ stroke: CHART.axis }}
       tickLine={false}
       interval={0}
-      height={QUARTER_HEIGHT}
+      height={quarterHeight}
     />,
     <XAxis
       key="fy"
@@ -80,7 +90,7 @@ export function fiscalXAxis(labels: string[], dataKey: string, plain: Partial<Co
       tickLine={false}
       interval={0}
       height={YEAR_HEIGHT}
-      tick={(props: TickProps) => <YearTick {...props} groups={groups} />}
+      tick={(props: TickProps) => <YearTick {...props} groups={groups} quarterHeight={quarterHeight} />}
     />,
   ];
 }

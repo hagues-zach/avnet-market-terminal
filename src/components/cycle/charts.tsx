@@ -55,18 +55,14 @@ export function GrowthBars({
     <Frame fill={fill} height={height}>
       <BarChart data={rows} margin={{ ...MARGIN, bottom: 18 }}>
         <CartesianGrid stroke={CHART.grid} vertical={false} />
-        <XAxis
-          dataKey="label"
-          axisLine={{ stroke: CHART.axis }}
-          tickLine={false}
-          interval={0}
-          height={36}
-          tick={({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => {
+        {fiscalXAxis(rows.map((r) => r.label), "label", {}, {
+          quarterHeight: 36,
+          quarterTick: ({ x, y, payload }) => {
             const phase = byLabel.get(payload.value);
             return (
               <g transform={`translate(${x},${y})`}>
                 <text dy={12} textAnchor="middle" fontSize={CHART.tickFontSize} fill={CHART.label}>
-                  {payload.value}
+                  {payload.value.slice(5)}
                 </text>
                 {/* The bar's sign already says expansion or contraction; the word under it says which way it is moving. */}
                 {phase && (
@@ -76,8 +72,8 @@ export function GrowthBars({
                 )}
               </g>
             );
-          }}
-        />
+          },
+        })}
         <YAxis tickFormatter={(v: number) => `${Math.round(v * 100)}%`} tick={tick} axisLine={false} tickLine={false} width={44} />
         <Tooltip
           cursor={{ fill: "rgba(0,0,0,0.03)" }}
