@@ -23,7 +23,8 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
 
       <div className="grid gap-4 lg:grid-cols-12">
         <div className="space-y-4 lg:col-span-7">
-          <NextSteps role={role} />
+          {/* Everyone sees the sidebar instead of a numbered list; each role gets its own next steps. */}
+          {role.id !== "everyone" && <NextSteps role={role} />}
           <Suspense key={role.id} fallback={<PanelFallback title="What changed this week" lines={8} />}>
             <FeedCard role={role} />
           </Suspense>

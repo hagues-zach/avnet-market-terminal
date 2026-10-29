@@ -43,16 +43,20 @@ The **company profile** is the hub. Most cross-pillar loops pass through it.
 
 ## What exists today
 
-Every PRD module and tool has a designed page; the navigation groups are in `docs/superapp-build-plan.md`. Avnet-specific and licensed figures are still mock, each marked with a hookup marker; the rest is live public data.
+Every PRD module and tool has a designed page. Avnet-specific and licensed figures are still mock, each marked with a hookup marker; the rest is live public data.
 
-| Group | Pages |
+The sidebar lists hubs; a hub with several pages shows them as tabs above the page (`src/components/layout/nav.ts`, from the layout audit of 2026-10-29). Hidden pages (`src/lib/visibility.ts`) come back as tabs when unhidden. Each section of the app lives on one page; other pages link to it rather than repeat it.
+
+| Hub | Pages, as tabs |
 |---|---|
 | Start Here | Start Here, with a persona switch |
-| Knowledge | Market News, Market Overview, Market Cycle, Economic Signals (with the cycle engine at `/signals/engine`), Learning Center |
-| Network | Company Profiles, Quarterly Earnings, Avnet vs Arrow, Line Cards |
-| Avnet performance | Performance Tracker, Market Share, TAM / SAM / SOM, Supply Chain, Design Pipeline, Customers & End Markets |
-| Tools | QBR Prep (Claude talking points, print and PDF), Pitch Deck Builder (PowerPoint on the FY27 template; Export Center merged in), Lead Finder, Scenario Modeler, Code Mapping, Ask the Terminal (Claude with tools) |
-| Setup | Data Hookups |
+| News | Market News |
+| Market | Market Overview, Market Cycle, Economic Signals, the cycle engine (`/signals/engine`), Learning Center (hidden) |
+| Companies | Company Profiles, Quarterly Earnings, Avnet vs Arrow, Line Cards (hidden) |
+| Avnet performance | Performance Tracker, Market Share, TAM / SAM / SOM, Supply Chain (hidden), Design Pipeline, Customers & End Markets, Scenario Modeler |
+| Tools | QBR Prep (Claude talking points, print and PDF), Pitch Deck Builder (PowerPoint on the FY27 template; Export Center merged in), Lead Finder (hidden) |
+| Setup, at the foot of the sidebar | Data Hookups, Code Mapping |
+| Top bar | Ask the Terminal (Claude with tools); the box opens it with the question |
 
 ## Foundations still missing
 

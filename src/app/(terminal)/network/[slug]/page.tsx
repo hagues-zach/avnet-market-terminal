@@ -38,7 +38,7 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
             ? `From ${sourceOf(company).short} and the Market News feed, converted to US dollars`
             : "From SEC filings, the latest earnings release and the Market News feed"
         }
-        breadcrumb={[{ label: "Company Profiles", href: role === "avnet" ? "/network" : `/network?role=${role}` }, { label: company.name }]}
+        breadcrumb={[{ label: "Companies", href: role === "avnet" ? "/network" : `/network?role=${role}` }, { label: company.name }]}
         actions={
           <>
             <ButtonLink href={earningsHref(company.slug, "all")}>Full earnings view</ButtonLink>

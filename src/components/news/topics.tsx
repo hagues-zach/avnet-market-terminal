@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { avnetExposure, type ExposureBillings, type Topic, type TopicFacet } from "@/lib/news/briefing";
-import { fmtM, fmtPct } from "@/lib/avnet/format";
-import { HookupMarker } from "@/components/ui/hookup-marker";
+import type { Topic, TopicFacet } from "@/lib/news/briefing";
 import { Panel } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/states";
@@ -12,28 +10,21 @@ import { cn } from "@/lib/utils";
 const LIMIT = 6;
 
 /**
- * What the news is about in the last 7 days, by segment or end market, with Avnet's
- * (mock) billings in the same topics underneath. Selecting a topic filters the
- * feed below.
+ * What the news is about in the last 7 days, by segment or end market. Selecting
+ * a topic filters the feed below. Avnet's billings by end market are on Customers.
  */
 export function Topics({
   byFacet,
-  avnet,
   selected,
   onSelect,
 }: {
   byFacet: Record<TopicFacet, Topic[]>;
-  avnet: ExposureBillings;
   selected: Record<TopicFacet, string[]>;
   onSelect: (facet: TopicFacet, name: string) => void;
 }) {
   const [facet, setFacet] = useState<TopicFacet>("segments");
   const list = byFacet[facet].slice(0, LIMIT);
   const max = Math.max(1, ...list.map((t) => t.count));
-  const exposure = list.map((t) => ({
-    name: t.name,
-    value: avnetExposure(t.name, facet, avnet),
-  }));
 
   return (
     <Panel
@@ -85,45 +76,6 @@ export function Topics({
           })}
         </ul>
       )}
-
-      <div className="mt-4 space-y-2 border-t border-hairline pt-3">
-        <h3 className="font-display text-card-title text-ink">Avnet billings in these topics</h3>
-        {/* Segments come from the code map; end markets from the customer master's verticals. */}
-        <HookupMarker ids={facet === "segments" ? ["billings", "code-map"] : ["billings", "customer-master"]} />
-        <table className="w-full font-body text-table">
-          <caption className="sr-only">Avnet billings, trailing 12 months, in this week&apos;s topics (mock data)</caption>
-          <thead>
-            <tr className="text-left">
-              <th scope="col" className="py-1 font-display text-label font-normal uppercase text-ink-muted">
-                Topic
-              </th>
-              <th scope="col" className="py-1 text-right font-display text-label font-normal uppercase text-ink-muted">
-                Last 12 months
-              </th>
-              <th scope="col" className="w-16 py-1 text-right font-display text-label font-normal uppercase text-ink-muted">
-                YoY
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-hairline">
-            {exposure.map(({ name, value }) => (
-              <tr key={name}>
-                <td className="py-1.5 text-ink">{name}</td>
-                {value ? (
-                  <>
-                    <td className="py-1.5 text-right tabular-nums text-ink">{fmtM(value.billings)}</td>
-                    <td className="py-1.5 text-right tabular-nums text-ink-muted">{fmtPct(value.growth, true)}</td>
-                  </>
-                ) : (
-                  <td colSpan={2} className="py-1.5 text-right text-ink-muted">
-                    Not a billing segment
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </Panel>
   );
 }

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { getCompanyEarnings, getPeerRows } from "@/lib/data/live/earnings";
 import {
   COHORTS,
@@ -18,9 +19,8 @@ import { DataChip } from "@/components/ui/chip";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { LoadingBlock } from "@/components/ui/states";
 import { CompanyPicker } from "@/components/earnings/company-picker";
-import { CompanyResults, ManagementFallback, ManagementPanel, QuarterlyDetail, TrendPanel } from "@/components/earnings/company-view";
+import { CompanyResults, QuarterlyDetail, TrendPanel } from "@/components/earnings/company-view";
 import { GroupTable } from "@/components/earnings/group-table";
-import { RevenueMix, RevenueMixFallback } from "@/components/earnings/revenue-mix";
 import { SeasonFallback, SeasonOverview } from "@/components/earnings/season";
 
 /** Server component: every company's latest quarter, filtered to the group. */
@@ -96,13 +96,14 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
       <section aria-label="One company" className="space-y-4 pt-2">
         <CompanyPicker company={company} group={group} />
         <CompanyResults earnings={earnings} />
-        <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">
-          <TrendPanel earnings={earnings} />
-          {/* Keyed by company so the fallback shows again while a new company's release is read. */}
-          <Suspense key={company} fallback={<ManagementFallback />}>
-            <ManagementPanel company={company} />
-          </Suspense>
-        </div>
+        <TrendPanel earnings={earnings} />
+        <p className="text-body-sm text-ink-muted">
+          What {earnings.company.name}&apos;s management said and its revenue mix are on{" "}
+          <Link href={`/network/${company}`} className="text-ink underline underline-offset-2 hover:text-ink-muted">
+            its company profile
+          </Link>
+          .
+        </p>
         <Suspense
           fallback={
             <Panel title="Latest quarter in the group">
@@ -112,9 +113,6 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         >
           <GroupSection company={company} group={group} />
         </Suspense>
-        <Suspense key={`mix-${company}`} fallback={<RevenueMixFallback />}>
-          <RevenueMix company={company} />
-        </Suspense>
         <QuarterlyDetail earnings={earnings} />
       </section>
 
@@ -123,8 +121,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         company&apos;s calendar; the calendar quarter is the one the period mostly falls in, and the season is the last calendar quarter to have
         ended. Release dates are estimated from each company&apos;s release a year earlier. Fourth quarters and cash-flow items are filed as
         year-to-date totals, so the quarter is the difference between totals; EPS derived that way is marked. Days measures use the quarter-end
-        balance against 91 days of revenue or cost. Management summaries are written by Claude from each earnings release. Checked for new filings
-        about every 6 hours.
+        balance against 91 days of revenue or cost. Checked for new filings about every 6 hours.
       </p>
     </PageBody>
   );

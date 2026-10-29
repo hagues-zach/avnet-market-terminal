@@ -22,9 +22,7 @@ export const PAGE_HOOKUPS: PageHookups[] = [
     files: ["src/components/start/sections.tsx"],
     from: { spec: "START" },
   },
-  { href: "/news", title: "Market News", ids: ["billings", "code-map", "customer-master"], files: ["src/components/news/topics.tsx"] },
   { href: "/overview", title: "Market Overview", ids: ["wsts", "gartner-forecast"], files: ["src/components/overview/sections.tsx"] },
-  { href: "/cycle", title: "Market Cycle", ids: ["bookings", "backlog"], files: ["src/components/cycle/cycle-view.tsx"] },
   {
     href: "/network",
     title: "Company Profiles",
@@ -34,7 +32,7 @@ export const PAGE_HOOKUPS: PageHookups[] = [
   {
     href: "/performance",
     title: "Performance Tracker",
-    ids: ["billings", "bookings", "backlog", "drms", "material-master", "customer-master", "fiscal-calendar", "fx-rates"],
+    ids: ["billings", "bookings", "backlog", "drms", "material-master", "fiscal-calendar", "fx-rates"],
     files: ["src/app/(terminal)/performance/page.tsx", "src/components/performance/sections.tsx"],
   },
   {

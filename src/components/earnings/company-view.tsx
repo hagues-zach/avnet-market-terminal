@@ -1,11 +1,10 @@
 import { ChevronRight, ExternalLink } from "lucide-react";
-import { getCommentary } from "@/lib/ai/commentary";
 import { comparability, comparableValue, sourceOf, type CompanyEarnings, type Metric, type Quarter } from "@/lib/data/live/earnings-model";
 import { CaveatMark } from "@/components/ui/caveat-mark";
 import { yearAgo } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
-import { ErrorState, LoadingBlock } from "@/components/ui/states";
+import { ErrorState } from "@/components/ui/states";
 import { TrendChart } from "./trend-chart";
 import { format, longDate, type Row } from "./format";
 
@@ -105,72 +104,11 @@ export function TrendPanel({ earnings }: { earnings: CompanyEarnings }) {
   const quarters = earnings.quarters.slice(-12);
   return (
     <Panel
-      className="xl:col-span-8"
       title="Trend"
       subtitle={`${earnings.company.name}, last ${quarters.length} fiscal quarters`}
       footer={<SourceLine source="SEC filings, GAAP as reported" asOf={quarters.at(-1)?.fiscalLabel} />}
     >
       <TrendChart quarters={quarters} isAvnet={earnings.company.slug === "avnet"} />
-    </Panel>
-  );
-}
-
-/* ---------- What management said ---------- */
-
-const TOPICS = [
-  ["guidance", "Guidance"],
-  ["demand", "Demand"],
-  ["inventory", "Inventory"],
-  ["leadTimes", "Lead times"],
-  ["pricing", "Pricing"],
-  ["channel", "Channel"],
-] as const;
-
-/** Server component: Claude's digest of the company's latest earnings release. */
-export async function ManagementPanel({ company }: { company: string }) {
-  const c = await getCommentary(company);
-  return (
-    <Panel
-      className="xl:col-span-4"
-      title="What management said"
-      subtitle="Written by Claude from the latest earnings release; check the release before quoting it"
-      footer={
-        c.releaseUrl ? (
-          <a href={c.releaseUrl} target="_blank" rel="noopener noreferrer" className={`${link} inline-flex items-center gap-1`}>
-            Read the release{c.filed ? `, filed ${longDate(c.filed)}` : ""}
-            <ExternalLink className="h-3 w-3" strokeWidth={1.5} aria-hidden />
-            <span className="sr-only"> (opens SEC EDGAR)</span>
-          </a>
-        ) : undefined
-      }
-      bodyClassName="space-y-2.5"
-    >
-      {c.status !== "ok" || !c.digest ? (
-        <p className="text-body-sm text-ink-muted">{c.message ?? "The latest earnings release could not be read."}</p>
-      ) : (
-        <>
-          <p className="text-base leading-snug text-ink">{c.digest.headline}</p>
-          <dl className="space-y-1.5">
-            {TOPICS.map(([key, name]) => (
-              // Clipped to three lines to sit beside the chart; the full text is in the tooltip and read in full by screen readers.
-              <div key={key} className="line-clamp-3 text-body-sm">
-                <dt className="inline font-semibold text-ink">{name}: </dt>
-                <dd className="inline text-ink" title={c.digest![key] ?? undefined}>
-                  {c.digest![key] ?? <span className="text-ink-muted">Not covered in the release.</span>}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </>
-      )}
-    </Panel>
-  );
-}
-
-export function ManagementFallback() {
-  return (
-    <Panel className="xl:col-span-4" title="What management said">
-      <LoadingBlock label="Reading the earnings release…" lines={6} />
     </Panel>
   );
 }

@@ -4,6 +4,7 @@ import { PageTitle } from "@/components/ui/page-title";
 import { ButtonLink } from "@/components/ui/button";
 import { DataChip } from "@/components/ui/chip";
 import { isHidden } from "@/lib/visibility";
+import { ArrowCard, CardFallback } from "@/components/share/sections";
 import { Components, ManagementSaid, MoreMeasures, Moves, Overview, OverviewFallback, SectionFallback } from "@/components/competitive/head-to-head";
 
 // Rendered per request; the underlying filings are cached.
@@ -28,21 +29,22 @@ export default function CompetitivePage() {
       <Suspense fallback={<SectionFallback title="What Arrow's management said last quarter" />}>
         <ManagementSaid />
       </Suspense>
-      {/* Franchise moves come from Line Cards; while it is hidden, components take the full row. */}
-      {isHidden("/line-cards") ? (
-        <Suspense fallback={<SectionFallback title="Components against components" />}>
-          <Components />
-        </Suspense>
-      ) : (
-        <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+      {/* Franchise moves come from Line Cards; while it is hidden, the share of the pair sits beside components instead. */}
+      <div className="grid gap-4 xl:grid-cols-12 [&>*]:min-w-0">
+        {!isHidden("/line-cards") && (
           <Suspense fallback={<SectionFallback title="Franchise moves, last 12 months" className="xl:col-span-5" />}>
             <Moves />
           </Suspense>
-          <Suspense fallback={<SectionFallback title="Components against components" className="xl:col-span-7" />}>
-            <Components />
+        )}
+        <Suspense fallback={<SectionFallback title="Components against components" className="xl:col-span-7" />}>
+          <Components />
+        </Suspense>
+        <div className={isHidden("/line-cards") ? "xl:col-span-5" : "xl:col-span-12"}>
+          <Suspense fallback={<CardFallback title="Avnet against Arrow" />}>
+            <ArrowCard />
           </Suspense>
         </div>
-      )}
+      </div>
       <Suspense fallback={null}>
         <MoreMeasures />
       </Suspense>
