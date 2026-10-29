@@ -1,7 +1,8 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 import { CHART, VIZ } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 
@@ -108,23 +109,6 @@ export function InventoryLines({
   fill?: boolean;
 }) {
   if (!rows.some((r) => series.some((s) => typeof r[s] === "number"))) return <Empty height={height} />;
-  const lastIndex = (s: string) => rows.reduce((last, r, i) => (typeof r[s] === "number" ? i : last), -1);
-  // Keep end labels at least 13px apart: work out each line's end in pixels, then push neighbours apart.
-  // With fill the plot can only be taller than this, which only widens the gaps.
-  const values = rows.flatMap((r) => series.map((s) => r[s]).filter((v): v is number => typeof v === "number"));
-  const lo = Math.min(...values);
-  const hi = Math.max(...values);
-  const plot = height - MARGIN.top - 30;
-  const ends = series
-    .map((s) => ({ s, y: ((hi - (rows[lastIndex(s)]?.[s] as number)) / (hi - lo || 1)) * plot }))
-    .filter((e) => Number.isFinite(e.y))
-    .sort((a, b) => a.y - b.y);
-  const nudge: Record<string, number> = {};
-  ends.forEach((e, i) => {
-    const prev = ends[i - 1];
-    const y = prev ? Math.max(e.y, prev.y + (nudge[prev.s] ?? 0) + 13) : e.y;
-    nudge[e.s] = y - e.y;
-  });
   return (
     <Frame fill={fill} height={height}>
       <LineChart data={rows} margin={{ ...MARGIN, right: 124 }}>
@@ -139,9 +123,7 @@ export function InventoryLines({
           domain={["auto", "auto"]}
         />
         <Tooltip contentStyle={TOOLTIP} formatter={(v: number, n: string) => [`${Math.round(v)} days`, n]} />
-        {series.map((s, i) => {
-          const end = lastIndex(s);
-          return (
+        {series.map((s, i) => (
             <Line
               key={s}
               type="monotone"
@@ -152,20 +134,9 @@ export function InventoryLines({
               activeDot={CHART.activeDot}
               connectNulls
               isAnimationActive={false}
-            >
-              <LabelList
-                dataKey={s}
-                content={({ x, y, index, value }) =>
-                  index === end && typeof value === "number" ? (
-                    <text x={Number(x) + 8} y={Number(y) + (nudge[s] ?? 0)} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
-                      {short[s] ?? s} {Math.round(value)}d
-                    </text>
-                  ) : null
-                }
-              />
-            </Line>
-          );
-        })}
+            />
+        ))}
+        {endLabels((s, v) => `${short[s] ?? s} ${Math.round(v)}d`)}
       </LineChart>
     </Frame>
   );

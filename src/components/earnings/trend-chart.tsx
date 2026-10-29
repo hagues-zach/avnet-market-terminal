@@ -7,6 +7,7 @@ import { CHART, VIZ } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";
 import { Segmented } from "@/components/ui/tabs";
 import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 
 // One chart with a measure switch, on the shared CHART tokens. A single series
 // is the company's colour (Avnet Green for Avnet, Dark Blue for anyone else);
@@ -140,19 +141,9 @@ export function TrendChart({ quarters, isAvnet, height = 260 }: { quarters: Quar
                   activeDot={CHART.activeDot}
                   connectNulls
                   isAnimationActive={false}
-                >
-                  <LabelList
-                    dataKey={m.metric}
-                    content={({ x, y, index, value }) =>
-                      index === last && typeof value === "number" ? (
-                        <text x={Number(x) + 8} y={Number(y)} dy={4 + (i - 1) * 2} fontSize={CHART.tickFontSize} fill={CHART.label}>
-                          {m.name} {VALUE[spec.unit](value)}
-                        </text>
-                      ) : null
-                    }
-                  />
-                </Line>
+                />
               ))}
+              {endLabels((key, v) => `${spec.metrics.find((m) => m.metric === key)?.name} ${VALUE[spec.unit](v)}`)}
             </LineChart>
           )}
         </ResponsiveContainer>

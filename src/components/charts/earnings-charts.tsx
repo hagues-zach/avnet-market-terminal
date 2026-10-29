@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { fiscalXAxis } from "@/components/charts/fiscal-axis";
 import { CHART } from "@/lib/colors";
 import { formatUsdMillions } from "@/lib/format";

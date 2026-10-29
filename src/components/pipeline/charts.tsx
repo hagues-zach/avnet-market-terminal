@@ -1,7 +1,8 @@
 "use client";
 
-import { CartesianGrid, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 import { CHART, VIZ } from "@/lib/colors";
 
 // Design Pipeline charts on the shared CHART tokens. Both series are Avnet's
@@ -21,21 +22,6 @@ export function PipelineTrend({ rows, height = 250 }: { rows: { quarter: string;
     pipelineIdx: (r.pipeline / base.pipeline) * 100,
     billingsIdx: (r.designBillings / base.designBillings) * 100,
   }));
-  const last = data.length - 1;
-  const a = data[last].pipelineIdx;
-  const b = data[last].billingsIdx;
-  const values = data.flatMap((r) => [r.pipelineIdx, r.billingsIdx]);
-  const px = ((a - b) / (Math.max(...values) - Math.min(...values) || 1)) * (height - 50);
-  const apart = Math.abs(px) < 14 ? (14 - Math.abs(px)) / 2 : 0;
-  const shift = { pipelineIdx: a >= b ? -apart : apart, billingsIdx: a >= b ? apart : -apart };
-  const end = (label: string, key: "pipelineIdx" | "billingsIdx") =>
-    function EndLabel({ x, y, index, value }: { x?: number | string; y?: number | string; index?: number; value?: number | string }) {
-      return index === last ? (
-        <text x={Number(x) + 8} y={Number(y) + shift[key]} dy={4} fontSize={CHART.tickFontSize} fill={CHART.label}>
-          {label} {Math.round(Number(value))}
-        </text>
-      ) : null;
-    };
   const dollars = (key: "pipelineIdx" | "billingsIdx", q: string) => {
     const r = rows.find((x) => x.quarter === q)!;
     return key === "pipelineIdx" ? r.pipeline : r.designBillings;
@@ -69,9 +55,7 @@ export function PipelineTrend({ rows, height = 250 }: { rows: { quarter: string;
           dot={false}
           activeDot={CHART.activeDot}
           isAnimationActive={false}
-        >
-          <LabelList dataKey="pipelineIdx" content={end("Pipeline", "pipelineIdx")} />
-        </Line>
+        />
         <Line
           dataKey="billingsIdx"
           name="Design-approved billings (mock)"
@@ -82,9 +66,8 @@ export function PipelineTrend({ rows, height = 250 }: { rows: { quarter: string;
           dot={false}
           activeDot={CHART.activeDot}
           isAnimationActive={false}
-        >
-          <LabelList dataKey="billingsIdx" content={end("Billings", "billingsIdx")} />
-        </Line>
+        />
+        {endLabels((key, v) => `${key === "pipelineIdx" ? "Pipeline" : "Billings"} ${Math.round(v)}`)}
       </LineChart>
     </ResponsiveContainer>
   );

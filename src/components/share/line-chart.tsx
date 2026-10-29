@@ -1,7 +1,8 @@
 "use client";
 
-import { CartesianGrid, LabelList, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { fiscalXAxis } from "@/components/charts/fiscal-axis";
+import { endLabels } from "@/components/charts/end-labels";
 import { CHART } from "@/lib/colors";
 
 export interface LineSeries {
@@ -36,21 +37,8 @@ export function LabelledLines({
   const tick = { fontSize: CHART.tickFontSize, fill: CHART.tick };
   const fmt = signed ? signedPct : (v: number) => pct(v);
 
-  // Last value of each series, and a nudge apart when two end labels would touch.
-  const ends = series.map((s) => {
-    const i = data.map((r) => r[s.key]).findLastIndex((v) => typeof v === "number");
-    return { key: s.key, index: i, value: i >= 0 ? (data[i][s.key] as number) : undefined };
-  });
   const values = data.flatMap((r) => series.map((s) => r[s.key])).filter((v): v is number => typeof v === "number");
   const range = Math.max(...values) - Math.min(...values) || 1;
-  const nudge = new Map<string, number>();
-  const ranked = ends.filter((e) => e.value !== undefined).sort((a, b) => b.value! - a.value!);
-  for (let i = 1; i < ranked.length; i++) {
-    if (ranked[i - 1].value! - ranked[i].value! < range * 0.12) {
-      nudge.set(ranked[i - 1].key, (nudge.get(ranked[i - 1].key) ?? 0) - 7);
-      nudge.set(ranked[i].key, 7);
-    }
-  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -67,9 +55,7 @@ export function LabelledLines({
           tickFormatter={(v: number) => (signed ? `${Math.round(v * 100)}%` : pct(v, range < 0.02 ? 1 : 0))}
         />
         <Tooltip contentStyle={CHART.tooltip} formatter={(v: number, name: string) => [fmt(v), name]} />
-        {series.map((s) => {
-          const end = ends.find((e) => e.key === s.key)!;
-          return (
+        {series.map((s) => (
             <Line
               key={s.key}
               dataKey={s.key}
@@ -80,20 +66,9 @@ export function LabelledLines({
               activeDot={CHART.activeDot}
               connectNulls
               isAnimationActive={false}
-            >
-              <LabelList
-                dataKey={s.key}
-                content={({ x, y, value, index }) =>
-                  index === end.index ? (
-                    <text x={Number(x) + 8} y={Number(y) + 4 + (nudge.get(s.key) ?? 0)} fontSize={12} fill={CHART.label}>
-                      {`${s.name} ${fmt(Number(value))}`}
-                    </text>
-                  ) : null
-                }
-              />
-            </Line>
-          );
-        })}
+            />
+        ))}
+        {endLabels((key, v) => `${series.find((s) => s.key === key)?.name} ${fmt(v)}`, { fontSize: 12 })}
       </LineChart>
     </ResponsiveContainer>
   );
