@@ -6,8 +6,20 @@ import type { FlowMetric, InstantMetric, Metric, Quarter } from "../earnings-mod
 // exact; only the dollar amounts move here. Flows (earned over the quarter) use
 // the quarter's average rate, balances the rate on the quarter-end date. Pure.
 
-/** FRED series of units of the currency per US dollar, by ISO code. */
-export const FRED_RATE: Record<string, string> = { KRW: "DEXKOUS" };
+/**
+ * FRED series for each currency, by ISO code. Most are quoted as units of the
+ * currency per US dollar; `inverse` series are dollars per unit (sterling).
+ */
+export const FRED_RATE: Record<string, { series: string; inverse?: boolean }> = {
+  KRW: { series: "DEXKOUS" },
+  TWD: { series: "DEXTAUS" },
+  GBP: { series: "DEXUSUK", inverse: true },
+};
+
+/** A FRED series for `currency` as units of that currency per US dollar. */
+export function perDollarPoints(points: FredPoint[], currency: string): FredPoint[] {
+  return FRED_RATE[currency]?.inverse ? points.filter((p) => p.value).map((p) => ({ ...p, value: 1 / p.value })) : points;
+}
 
 const DAY = 86_400_000;
 const ms = (d: string) => Date.parse(`${d}T00:00:00Z`);
@@ -35,13 +47,13 @@ export interface QuarterRate {
   close: number;
 }
 
-/** The average over the 91 days to `end`, and the last rate on or before it. Undefined without data. */
-export function rateFor(points: FredPoint[], end: string): QuarterRate | undefined {
+/** The average over the `days` (a quarter by default) to `end`, and the last rate on or before it. Undefined without data. */
+export function rateFor(points: FredPoint[], end: string, days = 91): QuarterRate | undefined {
   const to = ms(end);
-  const from = to - 91 * DAY;
+  const from = to - days * DAY;
   const inQuarter = points.filter((p) => ms(p.date) > from && ms(p.date) <= to);
-  // A quarter that has barely begun, or a gap in the series, isn't averaged.
-  if (inQuarter.length < 20) return undefined;
+  // A period that has barely begun, or a gap in the series, isn't averaged.
+  if (inQuarter.length < (20 * days) / 91) return undefined;
   const average = inQuarter.reduce((s, p) => s + p.value, 0) / inQuarter.length;
   return { average, close: inQuarter[inQuarter.length - 1].value };
 }
@@ -58,12 +70,12 @@ function growth(quarters: Quarter[], q: Quarter, daysBack: number): number | und
  * The quarters in dollars, and revenue growth as it was in the reporting
  * currency. A quarter with no rate keeps its ratios and loses its dollar amounts.
  */
-export function convert(quarters: Quarter[], points: FredPoint[]): { quarters: Quarter[]; localYoY: Record<string, number> } {
+export function convert(quarters: Quarter[], points: FredPoint[], days = 91): { quarters: Quarter[]; localYoY: Record<string, number> } {
   const localYoY: Record<string, number> = {};
   for (const q of quarters) if (q.values.revenueYoY !== undefined) localYoY[q.end] = q.values.revenueYoY;
 
   const converted = quarters.map((q) => {
-    const rate = rateFor(points, q.end);
+    const rate = rateFor(points, q.end, days);
     const values = { ...q.values };
     for (const m of [...FLOWS, ...BALANCES, ...DROPPED]) {
       const v = values[m];
@@ -77,7 +89,8 @@ export function convert(quarters: Quarter[], points: FredPoint[]): { quarters: Q
   });
   for (const q of converted) {
     const yoy = growth(converted, q, 364);
-    const qoq = growth(converted, q, 91);
+    // Half-yearly reporters have no sequential quarter to compare against.
+    const qoq = days === 91 ? growth(converted, q, 91) : undefined;
     if (yoy !== undefined) q.values.revenueYoY = yoy;
     if (qoq !== undefined) q.values.revenueQoQ = qoq;
   }

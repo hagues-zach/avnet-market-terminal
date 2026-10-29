@@ -42,6 +42,13 @@ const PATTERNS: Record<string, RegExp> = {
   cts: /\bCTS Corp(oration)?\b/,
   stmicro: /\bSTMicro(electronics)?\b/i,
   "sk-hynix": /\bSK ?hynix\b/i,
+  wpg: /\bWPG\b|World Peace Group/,
+  "wt-micro": /\bWT Micro(electronics)?\b/i,
+  "rs-group": /\bRS Group\b|\bRS Components\b/,
+  tti: /\bTTI,? Inc\b|\bTTI\b(?= (distribut|electronics))/i,
+  mouser: /\bMouser\b/,
+  digikey: /\bDigi-?Key\b/i,
+  future: /\bFuture Electronics\b/,
   // The group's news is mostly phones and TVs; keep the stories about its chips.
   "samsung-ds": /\bSamsung\b.*\b(chips?|memory|foundry|HBM|DRAM|NAND|semiconductors?)\b/i,
 };

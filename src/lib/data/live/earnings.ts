@@ -11,9 +11,13 @@ import {
   type Metric,
   type PeerRow,
   type Quarter,
+  periodDays,
 } from "./earnings-model";
 import { fetchDart, fetchDartSegment } from "./foreign/dart";
-import { convert, FRED_RATE } from "./foreign/fx";
+import { fetchEsef } from "./foreign/esef";
+import { convert, FRED_RATE, perDollarPoints } from "./foreign/fx";
+import { fetchMops } from "./foreign/mops";
+import { rsHalves } from "./foreign/rs-halves";
 import { parseInterim, type ConceptFact } from "./foreign/st-6k";
 import { fred } from "./fred";
 import { fetchSec } from "./revenue-mix";
@@ -45,13 +49,15 @@ interface CompanyFacts {
   facts?: { "us-gaap"?: Record<string, { units?: Record<string, Fact[]> }> };
 }
 
-// 10-Q/10-K, a 20-F filer's annual report and interim 6-Ks, and DART reports.
-// "Manual" is a segment kept by hand from the group's own releases.
-const PERIODIC_FORMS = /^(10-Q|10-K|20-F|6-K|DART|Manual)/;
+// 10-Q/10-K, a 20-F filer's annual report and interim 6-Ks, DART and MOPS
+// reports, and ESEF annual reports. "Manual" is a figure kept by hand from the
+// company's own releases (a segment, or a half year).
+const PERIODIC_FORMS = /^(10-Q|10-K|20-F|6-K|DART|MOPS|ESEF|Manual)/;
 
 const ms = (d: string) => Date.parse(`${d}T00:00:00Z`);
 const daysBetween = (a: string, b: string) => Math.round((ms(b) - ms(a)) / DAY);
 const isQuarter = (days: number) => days >= 80 && days <= 100;
+const isHalf = (days: number) => days >= 175 && days <= 190;
 const isYear = (days: number) => days >= 350 && days <= 380;
 
 function factsFor(doc: CompanyFacts, concept: string): Fact[] {
@@ -82,13 +88,15 @@ interface QuarterValue {
  * Turn a concept's duration facts into single-quarter values keyed by quarter end.
  * Filings report some items only year-to-date (cash flow always; Q4 everywhere,
  * since the 10-K carries the full year), so those quarters are backed out as
- * YTD(this quarter) − YTD(previous quarter) within the same fiscal year.
+ * YTD(this quarter) − YTD(previous quarter) within the same fiscal year. With
+ * `half`, the periods are halves instead, and the second half is the year less the first.
  */
-export function quarterly(facts: Fact[]): Map<string, QuarterValue> {
+export function quarterly(facts: Fact[], half = false): Map<string, QuarterValue> {
+  const isPeriod = half ? isHalf : isQuarter;
   const periods = latestByPeriod(facts.filter((f) => f.start));
   const out = new Map<string, QuarterValue>();
   for (const f of periods) {
-    if (isQuarter(daysBetween(f.start!, f.end) + 1)) out.set(f.end, { val: f.val, backedOut: false });
+    if (isPeriod(daysBetween(f.start!, f.end) + 1)) out.set(f.end, { val: f.val, backedOut: false });
   }
   const byStart = new Map<string, Fact[]>();
   for (const f of periods) byStart.set(f.start!, [...(byStart.get(f.start!) ?? []), f]);
@@ -98,9 +106,10 @@ export function quarterly(facts: Fact[]): Map<string, QuarterValue> {
       const cur = sameYear[i];
       if (out.has(cur.end)) continue;
       const prev = sameYear[i - 1];
-      if (isQuarter(daysBetween(prev.end, cur.end))) out.set(cur.end, { val: cur.val - prev.val, backedOut: true });
+      if (isPeriod(daysBetween(prev.end, cur.end))) out.set(cur.end, { val: cur.val - prev.val, backedOut: true });
     }
   }
+  if (half) return out;
   // Full year with no nine-month total: subtract the three reported quarters.
   for (const f of periods) {
     if (out.has(f.end) || !isYear(daysBetween(f.start!, f.end) + 1)) continue;
@@ -115,10 +124,10 @@ export function quarterly(facts: Fact[]): Map<string, QuarterValue> {
  * wins. Revenue is the exception — some filers tag a contract-revenue subtotal next
  * to total revenue, so the largest value is the total.
  */
-function mergeFlow(doc: CompanyFacts, concepts: string[], takeLargest = false): Map<string, QuarterValue> {
+function mergeFlow(doc: CompanyFacts, concepts: string[], takeLargest = false, half = false): Map<string, QuarterValue> {
   const merged = new Map<string, QuarterValue>();
   for (const concept of concepts) {
-    for (const [end, v] of quarterly(factsFor(doc, concept))) {
+    for (const [end, v] of quarterly(factsFor(doc, concept), half)) {
       const prev = merged.get(end);
       if (!prev || (takeLargest && v.val > prev.val)) merged.set(end, v);
     }
@@ -147,7 +156,7 @@ function fiscalYearEnds(doc: CompanyFacts): string[] {
   return Array.from(ends).sort();
 }
 
-function fiscalLabel(end: string, yearEnds: string[]): string {
+function fiscalLabel(end: string, yearEnds: string[], half = false): string {
   if (!yearEnds.length) return end;
   // The fiscal year this quarter belongs to: the first year end on or after it,
   // projected forward a year at a time when that year hasn't been reported yet.
@@ -160,8 +169,18 @@ function fiscalLabel(end: string, yearEnds: string[]): string {
   // 52/53-week years can close in the first days of January and are still named
   // for the year just ended, so name the year from a date shortly before the close.
   const year = new Date(ms(fy) - 10 * DAY).getUTCFullYear();
+  if (half) return `FY${String(year).slice(2)} H${daysBetween(end, fy) > 90 ? 1 : 2}`;
   const q = 4 - Math.round(Math.max(0, daysBetween(end, fy)) / 91.3);
   return `FY${String(year).slice(2)} Q${Math.min(4, Math.max(1, q))}`;
+}
+
+/**
+ * A half year's label, "6 mo. to Mar 2026". It matches no calendar quarter, so
+ * views that line companies up by quarter leave half-yearly reporters out.
+ */
+export function halfLabel(end: string): string {
+  const d = new Date(ms(end));
+  return `6 mo. to ${d.toLocaleString("en-US", { month: "short", timeZone: "UTC" })} ${d.getUTCFullYear()}`;
 }
 
 export function calendarLabel(end: string): string {
@@ -183,8 +202,10 @@ const ratio = (a: number | undefined, b: number | undefined) =>
   a !== undefined && b !== undefined && b !== 0 ? a / b : undefined;
 
 function build(company: Company, doc: CompanyFacts, keep = QUARTERS_KEPT): CompanyEarnings {
+  const half = company.cadence === "half";
+  const span = periodDays(company);
   const flow = {} as Record<FlowMetric, Map<string, QuarterValue>>;
-  for (const m of Object.keys(FLOW_CONCEPTS) as FlowMetric[]) flow[m] = mergeFlow(doc, FLOW_CONCEPTS[m], m === "revenue");
+  for (const m of Object.keys(FLOW_CONCEPTS) as FlowMetric[]) flow[m] = mergeFlow(doc, FLOW_CONCEPTS[m], m === "revenue", half);
   const instant = {} as Record<InstantMetric, Map<string, number>>;
   for (const m of Object.keys(INSTANT_CONCEPTS) as InstantMetric[]) instant[m] = mergeInstant(doc, INSTANT_CONCEPTS[m]);
 
@@ -223,10 +244,10 @@ function build(company: Company, doc: CompanyFacts, keep = QUARTERS_KEPT): Compa
     set("sgaPct", ratio(sga, revenue));
     if (operatingCashFlow !== undefined && capex !== undefined) set("freeCashFlow", operatingCashFlow - capex);
     set("fcfMargin", ratio(values.freeCashFlow, revenue));
-    // Days metrics use the quarter-end balance against one quarter (91 days) of activity.
+    // Days metrics use the period-end balance against one period (91 or 182 days) of activity.
     const days = (balance: number | undefined, activity: number | undefined) => {
       const r = ratio(balance, activity);
-      return r === undefined ? undefined : r * 91;
+      return r === undefined ? undefined : r * span;
     };
     set("inventoryDays", days(inventory, cost));
     set("receivableDays", days(receivables, revenue));
@@ -234,7 +255,7 @@ function build(company: Company, doc: CompanyFacts, keep = QUARTERS_KEPT): Compa
     if (values.inventoryDays !== undefined && values.receivableDays !== undefined && values.payableDays !== undefined) {
       set("cashCycleDays", values.inventoryDays + values.receivableDays - values.payableDays);
     }
-    return { end, fiscalLabel: fiscalLabel(end, yearEnds), calendarLabel: calendarLabel(end), values, backedOut };
+    return { end, fiscalLabel: fiscalLabel(end, yearEnds, half), calendarLabel: half ? halfLabel(end) : calendarLabel(end), values, backedOut };
   });
 
   // Growth compares against the quarter ending about a year / a quarter earlier.
@@ -244,7 +265,8 @@ function build(company: Company, doc: CompanyFacts, keep = QUARTERS_KEPT): Compa
   };
   for (const q of all) {
     const yoy = ratio(q.values.revenue, revenueNear(q.end, 364));
-    const qoq = ratio(q.values.revenue, revenueNear(q.end, 91));
+    // Half against half isn't a sequential quarter, so half-yearly reporters have none.
+    const qoq = half ? undefined : ratio(q.values.revenue, revenueNear(q.end, 91));
     if (yoy !== undefined) q.values.revenueYoY = yoy - 1;
     if (qoq !== undefined) q.values.revenueQoQ = qoq - 1;
   }
@@ -335,31 +357,41 @@ async function twentyFFacts(company: Company & { foreign: { source: "sec-20f"; i
   return mergeFacts(doc, read.flat());
 }
 
-type DartCompany = Company & { foreign: { source: "dart"; corpCode: string; currency: "KRW"; segment?: "DS" } };
+type LocalForeign = Exclude<NonNullable<Company["foreign"]>, { source: "sec-20f" }>;
 
-/** A DART filer's facts in won: the group's statements, or one segment's note. */
-async function dartFacts(company: DartCompany): Promise<ConceptFact[]> {
-  const key = process.env.DART_API_KEY;
-  if (!key) throw new Error("DART_API_KEY is not set, so Korean filings can't be read.");
-  const { corpCode, segment } = company.foreign;
-  return segment ? fetchDartSegment(corpCode, key, segment) : fetchDart(corpCode, key);
+/** A foreign filer's facts in its own currency, from its own regulator's filings. */
+async function localFacts(foreign: LocalForeign): Promise<ConceptFact[]> {
+  switch (foreign.source) {
+    case "dart": {
+      const key = process.env.DART_API_KEY;
+      if (!key) throw new Error("DART_API_KEY is not set, so Korean filings can't be read.");
+      return foreign.segment ? fetchDartSegment(foreign.corpCode, key, foreign.segment) : fetchDart(foreign.corpCode, key);
+    }
+    case "mops":
+      return fetchMops(foreign.coId);
+    case "esef":
+      return [...(await fetchEsef(foreign.lei, foreign.currency)), ...rsHalves()];
+  }
 }
 
+/** Daily rates since `since` as units of `currency` per US dollar. */
+const perDollar = async (currency: string, since: string) => perDollarPoints(await fred(FRED_RATE[currency].series, since), currency);
+
 /** Built in the reporting currency, so every ratio is exact, then converted to dollars. */
-async function loadDart(company: DartCompany, keep: number): Promise<CompanyEarnings> {
-  const currency = company.foreign.currency;
-  const local = build(company, mergeFacts({}, await dartFacts(company), currency), keep);
+async function loadLocal(company: Company, foreign: LocalForeign, keep: number): Promise<CompanyEarnings> {
+  const currency = foreign.currency;
+  const local = build(company, mergeFacts({}, await localFacts(foreign), currency), keep);
   const first = local.quarters[0]?.end;
   if (!first) return local;
-  const since = new Date(Date.parse(`${first}T00:00:00Z`) - 120 * DAY).toISOString().slice(0, 10);
-  const { quarters, localYoY } = convert(local.quarters, await fred(FRED_RATE[currency], since));
+  const since = new Date(Date.parse(`${first}T00:00:00Z`) - (periodDays(company) + 30) * DAY).toISOString().slice(0, 10);
+  const { quarters, localYoY } = convert(local.quarters, await perDollar(currency, since), periodDays(company));
   return { ...local, quarters, local: { currency, revenueYoY: localYoY } };
 }
 
 async function load(company: Company, keep = QUARTERS_KEPT): Promise<CompanyEarnings> {
   const foreign = company.foreign;
   if (foreign?.source === "sec-20f") return build(company, await twentyFFacts({ ...company, foreign }), keep);
-  if (foreign?.source === "dart") return loadDart({ ...company, foreign }, keep);
+  if (foreign) return loadLocal(company, foreign, keep);
   return build(company, await secFacts(company), keep);
 }
 
@@ -371,8 +403,9 @@ export const loadFromSec = (company: Company) => load(company, Infinity);
 const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-v5"], {
   revalidate: REVALIDATE_SECONDS,
 });
-// Foreign reporters change once a quarter, and DART limits calls per day.
-const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v2"], {
+// Foreign reporters change once a quarter, DART limits calls per day, and MOPS
+// throttles rapid queries.
+const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v4"], {
   revalidate: 24 * 60 * 60,
 });
 

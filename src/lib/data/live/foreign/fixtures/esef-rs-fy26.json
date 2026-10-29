@@ -1,0 +1,223 @@
+{
+ "documentInfo": {
+  "note": "RS Group plc FY26 ESEF (filings.xbrl.org), trimmed to the mapped group facts and one segment fact"
+ },
+ "facts": {
+  "fact-37": {
+   "value": "2881100000.0",
+   "dimensions": {
+    "concept": "ifrs-full:Revenue",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-38": {
+   "value": "2903500000.0",
+   "dimensions": {
+    "concept": "ifrs-full:Revenue",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-39": {
+   "value": "1630800000.0",
+   "dimensions": {
+    "concept": "ifrs-full:CostOfSales",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-40": {
+   "value": "1660300000.0",
+   "dimensions": {
+    "concept": "ifrs-full:CostOfSales",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-41": {
+   "value": "1250300000.0",
+   "dimensions": {
+    "concept": "ifrs-full:GrossProfit",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-42": {
+   "value": "1243200000.0",
+   "dimensions": {
+    "concept": "ifrs-full:GrossProfit",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-45": {
+   "value": "238600000.0",
+   "dimensions": {
+    "concept": "ifrs-full:ProfitLossFromOperatingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-46": {
+   "value": "232800000.0",
+   "dimensions": {
+    "concept": "ifrs-full:ProfitLossFromOperatingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-59": {
+   "value": "162000000.0",
+   "dimensions": {
+    "concept": "ifrs-full:ProfitLossAttributableToOwnersOfParent",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-60": {
+   "value": "152700000.0",
+   "dimensions": {
+    "concept": "ifrs-full:ProfitLossAttributableToOwnersOfParent",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-85": {
+   "value": "595000000.0",
+   "dimensions": {
+    "concept": "ifrs-full:Inventories",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-86": {
+   "value": "617300000.0",
+   "dimensions": {
+    "concept": "ifrs-full:Inventories",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-87": {
+   "value": "729200000.0",
+   "dimensions": {
+    "concept": "ifrs-full:TradeAndOtherCurrentReceivables",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-88": {
+   "value": "688500000.0",
+   "dimensions": {
+    "concept": "ifrs-full:TradeAndOtherCurrentReceivables",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-99": {
+   "value": "634200000.0",
+   "dimensions": {
+    "concept": "ifrs-full:TradeAndOtherCurrentPayables",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-100": {
+   "value": "611000000.0",
+   "dimensions": {
+    "concept": "ifrs-full:TradeAndOtherCurrentPayables",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-183": {
+   "value": "263800000.0",
+   "dimensions": {
+    "concept": "ifrs-full:CashFlowsFromUsedInOperatingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-184": {
+   "value": "259100000.0",
+   "dimensions": {
+    "concept": "ifrs-full:CashFlowsFromUsedInOperatingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-193": {
+   "value": "18900000.0",
+   "dimensions": {
+    "concept": "ifrs-full:PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-194": {
+   "value": "16200000.0",
+   "dimensions": {
+    "concept": "ifrs-full:PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-211": {
+   "value": "105900000.0",
+   "dimensions": {
+    "concept": "ifrs-full:DividendsPaidClassifiedAsFinancingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-212": {
+   "value": "104700000.0",
+   "dimensions": {
+    "concept": "ifrs-full:DividendsPaidClassifiedAsFinancingActivities",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-271": {
+   "value": "104700000.0",
+   "dimensions": {
+    "concept": "ifrs-full:DividendsPaid",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2024-04-01T00:00:00/2025-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  },
+  "fact-348": {
+   "value": "105900000.0",
+   "dimensions": {
+    "concept": "ifrs-full:DividendsPaid",
+    "entity": "scheme:549300KVXDURRKVW7R37",
+    "period": "2025-04-01T00:00:00/2026-04-01T00:00:00",
+    "unit": "iso4217:GBP"
+   }
+  }
+ }
+}

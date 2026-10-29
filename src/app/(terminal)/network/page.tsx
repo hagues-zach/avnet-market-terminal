@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getPeerRows } from "@/lib/data/live/earnings";
 import { getEarningsCalendar } from "@/lib/data/live/earnings-calendar";
 import { COHORT_LABELS, COMPANIES, ROLES, ROLE_LABELS, comparability, comparableValue, roleOf, type Role } from "@/lib/data/live/earnings-model";
+import { PRIVATE_COMPANIES } from "@/lib/data/live/private-companies";
 import { CaveatMark } from "@/components/ui/caveat-mark";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
@@ -27,10 +28,13 @@ async function Directory({ role }: { role: Role | "all" }) {
         Number(b.company.slug === "avnet") - Number(a.company.slug === "avnet") || (b.latest?.values.revenue ?? 0) - (a.latest?.values.revenue ?? 0),
     );
 
+  // Private competitors have no quarters; they follow the listed companies.
+  const unlisted = role === "all" || role === "competitor" ? PRIVATE_COMPANIES : [];
+
   return (
     <Panel
       title="Companies"
-      subtitle={`${shown.length} companies, largest first, each with its most recent reported quarter`}
+      subtitle={`${shown.length + unlisted.length} companies, largest first, each with its most recent reported period`}
       bodyClassName="p-0 pt-3"
     >
       <div className="overflow-x-auto" role="region" aria-label="Companies" tabIndex={0}>
@@ -97,6 +101,24 @@ async function Directory({ role }: { role: Role | "all" }) {
                 </tr>
               );
             })}
+            {unlisted.map((c) => (
+              <tr key={c.slug} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
+                <th scope="row" className="py-1.5 pl-4 pr-3 text-left font-normal">
+                  <Link href={`/network/${c.slug}`} className="font-medium text-ink underline-offset-2 hover:underline">
+                    {c.name}
+                  </Link>
+                </th>
+                <td className="px-3 py-1.5 text-left text-ink-muted">Competitor</td>
+                <td className="px-3 py-1.5 text-left text-ink-muted">Private{c.ownerSlug ? `, owned by ${c.owner}` : ""}</td>
+                {[0, 1, 2].map((i) => (
+                  <td key={i} className="px-3 py-1.5 text-right tabular-nums text-ink-muted">
+                    {NA}
+                    {i === 0 && <CaveatMark reason="Private: no quarterly filings. The profile has published annual sales where a ranking gives them." />}
+                  </td>
+                ))}
+                <td className="px-3 py-1.5 text-left text-ink-muted">{NA}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -115,9 +137,9 @@ function DirectoryFallback() {
 export default async function NetworkPage({ searchParams }: { searchParams: Promise<{ role?: string }> }) {
   const params = await searchParams;
   const role: Role | "all" = ROLES.includes(params.role as Role) ? (params.role as Role) : "all";
-  const count = (r: Role) => COMPANIES.filter((c) => roleOf(c) === r).length;
+  const count = (r: Role) => COMPANIES.filter((c) => roleOf(c) === r).length + (r === "competitor" ? PRIVATE_COMPANIES.length : 0);
   const options: { href: string; label: string; n: number; active: boolean }[] = [
-    { href: "/network", label: "All", n: COMPANIES.length, active: role === "all" },
+    { href: "/network", label: "All", n: COMPANIES.length + PRIVATE_COMPANIES.length, active: role === "all" },
     ...ROLES.map((r) => ({ href: `/network?role=${r}`, label: ROLE_LABELS[r], n: count(r), active: role === r })),
   ];
 
@@ -147,8 +169,10 @@ export default async function NetworkPage({ searchParams }: { searchParams: Prom
       </Suspense>
       <p className="text-caption text-ink-muted">
         Suppliers make components; competitors are other distributors; customers buy components, including contract manufacturers; ecosystem companies
-        (equipment and design software) sit upstream of the suppliers. Only companies that file quarterly with the SEC are listed, so large foreign
-        suppliers and distributors are missing. Earnings dates are estimates from last year&apos;s filing dates.
+        (equipment and design software) sit upstream of the suppliers. Figures come from SEC filings, and for foreign companies from Korea&apos;s
+        DART, Taiwan&apos;s MOPS or UK annual reports, converted to dollars; RS Group reports every half year, so its latest period is six
+        months. Private distributors have no filings and are listed without figures. Earnings dates are estimates from last year&apos;s
+        filing dates.
       </p>
     </PageBody>
   );

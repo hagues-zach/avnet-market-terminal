@@ -62,7 +62,7 @@ export function glance(earnings: CompanyEarnings, mix: RevenueMix): string[] {
         if (g === undefined || g >= 0 !== v.revenueYoY >= 0) break;
         streak += 1;
       }
-      if (streak >= 2) line += ` (${streak} quarters in a row of ${v.revenueYoY >= 0 ? "growth" : "decline"})`;
+      if (streak >= 2) line += ` (${streak} ${earnings.company.cadence === "half" ? "halves" : "quarters"} in a row of ${v.revenueYoY >= 0 ? "growth" : "decline"})`;
     }
     lines.push(`${line}.`);
   }
@@ -162,7 +162,7 @@ export async function ProfileKeyFacts({ company }: { company: Company }) {
         "Not found"
       ),
     },
-    ...(q ? [{ label: "Latest quarter", value: `${q.fiscalLabel}, ended ${longDate(q.end)}` }] : []),
+    ...(q ? [{ label: company.cadence === "half" ? "Latest half" : "Latest quarter", value: `${q.fiscalLabel}, ended ${longDate(q.end)}` }] : []),
     { label: "Role", value: ROLE_SINGULAR[roleOf(company)] },
     { label: "Cohort", value: COHORT_LABELS[company.cohort] },
   ];
@@ -203,7 +203,7 @@ export async function ProfileOverview({ company }: { company: Company }) {
   const color = companyColor(company.slug);
   const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
   const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
-  const footer = <SourceLine source={sourceOf(company).filings} asOf={`quarter ended ${longDate(q.end)}`} />;
+  const footer = <SourceLine source={sourceOf(company).filings} asOf={`${company.cadence === "half" ? "half" : "quarter"} ended ${longDate(q.end)}`} />;
 
   return (
     <div className="space-y-4">
@@ -229,7 +229,7 @@ export async function ProfileOverview({ company }: { company: Company }) {
           delta={invDelta === undefined || invDelta === 0 ? undefined : { value: invDelta, display: `${Math.abs(invDelta)}`, period: "YoY", invert: true }}
         />
       </div>
-      <RevenueSwitch quarters={quarters} color={color} footer={footer} />
+      <RevenueSwitch quarters={quarters} color={color} footer={footer} period={company.cadence === "half" ? "half" : "quarter"} />
       {lines.length > 0 && (
         <Panel title="In brief" subtitle="Plain facts from the filings, for opening a conversation">
           <ul className="list-disc space-y-1 pl-5 text-body text-ink marker:text-ink-muted">

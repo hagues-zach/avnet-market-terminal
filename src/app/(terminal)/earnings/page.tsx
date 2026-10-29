@@ -85,7 +85,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
     <PageBody>
       <PageTitle
         title="Quarterly Earnings"
-        subtitle={`One reporting framework across ${COMPANIES.length} companies, from SEC filings and Korea's DART`}
+        subtitle={`One reporting framework across ${COMPANIES.length} companies, from SEC filings and Korean, Taiwanese and UK filings`}
         actions={<DataChip status="live" label="SEC filings" />}
       />
 
