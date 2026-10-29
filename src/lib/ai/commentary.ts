@@ -1,6 +1,6 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { COMPANIES, releasePattern, type Company } from "@/lib/data/live/earnings-model";
+import { COMPANIES, releasePattern, sourceOf, type Company } from "@/lib/data/live/earnings-model";
 import { DATA_USER_AGENT, fetchSec } from "@/lib/data/live/revenue-mix";
 import { store } from "@/lib/store";
 import { plainDeep } from "./dashes";
@@ -101,7 +101,7 @@ export interface Release {
  * A 20-F filer furnishes the release itself as a 6-K's primary document.
  */
 export async function findRelease(company: Company, declaredAgent: string): Promise<Release> {
-  if (company.cik === undefined) throw new Error("Not available for companies that report through Korea's DART.");
+  if (company.cik === undefined) throw new Error(`Not available for companies that report through ${sourceOf(company).short}.`);
   const recent = ((await (await fetchSec(`https://data.sec.gov/submissions/CIK${String(company.cik).padStart(10, "0")}.json`, DATA_USER_AGENT)).json()) as Submissions)
     .filings?.recent;
   const sixK = releasePattern(company);

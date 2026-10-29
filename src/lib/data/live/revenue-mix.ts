@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { COMPANIES, type Company } from "./earnings-model";
+import { COMPANIES, sourceOf, type Company } from "./earnings-model";
 
 // Revenue mix: how a company's revenue splits by segment, region, product, sales
 // channel and major customer. The summary "company facts" feed drops these
@@ -325,7 +325,7 @@ const loadCached = unstable_cache(load, ["revenue-mix-v3"], { revalidate: REVALI
 export async function getRevenueMix(slug: string): Promise<RevenueMix> {
   const company = COMPANIES.find((c) => c.slug === slug) ?? COMPANIES[0];
   if (company.cik === undefined) {
-    return { company, breakdowns: [], customers: [], error: "Not available for companies that report through Korea's DART." };
+    return { company, breakdowns: [], customers: [], error: `Not available for companies that report through ${sourceOf(company).short}.` };
   }
   const declaredAgent = process.env.SEC_USER_AGENT;
   if (!declaredAgent) {

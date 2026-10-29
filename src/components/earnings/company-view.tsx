@@ -53,7 +53,9 @@ export function CompanyResults({ earnings }: { earnings: CompanyEarnings }) {
       <div className="space-y-0.5">
         <h3 className="text-pretty text-lg leading-snug text-ink">{headline(earnings)}</h3>
         <p className="text-caption text-ink-muted">
-          Quarter ended {longDate(latest.end)}, calendar {latest.calendarLabel}.
+          {earnings.company.cadence === "half"
+            ? `Six months ended ${longDate(latest.end)}.`
+            : `Quarter ended ${longDate(latest.end)}, calendar ${latest.calendarLabel}.`}
           {latestFiling && (
             <>
               {" "}

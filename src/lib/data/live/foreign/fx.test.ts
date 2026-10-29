@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { parseFredCsv, type FredPoint } from "../fred";
 import type { Quarter } from "../earnings-model";
-import { convert, rateFor } from "./fx";
+import { convert, perDollarPoints, rateFor } from "./fx";
 
 assert.deepEqual(parseFredCsv("observation_date,DEXKOUS\n2026-10-22,1326.23\n2026-10-23,.\n2026-10-24,1325.06\n"), [
   { date: "2026-10-22", value: 1326.23 },
@@ -52,5 +52,15 @@ assert.ok(Math.abs(quarters[1].values.revenueYoY! - 0.2) < 1e-12);
 assert.equal(quarters[1].values.epsDiluted, undefined);
 // The input is left alone.
 assert.equal(won[1].values.revenue, 1_500e9);
+
+// Sterling is quoted as dollars per pound; it is turned into pounds per dollar.
+assert.deepEqual(perDollarPoints([{ date: "2026-10-23", value: 1.25 }], "GBP"), [{ date: "2026-10-23", value: 0.8 }]);
+assert.deepEqual(perDollarPoints([{ date: "2026-10-23", value: 32.5 }], "TWD"), [{ date: "2026-10-23", value: 32.5 }]);
+
+// Half years average the rate over six months and have no sequential growth.
+assert.equal(rateFor(points, "2025-09-30", 182)?.average, 1000);
+const halves = convert([q("2025-03-31", 1_000e9), q("2025-09-30", 1_100e9)], points, 182).quarters;
+assert.equal(halves[1].values.revenue, 1.1e9);
+assert.equal(halves[1].values.revenueQoQ, undefined);
 
 console.log("fx: ok");

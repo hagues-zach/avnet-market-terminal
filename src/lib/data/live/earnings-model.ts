@@ -47,11 +47,16 @@ export const COHORTS = Object.keys(COHORT_LABELS) as Cohort[];
  * (regex sources: Company crosses into client components, so it stays plain
  * data). A DART filer reports to Korea's regulator
  * under K-IFRS in won, found by DART's own corp code (not the KRX ticker);
- * `segment` takes one segment of the group instead of the whole.
+ * `segment` takes one segment of the group instead of the whole. A MOPS filer
+ * reports to Taiwan's exchange under Taiwan IFRS in NT dollars, by its TWSE code.
+ * An ESEF filer's annual report is read by LEI from filings.xbrl.org; its halves
+ * are kept by hand (`halves`), since only the annual report is tagged.
  */
 export type Foreign =
   | { source: "sec-20f"; interim: string; release: string }
-  | { source: "dart"; corpCode: string; currency: "KRW"; segment?: "DS" };
+  | { source: "dart"; corpCode: string; currency: "KRW"; segment?: "DS" }
+  | { source: "mops"; coId: string; currency: "TWD" }
+  | { source: "esef"; lei: string; currency: "GBP"; halves: "rs" };
 
 export interface Company {
   slug: string;
@@ -60,7 +65,12 @@ export interface Company {
   cik?: number;
   cohort: Cohort;
   foreign?: Foreign;
+  /** Reports every six months instead of every quarter; its periods are halves. */
+  cadence?: "half";
 }
+
+/** The length of one reporting period in days: a quarter, or a half for half-yearly reporters. */
+export const periodDays = (c: Company) => (c.cadence === "half" ? 182 : 91);
 
 /** Files 10-Q and 10-K with the SEC: the filings every SEC-only feature reads. */
 export const isUsFiler = (c: Company): c is Company & { cik: number } => c.cik !== undefined && !c.foreign;
@@ -80,6 +90,16 @@ export const COMPANIES: Company[] = [
   { slug: "wesco", name: "Wesco", cik: 929008, cohort: "distributor" },
   { slug: "scansource", name: "ScanSource", cik: 918965, cohort: "distributor" },
   { slug: "richardson", name: "Richardson Electronics", cik: 355948, cohort: "distributor" },
+  { slug: "wpg", name: "WPG Holdings", cohort: "distributor", foreign: { source: "mops", coId: "3702", currency: "TWD" } }, // TWSE 3702
+  // Owns Future Electronics since 2024, so its results include Future's.
+  { slug: "wt-micro", name: "WT Microelectronics", cohort: "distributor", foreign: { source: "mops", coId: "3036", currency: "TWD" } }, // TWSE 3036
+  {
+    slug: "rs-group",
+    name: "RS Group",
+    cohort: "distributor",
+    cadence: "half",
+    foreign: { source: "esef", lei: "549300KVXDURRKVW7R37", currency: "GBP", halves: "rs" },
+  }, // LSE RS1
   { slug: "texas-instruments", name: "Texas Instruments", cik: 97476, cohort: "manufacturer" },
   { slug: "analog-devices", name: "Analog Devices", cik: 6281, cohort: "manufacturer" },
   { slug: "microchip", name: "Microchip", cik: 827054, cohort: "manufacturer" },
@@ -307,15 +327,22 @@ export interface CompanyEarnings {
 }
 
 /** The accounting basis a company's figures are prepared on. */
-export type Basis = "us-gaap" | "kifrs" | "kifrs-segment";
+export type Basis = "us-gaap" | "kifrs" | "kifrs-segment" | "tifrs" | "ifrs-half";
 
-export const basisOf = (c: Company): Basis =>
-  c.foreign?.source === "dart" ? (c.foreign.segment ? "kifrs-segment" : "kifrs") : "us-gaap";
+export function basisOf(c: Company): Basis {
+  const f = c.foreign;
+  if (f?.source === "dart") return f.segment ? "kifrs-segment" : "kifrs";
+  if (f?.source === "mops") return "tifrs";
+  if (f?.source === "esef") return "ifrs-half";
+  return "us-gaap";
+}
 
 export const BASIS_LABELS: Record<Basis, string> = {
   "us-gaap": "US GAAP",
   kifrs: "K-IFRS",
   "kifrs-segment": "K-IFRS, one segment",
+  tifrs: "Taiwan IFRS",
+  "ifrs-half": "IFRS, half-yearly",
 };
 
 /** How far a metric can be set beside the US GAAP filers: with a caveat, or not at all. */
@@ -326,6 +353,8 @@ export interface Comparability {
 
 const IFRS_OPERATING = "IFRS has no defined operating profit until IFRS 18 (2027); Korean operating profit leaves out other income and expenses.";
 const IFRS_CASH = "Under IFRS 16 lease payments sit in financing, which lifts operating cash flow against US GAAP.";
+const IFRS_OPERATING_PROFIT = "IFRS has no defined operating profit until IFRS 18 (2027); each company draws the line itself.";
+const HALF = "Six months, not a quarter: RS Group reports every half year.";
 const SEGMENT = "A segment of the group, before sales between segments are eliminated.";
 const SEGMENT_ONLY = "Not reported for the segment on its own.";
 
@@ -352,9 +381,35 @@ export const COMPARABILITY: Record<Basis, Partial<Record<Metric, Comparability>>
     operatingIncome: { level: "caveat", reason: `${SEGMENT} ${IFRS_OPERATING}` },
     operatingMargin: { level: "caveat", reason: `${SEGMENT} ${IFRS_OPERATING}` },
   },
+  tifrs: {
+    operatingIncome: { level: "caveat", reason: IFRS_OPERATING_PROFIT },
+    operatingMargin: { level: "caveat", reason: IFRS_OPERATING_PROFIT },
+    operatingCashFlow: { level: "caveat", reason: IFRS_CASH },
+    freeCashFlow: { level: "caveat", reason: IFRS_CASH },
+    fcfMargin: { level: "caveat", reason: IFRS_CASH },
+    epsDiluted: { level: "none", reason: "Reported in NT dollars per share." },
+  },
+  // Dollar amounts are six months' worth; ratios, growth on the same half a year
+  // earlier, and days (on 182 days of activity) are on the same footing as quarters.
+  "ifrs-half": {
+    revenue: { level: "caveat", reason: HALF },
+    costOfRevenue: { level: "caveat", reason: HALF },
+    grossProfit: { level: "caveat", reason: HALF },
+    operatingIncome: { level: "caveat", reason: `${HALF} ${IFRS_OPERATING_PROFIT}` },
+    operatingMargin: { level: "caveat", reason: IFRS_OPERATING_PROFIT },
+    netIncome: { level: "caveat", reason: HALF },
+    revenueYoY: { level: "caveat", reason: "Against the same half a year earlier." },
+    operatingCashFlow: { level: "caveat", reason: `${HALF} ${IFRS_CASH}` },
+    capex: { level: "caveat", reason: HALF },
+    freeCashFlow: { level: "caveat", reason: `${HALF} ${IFRS_CASH}` },
+    fcfMargin: { level: "caveat", reason: IFRS_CASH },
+    dividends: { level: "caveat", reason: HALF },
+    buybacks: { level: "caveat", reason: HALF },
+    epsDiluted: { level: "none", reason: "Not read for half years." },
+  },
 };
 
-const CURRENCY_NAMES: Record<string, string> = { KRW: "won" };
+const CURRENCY_NAMES: Record<string, string> = { KRW: "won", TWD: "NT dollars", GBP: "pounds" };
 export const currencyName = (code: string) => CURRENCY_NAMES[code] ?? code;
 
 /** Where a company's figures come from: a short chip, and the phrase for source lines. */
@@ -365,6 +420,16 @@ export function sourceOf(c: Company): { chip: string; filings: string; short: st
     return { chip: "Segment, K-IFRS, from won", filings: `${c.name}'s segment note in the group's DART filings, converted from won`, short: "Korea's DART" };
   }
   if (f?.source === "dart") return { chip: "DART filer, K-IFRS, from won", filings: `${c.name}'s DART filings, converted from won`, short: "Korea's DART" };
+  if (f?.source === "mops") {
+    return { chip: "MOPS filer, Taiwan IFRS, from NT$", filings: `${c.name}'s MOPS filings, converted from NT dollars`, short: "Taiwan's MOPS" };
+  }
+  if (f?.source === "esef") {
+    return {
+      chip: "Half-yearly, IFRS, from pounds",
+      filings: `${c.name}'s ESEF annual reports and half-year reports, converted from pounds`,
+      short: "ESEF and half-year reports",
+    };
+  }
   return { chip: "SEC filer", filings: `${c.name}'s SEC filings`, short: "SEC EDGAR" };
 }
 
