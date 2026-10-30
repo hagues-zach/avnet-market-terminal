@@ -69,6 +69,17 @@ The image includes the Avnet PowerPoint template (`assets/brand/avnet-template-f
 - **Password gate.** `SITE_PASSWORD` works the same way, but the login cookie is marked secure, so browsers send it back only over HTTPS (or to localhost). Put the container behind TLS, such as a load balancer or ingress that terminates HTTPS.
 - **Outbound network.** Live pages call public sources (sec.gov, Federal Reserve and other macro feeds, trade press news feeds, distributor line card pages, the Claude API). A locked down network needs those hosts allowed, or those pages show their unavailable message.
 
+### Scheduled filing refresh
+
+Reloading every company's filings takes about a minute, so a job does it in place of visitors. It runs every 6 hours and replaces earnings entries over 5 hours old (20 for foreign reporters). A visitor only triggers a reload past 24 hours (72 for foreign reporters), so a missed run costs nothing. Segment history, revenue mix and macro signals aren't covered.
+
+To turn it on:
+
+1. Make a secret with `openssl rand -hex 32` and set it as `CRON_SECRET` on the site.
+2. In GitHub, add the same value as the `CRON_SECRET` repository secret, and the site's address as the `SITE_URL` repository variable.
+
+Scheduled workflows only run from `main`. Elsewhere, have any scheduler run `scripts/refresh-filings.sh` with `SITE_URL` and `CRON_SECRET` set. With several replicas the job reaches only one, since each keeps its own data cache, so replicas need a shared cache or a run per replica.
+
 ### Environment variables
 
 All are listed with what they do and their defaults in [.env.example](.env.example):
@@ -76,6 +87,7 @@ All are listed with what they do and their defaults in [.env.example](.env.examp
 | Variable | Use |
 | --- | --- |
 | `SITE_PASSWORD` | Password gate for the whole site; open when unset |
+| `CRON_SECRET` | Secret for scheduled jobs; `/api/cron` refuses every call when unset |
 | `SEC_USER_AGENT` | Contact sent to sec.gov; needed for Revenue mix and commentary |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` | Claude credential; AI features are off without one |
 | `STORE_ADAPTER` | Where saved results live; default `file` |

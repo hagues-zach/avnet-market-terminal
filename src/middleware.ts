@@ -20,7 +20,8 @@ export function middleware(req: NextRequest) {
   const expected = process.env.SITE_PASSWORD;
   if (!expected) return NextResponse.next();
 
-  if (pathname === "/login" || pathname === "/api/login") return NextResponse.next();
+  // Scheduled jobs have no login cookie; their routes check CRON_SECRET themselves.
+  if (pathname === "/login" || pathname === "/api/login" || pathname.startsWith("/api/cron/")) return NextResponse.next();
 
   if (req.cookies.get(AUTH_COOKIE)?.value === expected) return NextResponse.next();
 
