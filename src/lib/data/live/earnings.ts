@@ -16,7 +16,8 @@ import {
 import { fetchDart, fetchDartSegment } from "./foreign/dart";
 import { fetchEsef } from "./foreign/esef";
 import { convert, FRED_RATE, perDollarPoints } from "./foreign/fx";
-import { fetchMops } from "./foreign/mops";
+import { fetchMopsLatest } from "./foreign/mops";
+import mopsSnapshot from "./foreign/mops-snapshot.json";
 import { rsHalves } from "./foreign/rs-halves";
 import { parseInterim, type ConceptFact } from "./foreign/st-6k";
 import { fred } from "./fred";
@@ -357,6 +358,11 @@ async function twentyFFacts(company: Company & { foreign: { source: "sec-20f"; i
   return mergeFacts(doc, read.flat());
 }
 
+interface MopsSnapshot {
+  fetched: string;
+  companies: Record<string, ConceptFact[]>;
+}
+
 type LocalForeign = Exclude<NonNullable<Company["foreign"]>, { source: "sec-20f" }>;
 
 /** A foreign filer's facts in its own currency, from its own regulator's filings. */
@@ -368,7 +374,8 @@ async function localFacts(foreign: LocalForeign): Promise<ConceptFact[]> {
       return foreign.segment ? fetchDartSegment(foreign.corpCode, key, foreign.segment) : fetchDart(foreign.corpCode, key);
     }
     case "mops":
-      return fetchMops(foreign.coId);
+      // History from the committed snapshot; a season filed since then from the OpenAPI.
+      return [...((mopsSnapshot as unknown as MopsSnapshot).companies[foreign.coId] ?? []), ...(await fetchMopsLatest(foreign.coId))];
     case "esef":
       return [...(await fetchEsef(foreign.lei, foreign.currency)), ...rsHalves()];
   }
@@ -403,9 +410,8 @@ export const loadFromSec = (company: Company) => load(company, Infinity);
 const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-v5"], {
   revalidate: REVALIDATE_SECONDS,
 });
-// Foreign reporters change once a quarter, DART limits calls per day, and MOPS
-// throttles rapid queries.
-const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v4"], {
+// Foreign reporters change once a quarter, and DART limits calls per day.
+const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v5"], {
   revalidate: 24 * 60 * 60,
 });
 
