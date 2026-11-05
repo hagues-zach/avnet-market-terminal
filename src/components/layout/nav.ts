@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Gauge,
   Home,
+  Milestone,
   Newspaper,
   Plug,
   Presentation,
@@ -22,7 +23,7 @@ export type Pillar = "home" | "knowledge" | "network" | "performance" | "tools" 
  * above the page (HubTabs). "main" hubs sit at the top, "tools" under a Tools
  * heading, "footer" at the foot of the sidebar, and "topbar" only in the top bar.
  */
-export type HubId = "start" | "news" | "market" | "companies" | "performance" | "qbr" | "deck" | "leads" | "setup" | "ask";
+export type HubId = "start" | "news" | "market" | "companies" | "performance" | "qbr" | "deck" | "leads" | "setup" | "roadmap" | "ask";
 
 export interface Hub {
   id: HubId;
@@ -41,6 +42,7 @@ export const HUBS: Hub[] = [
   { id: "deck", label: "Pitch Deck Builder", icon: Presentation, section: "tools" },
   { id: "leads", label: "Lead Finder", icon: UserSearch, section: "tools" },
   { id: "setup", label: "Setup", icon: Plug, section: "footer" },
+  { id: "roadmap", label: "Roadmap", icon: Milestone, section: "footer" },
   { id: "ask", label: "Ask the Terminal", icon: Sparkles, section: "topbar" },
 ];
 
@@ -87,6 +89,8 @@ const ALL_NAV: NavItem[] = [
 
   { label: "Data Hookups", tab: "Data hookups", href: "/data-hookups", hub: "setup" },
   { label: "Code Mapping", tab: "Code mapping", href: "/tools/mapping", hub: "setup", mock: true },
+
+  { label: "Roadmap", tab: "Roadmap", href: "/roadmap", hub: "roadmap" },
 
   { label: "Ask the Terminal", tab: "Ask the Terminal", href: "/copilot", hub: "ask", mock: true },
 ];

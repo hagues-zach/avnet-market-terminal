@@ -138,4 +138,4 @@ Left off on purpose (still hidden, not promised): Learning Center, Line Cards, S
 Questions 1, 2, 3 and 5 from the first draft were answered on 2026-11-05 and are now decisions 5, 9, 10 and 11.
 
 1. **How Databricks knows the user.** The app reads Databricks with one service identity, so Unity Catalog row filters see the app, not the person. Either pass the user's SSO token through to Databricks (filters key on the real user; needs Entra and Databricks set up for it), or keep a user-to-scope mapping table that the views filter on through a session parameter. The first is real row-level security; the second relies on the app. Decide with the data team.
-2. **Where the Roadmap page sits.** Proposed: a footer link beside Setup, visible to every user. Settle it when the page is designed.
+The Roadmap page is built at `/roadmap` (footer, beside Setup). Its items live in `src/lib/roadmap/items.ts`; edit that file to move them.
