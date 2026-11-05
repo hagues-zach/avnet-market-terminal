@@ -20,6 +20,7 @@ function story(hours: number, over: Partial<LiveArticle> = {}, kind: ArticleKind
     publishedAt: hoursAgo(hours),
     segments: [],
     suppliers: [],
+    customers: [],
     endMarkets: [],
     regions: [],
     ...over,

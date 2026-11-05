@@ -117,8 +117,9 @@ async function fromGdelt(): Promise<LiveArticle[]> {
   return out.slice(0, MAX_PER_SOURCE);
 }
 
-const titleKey = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-const urlKey = (url: string) => url.replace(/^https?:\/\/(www\.)?/i, "").replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
+/** Dedup keys, shared with the morning brief's corpus. */
+export const titleKey = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+export const urlKey = (url: string) => url.replace(/^https?:\/\/(www\.)?/i, "").replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
 
 export async function getLiveNews(): Promise<LiveNews> {
   const jobs: { outlet: string; run: () => Promise<LiveArticle[]> }[] = [

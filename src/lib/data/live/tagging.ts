@@ -1,12 +1,13 @@
-// Rule-based tagging for the news feed: every article is tagged on four facets
-// (segment, supplier, end market, region) from its headline, snippet and the
-// publisher's own category labels. Deterministic and offline — no model calls.
+// Rule-based tagging for the news feed: every article is tagged on five facets
+// (segment, supplier, customer, end market, region) from its headline, snippet and
+// the publisher's own category labels. Deterministic and offline — no model calls.
 
-export type Facet = "segments" | "suppliers" | "endMarkets" | "regions";
+export type Facet = "segments" | "suppliers" | "customers" | "endMarkets" | "regions";
 
 export const FACET_LABELS: Record<Facet, string> = {
   segments: "Segment",
   suppliers: "Supplier",
+  customers: "Customer",
   endMarkets: "End market",
   regions: "Region",
 };
@@ -75,6 +76,76 @@ const SUPPLIERS: Rule[] = [
   ["Mouser", /\bMouser\b/i],
 ];
 
+export type CustomerKind = "oem" | "ems";
+
+export interface Customer {
+  name: string;
+  kind: CustomerKind;
+  pattern: RegExp;
+}
+
+// The Americas customer universe for the morning brief: equipment makers (OEMs)
+// and contract manufacturers (EMS) headquartered or building at scale in the
+// Americas. Public companies only; which of them are Avnet's top customers is
+// internal and kept out of the repo (src/lib/brief/top-customers.ts). Names that
+// are also common words (Apple, Flex, Meta, HP) are matched case-sensitively and
+// only in forms that name the company.
+export const CUSTOMERS: Customer[] = [
+  // Computing, data center and networking
+  { name: "Apple", kind: "oem", pattern: /\bApple\b(?! (Daily|pie))/ },
+  { name: "Dell", kind: "oem", pattern: /\bDell\b/ },
+  { name: "HP Inc", kind: "oem", pattern: /\bHP Inc\b|\bHP\b(?![ -]?E\b)(?! Enterprise)/ },
+  { name: "HPE", kind: "oem", pattern: /\bHPE\b|Hewlett Packard Enterprise/ },
+  { name: "Cisco", kind: "oem", pattern: /\bCisco\b/i },
+  { name: "Super Micro", kind: "oem", pattern: /\bSuper ?[Mm]icro\b|\bSupermicro\b/ },
+  { name: "IBM", kind: "oem", pattern: /\bIBM\b/ },
+  { name: "Arista", kind: "oem", pattern: /\bArista\b/ },
+  { name: "Juniper", kind: "oem", pattern: /\bJuniper Networks\b|\bJuniper\b(?= (said|says|reported|launch))/ },
+  { name: "Microsoft", kind: "oem", pattern: /\bMicrosoft\b|\bAzure\b/ },
+  { name: "Google", kind: "oem", pattern: /\bGoogle\b|\bAlphabet\b/ },
+  { name: "Amazon", kind: "oem", pattern: /\bAmazon\b|\bAWS\b/ },
+  { name: "Meta", kind: "oem", pattern: /\bMeta\b(?!-)(?! ?(data|materials?|lens(es)?|surfaces?)\b)|\bMeta Platforms\b/ },
+  { name: "Oracle", kind: "oem", pattern: /\bOracle\b/ },
+  // Automotive
+  { name: "General Motors", kind: "oem", pattern: /\bGeneral Motors\b|\bGM\b/ },
+  { name: "Ford", kind: "oem", pattern: /\bFord\b(?! Foundation)/ },
+  { name: "Tesla", kind: "oem", pattern: /\bTesla\b/ },
+  { name: "Stellantis", kind: "oem", pattern: /\bStellantis\b/i },
+  { name: "Rivian", kind: "oem", pattern: /\bRivian\b/i },
+  { name: "Cummins", kind: "oem", pattern: /\bCummins\b/ },
+  // Industrial
+  { name: "Honeywell", kind: "oem", pattern: /\bHoneywell\b/i },
+  { name: "Rockwell Automation", kind: "oem", pattern: /\bRockwell\b(?! Collins)/ },
+  { name: "Emerson", kind: "oem", pattern: /\bEmerson( Electric)?\b/ },
+  { name: "Deere", kind: "oem", pattern: /\bDeere\b/ },
+  { name: "Caterpillar", kind: "oem", pattern: /\bCaterpillar\b/ },
+  { name: "Eaton", kind: "oem", pattern: /\bEaton\b/ },
+  { name: "Zebra Technologies", kind: "oem", pattern: /\bZebra Technologies\b/i },
+  // Aerospace and defense
+  { name: "Lockheed Martin", kind: "oem", pattern: /\bLockheed\b/i },
+  { name: "RTX", kind: "oem", pattern: /\bRaytheon\b|\bRTX (Corp|Corporation)\b/ },
+  { name: "Northrop Grumman", kind: "oem", pattern: /\bNorthrop\b/i },
+  { name: "General Dynamics", kind: "oem", pattern: /\bGeneral Dynamics\b/i },
+  { name: "L3Harris", kind: "oem", pattern: /\bL3Harris\b/i },
+  { name: "Boeing", kind: "oem", pattern: /\bBoeing\b/i },
+  // Medical
+  { name: "Medtronic", kind: "oem", pattern: /\bMedtronic\b/i },
+  { name: "GE HealthCare", kind: "oem", pattern: /\bGE Health[Cc]are\b/ },
+  { name: "Boston Scientific", kind: "oem", pattern: /\bBoston Scientific\b/i },
+  // Communications and consumer
+  { name: "Motorola Solutions", kind: "oem", pattern: /\bMotorola\b/ },
+  { name: "Garmin", kind: "oem", pattern: /\bGarmin\b/i },
+  // Contract manufacturers
+  { name: "Jabil", kind: "ems", pattern: /\bJabil\b/i },
+  { name: "Flex", kind: "ems", pattern: /\bFlex (Ltd\.?|Inc\.?)|\bFlex's\b|\bFlextronics\b|\bFLEX\b/ },
+  { name: "Sanmina", kind: "ems", pattern: /\bSanmina\b/i },
+  { name: "Plexus", kind: "ems", pattern: /\bPlexus\b/ },
+  { name: "Benchmark Electronics", kind: "ems", pattern: /\bBenchmark Electronics\b/i },
+  { name: "Celestica", kind: "ems", pattern: /\bCelestica\b/i },
+  { name: "Kimball Electronics", kind: "ems", pattern: /\bKimball Electronics\b/i },
+  { name: "Foxconn", kind: "ems", pattern: /\bFoxconn\b|\bHon Hai\b/i },
+];
+
 const END_MARKETS: Rule[] = [
   ["AI & Data Center", /\bAI\b|\b(artificial intelligence|data ?cent(er|re)s?|hyperscalers?|servers?|LLMs?|generative)\b/],
   ["Automotive", /\b(automotive|vehicles?|ADAS|automakers?|carmakers?|autonomous driving)\b|\bEVs?\b/],
@@ -100,6 +171,7 @@ const REGIONS: Rule[] = [
 const RULES: Record<Facet, Rule[]> = {
   segments: SEGMENTS,
   suppliers: SUPPLIERS,
+  customers: CUSTOMERS.map((c): Rule => [c.name, c.pattern]),
   endMarkets: END_MARKETS,
   regions: REGIONS,
 };
@@ -111,6 +183,7 @@ export function tagArticle(text: string): ArticleTags {
   return {
     segments: match(RULES.segments),
     suppliers: match(RULES.suppliers),
+    customers: match(RULES.customers),
     endMarkets: match(RULES.endMarkets),
     regions: match(RULES.regions),
   };
