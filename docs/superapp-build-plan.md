@@ -17,6 +17,8 @@ Last updated: 2026-10-27
 
 Next: run `pnpm check:store` on the Avnet machine, open a PR for `avnet-data-layer`, then choose between 3.4 to 3.6 and 4.2.
 
+**Superseded for now by `docs/mvp-plan.md` (2026-11-05).** The MVP launches 2027-02-01 (FY27 Q3) with a cut-down set of pages, SSO, role-gated internal data and the per-user morning brief (`docs/morning-brief-plan.md`). 4.2 is now on the critical path; 3.4 (Scenario Modeler) and 3.6 (Lead Finder) move to the roadmap. Third-party market data (WSTS, Gartner), user profiles and row-level security go in Oracle; Avnet internal data stays in Databricks. Where this file and the MVP plan disagree, the MVP plan wins.
+
 ## How the PRD maps onto the app
 
 The PRD's three pillars are **data** pillars (open, licensed, Avnet internal). The app's navigation is organised by **what people do**. Both are kept:

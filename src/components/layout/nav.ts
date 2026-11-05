@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Gauge,
   Home,
+  Milestone,
   Newspaper,
   Plug,
   Presentation,
@@ -22,7 +23,7 @@ export type Pillar = "home" | "knowledge" | "network" | "performance" | "tools" 
  * above the page (HubTabs). "main" hubs sit at the top, "tools" under a Tools
  * heading, "footer" at the foot of the sidebar, and "topbar" only in the top bar.
  */
-export type HubId = "start" | "news" | "market" | "companies" | "performance" | "qbr" | "deck" | "leads" | "setup" | "ask";
+export type HubId = "start" | "news" | "market" | "companies" | "performance" | "qbr" | "deck" | "leads" | "setup" | "roadmap" | "ask";
 
 export interface Hub {
   id: HubId;
@@ -41,6 +42,7 @@ export const HUBS: Hub[] = [
   { id: "deck", label: "Pitch Deck Builder", icon: Presentation, section: "tools" },
   { id: "leads", label: "Lead Finder", icon: UserSearch, section: "tools" },
   { id: "setup", label: "Setup", icon: Plug, section: "footer" },
+  { id: "roadmap", label: "Roadmap", icon: Milestone, section: "footer" },
   { id: "ask", label: "Ask the Terminal", icon: Sparkles, section: "topbar" },
 ];
 
@@ -64,6 +66,7 @@ const ALL_NAV: NavItem[] = [
 
   { label: "Market Overview", tab: "Overview", href: "/overview", hub: "market", mock: true },
   { label: "Market Cycle", tab: "Cycle", href: "/cycle", hub: "market" },
+  { label: "TAM / SAM / SOM", tab: "TAM / SAM / SOM", href: "/tam", hub: "market", mock: true },
   { label: "Economic Signals", tab: "Economic signals", href: "/signals", hub: "market" },
   { label: "How the cycle engine works", tab: "Cycle engine", href: "/signals/engine", hub: "market" },
   { label: "Learning Center", tab: "Learning Center", href: "/learn", hub: "market" },
@@ -75,7 +78,6 @@ const ALL_NAV: NavItem[] = [
 
   { label: "Performance Tracker", tab: "Performance", href: "/performance", hub: "performance", mock: true },
   { label: "Market Share", tab: "Market share", href: "/market-share", hub: "performance", mock: true },
-  { label: "TAM / SAM / SOM", tab: "TAM / SAM / SOM", href: "/tam", hub: "performance", mock: true },
   { label: "Supply Chain", tab: "Supply chain", href: "/supply-chain", hub: "performance", mock: true },
   { label: "Design Pipeline", tab: "Design pipeline", href: "/design-pipeline", hub: "performance", mock: true },
   { label: "Customers & End Markets", tab: "Customers", href: "/customers", hub: "performance", mock: true },
@@ -87,6 +89,8 @@ const ALL_NAV: NavItem[] = [
 
   { label: "Data Hookups", tab: "Data hookups", href: "/data-hookups", hub: "setup" },
   { label: "Code Mapping", tab: "Code mapping", href: "/tools/mapping", hub: "setup", mock: true },
+
+  { label: "Roadmap", tab: "Roadmap", href: "/roadmap", hub: "roadmap" },
 
   { label: "Ask the Terminal", tab: "Ask the Terminal", href: "/copilot", hub: "ask", mock: true },
 ];

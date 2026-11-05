@@ -1,0 +1,29 @@
+# Keeps the filings cache fresh so visitors never wait for the reload. The steps
+# live in scripts/refresh-filings.sh so any other scheduler can run the same thing.
+# Skipped until the SITE_URL repository variable is set; also needs the CRON_SECRET
+# secret, matching the value on the site. See "Scheduled filing refresh" in the README.
+name: refresh-filings
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-filings
+
+jobs:
+  refresh:
+    name: Refresh cached filings
+    if: ${{ vars.SITE_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/refresh-filings.sh
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

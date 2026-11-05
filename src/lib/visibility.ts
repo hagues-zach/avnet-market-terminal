@@ -7,6 +7,10 @@ export const HIDDEN_PATHS: string[] = [
   "/line-cards", // Line Cards
   "/supply-chain", // Supply Chain
   "/tools/leads", // Lead Finder
+  // Cut for the MVP (docs/mvp-plan.md); each returns in its roadmap quarter.
+  "/signals/engine", // How the cycle engine works
+  "/forecast", // Scenario Modeler
+  "/tools/qbr", // QBR Prep
 ];
 
 /** Whether a link lands on a hidden page: the page itself or anything under it, ignoring query and hash. */

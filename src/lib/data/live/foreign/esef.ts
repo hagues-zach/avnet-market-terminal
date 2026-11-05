@@ -7,7 +7,9 @@ import type { ConceptFact } from "./st-6k";
 // Parsing is pure; the fetcher below reads the index and then each filing.
 
 const BASE = "https://filings.xbrl.org";
-const TIMEOUT_MS = 60_000;
+// Each filing's JSON is a few MB; fetched together so a cold profile stays well
+// inside a serverless function's time limit.
+const TIMEOUT_MS = 25_000;
 
 // Undimensioned ifrs-full facts only: the group, not the parent company's own
 // statements or a segment. `cost` amounts are stored positive, as us-gaap tags them.
@@ -77,10 +79,9 @@ export async function fetchEsef(lei: string, unit: string, years = 3): Promise<C
     .filter((f) => f.json_url)
     .sort((a, b) => b.period_end.localeCompare(a.period_end))
     .slice(0, years);
-  const facts: ConceptFact[] = [];
-  for (const f of filings) {
+  const read = async (f: (typeof filings)[number]) => {
     const meta = { form: "ESEF annual", filed: f.date_added.slice(0, 10), url: `${BASE}${f.viewer_url ?? f.json_url}` };
-    facts.push(...parseEsef(await getJson<EsefJson>(`${BASE}${f.json_url}`), unit, meta));
-  }
-  return facts;
+    return parseEsef(await getJson<EsefJson>(`${BASE}${f.json_url}`), unit, meta);
+  };
+  return (await Promise.all(filings.map(read))).flat();
 }

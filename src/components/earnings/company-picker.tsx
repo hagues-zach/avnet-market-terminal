@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { COHORTS, COHORT_LABELS, COMPANIES, type Cohort } from "@/lib/data/live/earnings-model";
+import { COHORTS, COHORT_LABELS, US_FILERS, type Cohort } from "@/lib/data/live/earnings-model";
 import { earningsHref } from "./format";
 
 const select =
@@ -18,7 +18,7 @@ export function CompanyPicker({ company, group }: { company: string; group: Coho
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const go = (slug: string, g: Cohort | "all") => startTransition(() => router.push(earningsHref(slug, g), { scroll: false }));
-  const current = COMPANIES.find((c) => c.slug === company)!;
+  const current = US_FILERS.find((c) => c.slug === company)!;
 
   return (
     <div
@@ -34,14 +34,14 @@ export function CompanyPicker({ company, group }: { company: string; group: Coho
             disabled={pending}
             // Picking a company outside the group compares it with its own group.
             onChange={(e) => {
-              const next = COMPANIES.find((c) => c.slug === e.target.value)!;
+              const next = US_FILERS.find((c) => c.slug === e.target.value)!;
               go(next.slug, group === "all" ? "all" : next.cohort);
             }}
             className={`${select} min-w-[15rem]`}
           >
             {COHORTS.map((c) => (
               <optgroup key={c} label={COHORT_LABELS[c]}>
-                {COMPANIES.filter((co) => co.cohort === c).map((co) => (
+                {US_FILERS.filter((co) => co.cohort === c).map((co) => (
                   <option key={co.slug} value={co.slug}>
                     {co.name}
                   </option>
@@ -63,7 +63,7 @@ export function CompanyPicker({ company, group }: { company: string; group: Coho
             <option value={current.cohort}>{COHORT_LABELS[current.cohort]}</option>
             {/* Market Cycle links open a group that may not be the company's own. */}
             {group !== "all" && group !== current.cohort && <option value={group}>{COHORT_LABELS[group]}</option>}
-            <option value="all">All {COMPANIES.length} companies</option>
+            <option value="all">All {US_FILERS.length} companies</option>
           </select>
           <ChevronDown
             className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted"

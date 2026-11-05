@@ -65,3 +65,8 @@ export function DataChip({
     </span>
   );
 }
+
+/** A company outside the MVP's US filers (docs/mvp-plan.md): its profile shows, but earnings reporting leaves it out. */
+export function BetaChip() {
+  return <Chip tone="warning">Beta</Chip>;
+}

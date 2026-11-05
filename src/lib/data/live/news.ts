@@ -1,7 +1,7 @@
 import { parseFeed } from "./rss";
 import { getFilings } from "./filings";
 import { getRegulatory } from "./regulatory";
-import { fetchText, type ArticleKind, type LiveArticle, type LiveNews, type SourceStatus } from "./shared";
+import { REVALIDATE_SECONDS, fetchText, type ArticleKind, type LiveArticle, type LiveNews, type SourceStatus } from "./shared";
 import { isOnTopic, tagArticle } from "./tagging";
 
 export type { LiveArticle, LiveNews, SourceStatus } from "./shared";
@@ -12,6 +12,10 @@ export type { LiveArticle, LiveNews, SourceStatus } from "./shared";
 
 // GDELT is supplementary and often throttled; don't let it hold the page.
 const GDELT_TIMEOUT_MS = 4000;
+// The fetch cache keeps only successes, so an outage would cost the timeout on every
+// load. After a failure, skip GDELT for as long as a good response would be kept.
+const GDELT_RETRY_MS = REVALIDATE_SECONDS * 1000;
+let gdeltDownUntil = 0;
 const MAX_PER_SOURCE = 25;
 const MAX_ARTICLES = 200;
 // News goes stale fast; filings and rules are sparser and stay relevant longer.
@@ -84,10 +88,20 @@ function gdeltDate(seen: string | undefined): string | null {
   return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}.000Z` : null;
 }
 
+async function gdeltBody(): Promise<{ articles?: GdeltArticle[] }> {
+  if (Date.now() < gdeltDownUntil) throw new Error("GDELT failed recently");
+  try {
+    // GDELT answers rate-limit and error cases with plain text, so JSON.parse throws
+    // and the source is reported as down rather than silently empty.
+    return JSON.parse(await fetchText(GDELT_URL, GDELT_TIMEOUT_MS));
+  } catch (e) {
+    gdeltDownUntil = Date.now() + GDELT_RETRY_MS;
+    throw e;
+  }
+}
+
 async function fromGdelt(): Promise<LiveArticle[]> {
-  // GDELT answers rate-limit and error cases with plain text, so JSON.parse throws
-  // and the source is reported as down rather than silently empty.
-  const body = JSON.parse(await fetchText(GDELT_URL, GDELT_TIMEOUT_MS)) as { articles?: GdeltArticle[] };
+  const body = await gdeltBody();
   const out: LiveArticle[] = [];
   for (const a of body.articles ?? []) {
     if (!a.title || !a.url || !/^https?:\/\//i.test(a.url)) continue;

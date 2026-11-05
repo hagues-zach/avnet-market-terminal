@@ -9,6 +9,7 @@ import type { Company } from "@/lib/data/live/earnings-model";
 import { ago, entityOf, qbrHref, RELEVANCE_WORD, stamp } from "@/lib/news/briefing";
 import { Chip } from "@/components/ui/chip";
 import { cn } from "@/lib/utils";
+import { isHidden } from "@/lib/visibility";
 
 /** Avnet Green rule for stories naming Avnet, Dark Blue for Arrow, nothing for everyone else. */
 export function entityRule(article: LiveArticle): string {
@@ -100,7 +101,7 @@ export function QbrAction({ article, companies }: { article: LiveArticle; compan
     };
   }, []);
 
-  if (!companies.length) return null;
+  if (!companies.length || isHidden("/tools/qbr")) return null;
   if (companies.length === 1) {
     return (
       <Link href={qbrHref(companies[0], article)} className={BTN} aria-label={`Add to QBR brief for ${companies[0].name}`}>

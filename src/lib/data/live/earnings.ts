@@ -16,7 +16,8 @@ import {
 import { fetchDart, fetchDartSegment } from "./foreign/dart";
 import { fetchEsef } from "./foreign/esef";
 import { convert, FRED_RATE, perDollarPoints } from "./foreign/fx";
-import { fetchMops } from "./foreign/mops";
+import { fetchMopsLatest } from "./foreign/mops";
+import mopsSnapshot from "./foreign/mops-snapshot.json";
 import { rsHalves } from "./foreign/rs-halves";
 import { parseInterim, type ConceptFact } from "./foreign/st-6k";
 import { fred } from "./fred";
@@ -26,7 +27,14 @@ import { fetchSec } from "./revenue-mix";
 // 10-K filings, as one JSON document per company. Server-only. The documents are
 // several MB each, so the reduced result is cached rather than the raw response.
 
-const REVALIDATE_SECONDS = 6 * 60 * 60;
+// The refresh job replaces entries older than REFRESH_*; a visitor only refreshes
+// one past REVALIDATE_*, so with the job running no visitor pays for the reload.
+// The gap also covers a missed run. Without the job, a visitor's limit is the only one.
+const REVALIDATE_SECONDS = 24 * 60 * 60;
+const REFRESH_SECONDS = 5 * 60 * 60;
+// Foreign reporters change once a quarter, and DART limits calls per day.
+const FOREIGN_REVALIDATE_SECONDS = 72 * 60 * 60;
+const FOREIGN_REFRESH_SECONDS = 20 * 60 * 60;
 const USER_AGENT = "MarketTerminal/0.1 (news reader)";
 const TIMEOUT_MS = 20_000;
 const QUARTERS_KEPT = 12;
@@ -357,6 +365,11 @@ async function twentyFFacts(company: Company & { foreign: { source: "sec-20f"; i
   return mergeFacts(doc, read.flat());
 }
 
+interface MopsSnapshot {
+  fetched: string;
+  companies: Record<string, ConceptFact[]>;
+}
+
 type LocalForeign = Exclude<NonNullable<Company["foreign"]>, { source: "sec-20f" }>;
 
 /** A foreign filer's facts in its own currency, from its own regulator's filings. */
@@ -368,7 +381,8 @@ async function localFacts(foreign: LocalForeign): Promise<ConceptFact[]> {
       return foreign.segment ? fetchDartSegment(foreign.corpCode, key, foreign.segment) : fetchDart(foreign.corpCode, key);
     }
     case "mops":
-      return fetchMops(foreign.coId);
+      // History from the committed snapshot; a season filed since then from the OpenAPI.
+      return [...((mopsSnapshot as unknown as MopsSnapshot).companies[foreign.coId] ?? []), ...(await fetchMopsLatest(foreign.coId))];
     case "esef":
       return [...(await fetchEsef(foreign.lei, foreign.currency)), ...rsHalves()];
   }
@@ -398,16 +412,33 @@ async function load(company: Company, keep = QUARTERS_KEPT): Promise<CompanyEarn
 /** One company's filings straight from SEC, uncached, with every quarter they hold: for scripts that run outside Next (scripts/fetch-history.ts). */
 export const loadFromSec = (company: Company) => load(company, Infinity);
 
+const loadBySlug = async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!);
+
 // Failures throw, so they are never cached; the next request retries. Once a
 // result is cached, later requests are served from it while it refreshes.
-const loadCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-v5"], {
-  revalidate: REVALIDATE_SECONDS,
-});
-// Foreign reporters change once a quarter, DART limits calls per day, and MOPS
-// throttles rapid queries.
-const loadForeignCached = unstable_cache(async (slug: string) => load(COMPANIES.find((c) => c.slug === slug)!), ["earnings-foreign-v4"], {
-  revalidate: 24 * 60 * 60,
-});
+// Each visitor/job pair shares its entries: the key is the function and key parts,
+// and how old an entry may be is decided per call.
+const loadCached = unstable_cache(loadBySlug, ["earnings-v5"], { revalidate: REVALIDATE_SECONDS });
+const refreshCached = unstable_cache(loadBySlug, ["earnings-v5"], { revalidate: REFRESH_SECONDS });
+const loadForeignCached = unstable_cache(loadBySlug, ["earnings-foreign-v5"], { revalidate: FOREIGN_REVALIDATE_SECONDS });
+const refreshForeignCached = unstable_cache(loadBySlug, ["earnings-foreign-v5"], { revalidate: FOREIGN_REFRESH_SECONDS });
+
+/**
+ * Refresh one batch of companies starting at `from`, for the scheduled job. Entries
+ * past the job's limit are replaced in the background, while the old copy keeps
+ * being served, so `failed` only lists companies with no copy at all; a failed
+ * background refresh is logged and tried again on the next run.
+ */
+export async function refreshEarnings(from: number): Promise<{ total: number; failed: string[]; next: number | null }> {
+  const batch = COMPANIES.slice(from, from + BATCH);
+  const settled = await Promise.allSettled(batch.map((c) => (c.foreign ? refreshForeignCached : refreshCached)(c.slug)));
+  const next = from + BATCH;
+  return {
+    total: COMPANIES.length,
+    failed: batch.filter((_, i) => settled[i].status === "rejected").map((c) => c.slug),
+    next: next < COMPANIES.length ? next : null,
+  };
+}
 
 export async function getCompanyEarnings(slug: string): Promise<CompanyEarnings> {
   const company = COMPANIES.find((c) => c.slug === slug) ?? COMPANIES[0];

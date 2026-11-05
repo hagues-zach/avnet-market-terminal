@@ -2,9 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { getPeerRows } from "@/lib/data/live/earnings";
 import { getEarningsCalendar } from "@/lib/data/live/earnings-calendar";
-import { COHORT_LABELS, COMPANIES, ROLES, ROLE_LABELS, comparability, comparableValue, roleOf, type Role } from "@/lib/data/live/earnings-model";
+import { COHORT_LABELS, COMPANIES, ROLES, ROLE_LABELS, comparability, comparableValue, isUsFiler, roleOf, type Role } from "@/lib/data/live/earnings-model";
 import { PRIVATE_COMPANIES } from "@/lib/data/live/private-companies";
 import { CaveatMark } from "@/components/ui/caveat-mark";
+import { BetaChip } from "@/components/ui/chip";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { Panel } from "@/components/ui/panel";
@@ -80,6 +81,11 @@ async function Directory({ role }: { role: Role | "all" }) {
                       {c.slug === "avnet" && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />}
                       {c.name}
                     </Link>
+                    {!isUsFiler(c) && (
+                      <span className="ml-2">
+                        <BetaChip />
+                      </span>
+                    )}
                   </th>
                   <td className="px-3 py-1.5 text-left text-ink-muted">{ROLE_LABELS[roleOf(c)].replace(/s$/, "")}</td>
                   <td className="px-3 py-1.5 text-left text-ink-muted">{COHORT_LABELS[c.cohort]}</td>

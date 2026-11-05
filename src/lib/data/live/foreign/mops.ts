@@ -4,13 +4,17 @@ import type { ConceptFact } from "./st-6k";
 // company's quarterly consolidated statements as one inline XBRL page, under
 // Taiwan IFRS, in NT dollars. Tags are ifrs-full plus Taiwan's own tifrs
 // extensions; each is mapped to the us-gaap concept the 10-Q filers carry, so
-// the quarters go through the one earnings build. Parsing is pure; the fetcher
-// below needs no key.
+// the quarters go through the one earnings build. Parsing is pure.
+//
+// Each page is 1–2 MB and MOPS can serve it at a few KB/s, far too slow to fetch
+// while a page renders. So the pages are read by scripts/fetch-mops.ts into a
+// committed snapshot (mops-snapshot.json), and at request time only TWSE's
+// OpenAPI is called, which lists every company's latest income statement in one
+// fast JSON response, to add a season filed since the snapshot.
 
 const PAGE = "https://mopsov.twse.com.tw/server-java/t164sb01";
-const TIMEOUT_MS = 30_000;
-// MOPS answers rapid queries with a "too frequent" page instead of the report.
-const PAUSE_MS = 1_500;
+const OPENAPI_INCOME = "https://openapi.twse.com.tw/v1/opendata/t187ap06_L_ci";
+const OPENAPI_TIMEOUT_MS = 15_000;
 
 /** Seasons and the quarter each closes. Taiwanese filers here keep a calendar fiscal year. */
 export const SEASONS = [
@@ -92,29 +96,89 @@ export function parseMops(html: string, meta: { form: string; filed: string; url
   return out;
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 /**
- * Every mapped fact from `years` years of a company's seasons. A season not filed
- * yet comes back as a page with no XBRL and adds nothing. MOPS doesn't print a
- * filing date, so `filed` is the statutory deadline for the season.
+ * The filed seasons whose pages cover the last `years` full years and this one. Every
+ * page also carries the same season a year earlier, so a year whose seasons all
+ * appear as comparatives on the next year's pages is skipped.
  */
-export async function fetchMops(coId: string, years = 4, today = new Date()): Promise<ConceptFact[]> {
+export function mopsSeasons(years: number, today = new Date()): { year: number; season: number }[] {
+  const day = today.toISOString().slice(0, 10);
+  // Filed once its deadline has passed; a page fetched earlier may be empty.
+  const ended = (year: number, s: (typeof SEASONS)[number]) => `${s.season === 4 ? year + 1 : year}-${s.deadline}` < day;
+  const out: { year: number; season: number }[] = [];
   const thisYear = today.getUTCFullYear();
-  const facts: ConceptFact[] = [];
-  for (let year = thisYear - years + 1; year <= thisYear; year++) {
+  for (let year = thisYear; year > thisYear - years - 1; year--) {
     for (const s of SEASONS) {
-      const end = `${year}-${s.end}`;
-      if (end > today.toISOString().slice(0, 10)) continue;
-      const url = mopsPage(coId, year, s.season);
-      const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
-      if (!res.ok) throw new Error(`MOPS returned ${res.status}`);
-      // The page is Big5; only the ASCII tags and numbers are read, so latin1 is enough.
-      const html = new TextDecoder("latin1").decode(await res.arrayBuffer());
-      const filed = `${s.season === 4 ? year + 1 : year}-${s.deadline}`;
-      facts.push(...parseMops(html, { form: `MOPS ${s.name}`, filed, url }));
-      await sleep(PAUSE_MS);
+      if (!ended(year, s)) continue;
+      // Covered by next year's page for the same season.
+      if (year < thisYear && ended(year + 1, s) && out.some((o) => o.year === year + 1 && o.season === s.season)) continue;
+      out.push({ year, season: s.season });
     }
   }
+  return out;
+}
+
+/**
+ * Every mapped fact on the given seasons' pages, a few pages at a time. A season
+ * not filed yet comes back as a page with no XBRL and adds nothing. MOPS doesn't
+ * print a filing date, so `filed` is the statutory deadline for the season.
+ * Slow (minutes): for scripts/fetch-mops.ts, not for rendering.
+ */
+export async function fetchMops(coId: string, seasons: { year: number; season: number }[], atOnce = 4): Promise<ConceptFact[]> {
+  const read = async ({ year, season }: { year: number; season: number }): Promise<ConceptFact[]> => {
+    const s = SEASONS[season - 1];
+    const url = mopsPage(coId, year, season);
+    const res = await fetch(url, { signal: AbortSignal.timeout(15 * 60_000), cache: "no-store" });
+    if (!res.ok) throw new Error(`MOPS returned ${res.status} for ${coId} ${year} Q${season}`);
+    // The page is Big5; only the ASCII tags and numbers are read, so latin1 is enough.
+    const html = new TextDecoder("latin1").decode(await res.arrayBuffer());
+    const filed = `${season === 4 ? year + 1 : year}-${s.deadline}`;
+    return parseMops(html, { form: `MOPS ${s.name}`, filed, url });
+  };
+  const facts: ConceptFact[] = [];
+  for (let i = 0; i < seasons.length; i += atOnce) {
+    for (const batch of await Promise.all(seasons.slice(i, i + atOnce).map(read))) facts.push(...batch);
+  }
   return facts;
+}
+
+/** One company's row in TWSE's OpenAPI income statement listing, as published (Chinese field names). */
+export type OpenApiIncomeRow = Record<string, string>;
+
+// Year-to-date amounts in thousands of NT dollars.
+const OPENAPI_FIELDS: [string, string, boolean?][] = [
+  ["營業收入", "Revenues"],
+  ["營業成本", "CostOfRevenue", true],
+  ["營業毛利（毛損）淨額", "GrossProfit"],
+  ["營業利益（損失）", "OperatingIncomeLoss"],
+  ["淨利（淨損）歸屬於母公司業主", "NetIncomeLoss"],
+];
+
+/** "1151030" (ROC year 115) → "2026-10-30". */
+const rocDate = (d: string) => `${Number(d.slice(0, d.length - 4)) + 1911}-${d.slice(-4, -2)}-${d.slice(-2)}`;
+
+/** The company's latest season from the OpenAPI listing, as year-to-date income facts. */
+export function parseOpenApiIncome(rows: OpenApiIncomeRow[], coId: string): ConceptFact[] {
+  const row = rows.find((r) => r["公司代號"] === coId);
+  const s = row && SEASONS[Number(row["季別"]) - 1];
+  if (!row || !s) return [];
+  const year = Number(row["年度"]) + 1911;
+  const url = mopsPage(coId, year, s.season);
+  const meta = { form: `MOPS ${s.name}`, filed: rocDate(row["出表日期"]), accn: url, url };
+  return OPENAPI_FIELDS.flatMap(([field, concept, cost]) => {
+    const v = Number(row[field]);
+    if (!row[field] || !Number.isFinite(v)) return [];
+    return [{ concept, start: `${year}-01-01`, end: `${year}-${s.end}`, val: (cost ? Math.abs(v) : v) * 1000, ...meta }];
+  });
+}
+
+/** The latest season's income from the OpenAPI; empty when it can't be reached in time. */
+export async function fetchMopsLatest(coId: string): Promise<ConceptFact[]> {
+  try {
+    const res = await fetch(OPENAPI_INCOME, { signal: AbortSignal.timeout(OPENAPI_TIMEOUT_MS), cache: "no-store" });
+    if (!res.ok) return [];
+    return parseOpenApiIncome((await res.json()) as OpenApiIncomeRow[], coId);
+  } catch {
+    return [];
+  }
 }
