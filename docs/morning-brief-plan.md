@@ -96,7 +96,7 @@ Tables: `brief_profiles`, `brief_runs` (one per user per day: script, sources, a
 |---|---|---|
 | B1. Corpus job | This machine, file store | Job builds and stamps a day's corpus; customer facet tags it; runs on a schedule. **Built 2026-11-05:** `src/lib/brief/corpus.ts`, `/api/cron/brief-corpus`, `.github/workflows/brief-corpus.yml`; customers in `CUSTOMERS` in `tagging.ts`; top-customer list from `BRIEF_TOP_CUSTOMERS` or a gitignored file |
 | B2. Ranking | This machine | Hard-coded test profiles get sensible picks per chapter (a fixture eval like `src/lib/qbr/eval.ts`). **Built 2026-11-05:** `src/lib/brief/rank.ts` with test profiles in `profile.ts`; `rank-eval.ts` grades 10 cases on normal, quiet and heavy fixture days (`--live` adds today's corpus) and runs in `pnpm test` |
-| B3. Tiered synthesis | This machine | Story summaries at three tiers with sources; an eval checks every figure is in its source and no Avnet internal figures appear |
+| B3. Tiered synthesis | This machine | Story summaries at three tiers with sources; an eval checks every figure is in its source and no Avnet internal figures appear. **Built 2026-11-05, not yet run live:** `src/lib/brief/synthesis.ts`; `synthesis-eval.ts` grades recorded answers with planted mistakes in `pnpm test`, and `--live` runs real calls and measures cost |
 | B4. Google TTS | This machine | Clips per story and voice; a stitched 10-minute brief sounds continuous enough, or whole-brief audio is chosen |
 | B5. Profiles in Oracle | Avnet machine | Profile, runs and feedback tables with row-level security; a user cannot read another's rows (test it) |
 | B6. Onboarding | Avnet machine | Suppliers, customers, technologies, tier, voice (live samples) and length, from Start Here and settings |
@@ -114,6 +114,8 @@ Tables: `brief_profiles`, `brief_runs` (one per user per day: script, sources, a
 Assumptions: 22 briefing days a month, 9,000 characters per brief, about 40 stories a day at three tiers and four voices.
 
 **Claude synthesis.** QBR talking points cost about 1.3 cents each today. Shared story summaries keep the per-user cost to the intro and transitions. Measure it in B3 and B7 before quoting a figure for 500 users.
+
+B3 estimate (2026-11-05, before any live call): one Claude Opus 5.5 call per story at low effort returns all three tiers plus a one-line Quick version, about 600 tokens in and 530 out, so **about 1.3 cents a story**. At 40 stories a day and 22 briefing days that is **about $11 a month for any number of users**. Filings use a template and cost nothing. Running the shared synthesis through the Message Batches API between the corpus job and 6:00 am would halve that. Confirm with `npx tsx src/lib/brief/synthesis-eval.ts --live` (six stories, about 10 cents) once spending is approved.
 
 **X (roadmap, FY27 Q4).** About $200 a month at the planning ceiling: 30,000 post reads at $0.005 and 5,000 user reads at $0.010, pay-per-use, with a spend cap of $500 or lower in the X Developer Console. Reads only, one shared pull a day, never per user. `news.new` events stay behind a flag until access is confirmed.
 

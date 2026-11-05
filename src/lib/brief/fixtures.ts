@@ -53,15 +53,15 @@ const NORMAL: Spec[] = [
   { id: "dram-spot-prices", title: "DRAM spot prices climb for a sixth week", hours: 14, relevance: "high", outlet: "TrendForce" },
   { id: "micron-old", title: "Micron opens a memory design center in Hyderabad", hours: 130, relevance: "low" },
   // Power and analog, automotive
-  { id: "ti-sherman-fab", title: "Texas Instruments starts production at its Sherman 300mm analog fab", hours: 6, relevance: "high" },
+  { id: "ti-sherman-fab", title: "Texas Instruments starts production at its Sherman 300mm analog fab", summary: "The first Sherman fab will make analog chips on 300mm wafers, which TI says cut the cost per chip by about 40% against 200mm.", hours: 6, relevance: "high" },
   { id: "adi-guidance", title: "Analog Devices raises guidance on industrial and automotive recovery", hours: 18, relevance: "high", outlet: "EPS News" },
-  { id: "onsemi-sic-tesla", title: "onsemi signs SiC power module deal with Tesla", hours: 11, relevance: "high", outlet: "Power Electronics News" },
+  { id: "onsemi-sic-tesla", title: "onsemi signs SiC power module deal with Tesla", summary: "The multi-year agreement covers silicon carbide MOSFET modules for traction inverters, starting in the second half of 2027.", hours: 11, relevance: "high", outlet: "Power Electronics News" },
   { id: "infineon-gan", title: "Infineon launches 650 V GaN transistors for chargers", hours: 30, relevance: "medium", outlet: "Power Electronics News" },
   { id: "gm-ev-delay", title: "General Motors delays two EV programs to 2028", hours: 16, relevance: "high", outlet: "electrek.co", topCustomers: ["General Motors"] },
   { id: "ford-ev-battery", title: "Ford shifts battery sourcing for its electric pickups", hours: 22, relevance: "medium", outlet: "reuters.com" },
   { id: "lidar-sensor", title: "New automotive lidar sensors cut cost per unit", hours: 26, relevance: "medium" },
   // Embedded and industrial
-  { id: "microchip-mcu-lead", title: "Microchip says MCU lead times are back to normal", hours: 8, relevance: "high", outlet: "EPS News" },
+  { id: "microchip-mcu-lead", title: "Microchip says MCU lead times are back to normal", summary: "Microchip said lead times on most microcontrollers are now 8 to 12 weeks and its book-to-bill ratio rose to 1.05.", hours: 8, relevance: "high", outlet: "EPS News" },
   { id: "nxp-risc-v", title: "NXP adds RISC-V cores to its embedded processor line", hours: 19, relevance: "medium" },
   { id: "st-mcu-price", title: "STMicroelectronics raises prices on some microcontrollers", hours: 12, relevance: "high", outlet: "Electronics Weekly" },
   { id: "rockwell-orders", title: "Rockwell Automation sees factory automation orders pick up", hours: 15, relevance: "medium", outlet: "reuters.com" },
