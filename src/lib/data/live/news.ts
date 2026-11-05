@@ -42,6 +42,9 @@ const RSS_SOURCES: RssSource[] = [
   { outlet: "All About Circuits", url: "https://www.allaboutcircuits.com/rss/news/", screen: true },
 ];
 
+/** The trade-press outlets, which the morning brief ranks ahead of GDELT's long tail. */
+export const TRADE_PRESS = new Set(RSS_SOURCES.map((s) => s.outlet));
+
 const GDELT_URL =
   "https://api.gdeltproject.org/api/v2/doc/doc?" +
   new URLSearchParams({

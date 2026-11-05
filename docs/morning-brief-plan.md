@@ -66,6 +66,8 @@ At about 150 spoken words a minute, 10 minutes is about 1,500 words or 9,000 cha
 
 Score each item for a user from: facet matches against the profile (supplier, customer, technology, region), the existing High / Useful / Low relevance, freshness and source quality (trade press ahead of GDELT, as today). Pick per chapter until the length budget is spent.
 
+As built (`src/lib/brief/rank.ts`): each chapter has a share of about 10 minutes (1, 3, 2.5, 2.5 and 1.5 minutes). Stories below a floor score are never used as padding, so a quiet day gives a short brief. On a heavy day the strongest leftovers may run a chapter to twice its share, up to the 15-minute cap, and the rest go to the written brief. A story already in an earlier brief is held back. The top three must match the user's own suppliers, customers or technologies; a top customer the user only follows goes in Your customers. Quick is the top three plus one line per story, up to 5 minutes. Ranking leans on Claude's relevance ratings: on a corpus built without them, general items with a keyword match get in, so the corpus job should run with Claude on.
+
 ### Synthesis rules
 
 - Tiers as the handoff describes: **beginner** (plain language, acronyms defined), **intermediate** (the default analyst level), **advanced** (lead times, book-to-bill, packaging, nodes, competitive moves).
@@ -93,7 +95,7 @@ Tables: `brief_profiles`, `brief_runs` (one per user per day: script, sources, a
 | Phase | Where | Done when |
 |---|---|---|
 | B1. Corpus job | This machine, file store | Job builds and stamps a day's corpus; customer facet tags it; runs on a schedule. **Built 2026-11-05:** `src/lib/brief/corpus.ts`, `/api/cron/brief-corpus`, `.github/workflows/brief-corpus.yml`; customers in `CUSTOMERS` in `tagging.ts`; top-customer list from `BRIEF_TOP_CUSTOMERS` or a gitignored file |
-| B2. Ranking | This machine | Hard-coded test profiles get sensible picks per chapter (a fixture eval like `src/lib/qbr/eval.ts`) |
+| B2. Ranking | This machine | Hard-coded test profiles get sensible picks per chapter (a fixture eval like `src/lib/qbr/eval.ts`). **Built 2026-11-05:** `src/lib/brief/rank.ts` with test profiles in `profile.ts`; `rank-eval.ts` grades 10 cases on normal, quiet and heavy fixture days (`--live` adds today's corpus) and runs in `pnpm test` |
 | B3. Tiered synthesis | This machine | Story summaries at three tiers with sources; an eval checks every figure is in its source and no Avnet internal figures appear |
 | B4. Google TTS | This machine | Clips per story and voice; a stitched 10-minute brief sounds continuous enough, or whole-brief audio is chosen |
 | B5. Profiles in Oracle | Avnet machine | Profile, runs and feedback tables with row-level security; a user cannot read another's rows (test it) |
