@@ -3,6 +3,7 @@
 // and hookup markers come from the answerers that actually ran, never from
 // Claude's text, so every figure keeps the provenance its page gives it.
 import { plainDashes } from "@/lib/ai/dashes";
+import { visible } from "@/lib/visibility";
 import { suggest } from "./route";
 import type { Answer } from "./sentences";
 
@@ -34,9 +35,11 @@ export function compose(question: string, text: string, parts: Answer[]): Answer
       parts.flatMap((p) => p.sources),
       (s) => `${s.status} ${s.label}`,
     ),
-    links: unique(
-      parts.flatMap((p) => p.links),
-      (l) => l.href,
+    links: visible(
+      unique(
+        parts.flatMap((p) => p.links),
+        (l) => l.href,
+      ),
     ),
     hookups: hookups.length ? hookups : undefined,
     parts,

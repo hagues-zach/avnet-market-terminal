@@ -4,13 +4,13 @@ import { ChevronRight } from "lucide-react";
 import { getCycle } from "@/lib/data/live/cycle";
 import { getLiveNews } from "@/lib/data/live/news";
 import { getEarningsCalendar, TIMING_LABELS } from "@/lib/data/live/earnings-calendar";
-import { COMPANIES } from "@/lib/data/live/earnings-model";
+import { US_FILERS } from "@/lib/data/live/earnings-model";
 import { getMoves } from "@/lib/line-cards/moves";
 import { getNewsAngles } from "@/lib/ai/news-angles";
 import { getAvnet } from "@/lib/avnet";
 import { shellSpecs } from "@/lib/shells/specs";
 import { buildFeed } from "@/lib/start/feed";
-import { isHidden } from "@/lib/visibility";
+import { isHidden, visible } from "@/lib/visibility";
 import type { Role } from "@/lib/start/roles";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { HighlightBar } from "@/components/ui/highlight-bar";
@@ -37,7 +37,7 @@ export async function CycleBanner() {
     if (!cycle.phase) return null;
     return (
       <HighlightBar className="max-w-5xl">
-        The semiconductor cycle is in {cycle.phase.toLowerCase()} ({fullQuarter(cycle.latest)}), from {COMPANIES.length} companies&apos;
+        The semiconductor cycle is in {cycle.phase.toLowerCase()} ({fullQuarter(cycle.latest)}), from {US_FILERS.length} companies&apos;
         SEC filings.
       </HighlightBar>
     );
@@ -73,7 +73,7 @@ export async function GrowthCard() {
       subtitle="Year on year, combined across semiconductor and component makers"
       actions={<DataChip status="live" label="SEC EDGAR" />}
       footer={
-        <SourceLine source={`SEC filings, ${COMPANIES.length} companies`} asOf={fullQuarter(latest)}>
+        <SourceLine source={`SEC filings, ${US_FILERS.length} companies`} asOf={fullQuarter(latest)}>
           <Link href="/cycle" className="ml-auto text-ink underline-offset-2 hover:underline">
             Market Cycle
           </Link>
@@ -253,7 +253,7 @@ export function NextSteps({ role }: { role: Role }) {
   return (
     <Panel title="Your next steps">
       <ol className="divide-y divide-hairline">
-        {role.steps.map((s, i) => (
+        {visible(role.steps).map((s, i) => (
           <li key={s.href}>
             <Link href={s.href} className="group flex items-center gap-3 py-2.5 first:pt-0">
               <span className="w-4 shrink-0 font-display text-section-title tabular-nums text-ink-muted">{i + 1}</span>

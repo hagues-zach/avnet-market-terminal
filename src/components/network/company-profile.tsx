@@ -10,6 +10,7 @@ import {
   comparability,
   comparableValue,
   currencyName,
+  isUsFiler,
   roleOf,
   sourceOf,
   type Company,
@@ -24,7 +25,7 @@ import { isHidden } from "@/lib/visibility";
 import { companyColor } from "@/lib/colors";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { KpiTile } from "@/components/ui/kpi-tile";
-import { Chip, DataChip } from "@/components/ui/chip";
+import { BetaChip, Chip, DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { EmptyState, LoadingBlock } from "@/components/ui/states";
 import { RevenueSwitch } from "./revenue-switch";
@@ -119,6 +120,7 @@ export async function ProfileChips({ company }: { company: Company }) {
   }
   return (
     <>
+      {!isUsFiler(company) && <BetaChip />}
       <Chip>{sourceOf(company).chip}</Chip>
       {onAvnet && (
         <Chip>

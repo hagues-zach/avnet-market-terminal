@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { getEarningsCalendar, type ReleaseEvent, type Timing } from "@/lib/data/live/earnings-calendar";
 import { getPeerRows } from "@/lib/data/live/earnings";
-import { COHORT_LABELS, type Cohort } from "@/lib/data/live/earnings-model";
+import { COHORT_LABELS, isUsFiler, type Cohort } from "@/lib/data/live/earnings-model";
 import { justReported, season } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel } from "@/components/ui/panel";
@@ -67,7 +67,11 @@ function SoonRows({ title, events, group, current }: { title: string; events: Re
 
 /** Server component: every company's filing index and latest quarter. */
 export async function SeasonOverview({ company, group }: { company: string; group: Cohort | "all" }) {
-  const [{ events, failed, today }, rows] = await Promise.all([getEarningsCalendar(), getPeerRows()]);
+  const [calendar, peers] = await Promise.all([getEarningsCalendar(), getPeerRows()]);
+  // US filers only for the MVP (docs/mvp-plan.md).
+  const { failed, today } = calendar;
+  const events = calendar.events.filter((e) => isUsFiler(e.company));
+  const rows = peers.filter((r) => isUsFiler(r.company));
   const s = season(rows, events, today);
   const recent = justReported(events, rows, s.quarter);
   const next = (label: string, e: ReleaseEvent | undefined) =>

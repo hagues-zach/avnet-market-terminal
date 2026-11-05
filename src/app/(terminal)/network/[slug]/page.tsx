@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { BookOpenCheck } from "lucide-react";
 import Link from "next/link";
-import { COMPANIES, ROLE_SINGULAR, roleOf, sourceOf } from "@/lib/data/live/earnings-model";
+import { COMPANIES, ROLE_SINGULAR, isUsFiler, roleOf, sourceOf } from "@/lib/data/live/earnings-model";
 import { PRIVATE_COMPANIES, type PrivateCompany } from "@/lib/data/live/private-companies";
 import { isHidden } from "@/lib/visibility";
 import { PageBody } from "@/components/layout/page-body";
@@ -49,9 +49,9 @@ export default async function CompanyProfilePage({ params }: { params: Promise<{
         breadcrumb={[{ label: "Companies", href: role === "avnet" ? "/network" : `/network?role=${role}` }, { label: company.name }]}
         actions={
           <>
-            <ButtonLink href={earningsHref(company.slug, "all")}>Full earnings view</ButtonLink>
+            {isUsFiler(company) && <ButtonLink href={earningsHref(company.slug, "all")}>Full earnings view</ButtonLink>}
             {role !== "avnet" && <ButtonLink href={`/tools/deck?company=${company.slug}&from=profile`}>Build a pitch</ButtonLink>}
-            {role !== "avnet" && (
+            {role !== "avnet" && !isHidden("/tools/qbr") && (
               <ButtonLink href={`/tools/qbr?company=${company.slug}`} variant="primary">
                 <BookOpenCheck className="h-4 w-4" strokeWidth={1.5} aria-hidden />
                 Add to QBR brief

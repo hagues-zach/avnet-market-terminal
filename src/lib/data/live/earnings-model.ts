@@ -187,6 +187,12 @@ export const COMPANIES: Company[] = [
   { slug: "caterpillar", name: "Caterpillar", cik: 18230, cohort: "industrial" },
 ];
 
+/**
+ * The companies earnings reporting covers in the MVP (docs/mvp-plan.md): the US 10-Q/10-K filers.
+ * The rest still open in Company Profiles with a Beta label; Europe and Asia are on the roadmap.
+ */
+export const US_FILERS: Company[] = COMPANIES.filter(isUsFiler);
+
 /** How a company relates to Avnet. Drives the Network pillar's directory and profiles. */
 export type Role = "avnet" | "supplier" | "competitor" | "customer" | "ecosystem";
 

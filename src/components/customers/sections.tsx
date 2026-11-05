@@ -10,6 +10,7 @@ import { Delta } from "@/components/ui/delta";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
+import { isHidden } from "@/lib/visibility";
 
 // Customers & End Markets sections. Avnet's billings, accounts and pipeline are
 // mock (the shared model); customer groups and public companies are live from
@@ -399,6 +400,7 @@ export async function PublicCustomers() {
   const [all, cycle] = await Promise.all([getAllEarnings().catch(() => []), getCycle().catch(() => null)]);
   const bySlug = new Map(all.map((e) => [e.company.slug, e]));
   const capex = new Map((cycle?.hyperscalers ?? []).map((h) => [h.slug, h]));
+  const withQbr = !isHidden("/tools/qbr");
   const groups = PUBLIC_GROUPS.map((cohort) => ({
     cohort,
     rows: COMPANIES.filter((c) => c.cohort === cohort)
@@ -459,15 +461,17 @@ export async function PublicCustomers() {
                 <th scope="col" className={cn(TH, "text-right")}>
                   Capex
                 </th>
-                <th scope="col" className={cn(TH, "text-right")}>
-                  <span className="sr-only">Actions</span>
-                </th>
+                {withQbr && (
+                  <th scope="col" className={cn(TH, "text-right")}>
+                    <span className="sr-only">Actions</span>
+                  </th>
+                )}
               </tr>
             </thead>
             {groups.map((g) => (
               <tbody key={g.cohort}>
                 <tr className="border-b border-hairline bg-surface-sunken">
-                  <th scope="rowgroup" colSpan={7} className="px-3 py-1 text-left font-display text-label font-normal uppercase text-ink">
+                  <th scope="rowgroup" colSpan={withQbr ? 7 : 6} className="px-3 py-1 text-left font-display text-label font-normal uppercase text-ink">
                     {COHORT_LABELS[g.cohort]}
                   </th>
                 </tr>
@@ -502,11 +506,13 @@ export async function PublicCustomers() {
                           <span className="text-ink-muted">n/a</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-1.5 text-right">
-                        <Link href={`/tools/qbr?company=${company.slug}&meeting=customer`} className={link}>
-                          Prepare a QBR<span className="sr-only"> for {company.name}</span>
-                        </Link>
-                      </td>
+                      {withQbr && (
+                        <td className="whitespace-nowrap px-3 py-1.5 text-right">
+                          <Link href={`/tools/qbr?company=${company.slug}&meeting=customer`} className={link}>
+                            Prepare a QBR<span className="sr-only"> for {company.name}</span>
+                          </Link>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

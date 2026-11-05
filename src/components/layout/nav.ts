@@ -64,6 +64,7 @@ const ALL_NAV: NavItem[] = [
 
   { label: "Market Overview", tab: "Overview", href: "/overview", hub: "market", mock: true },
   { label: "Market Cycle", tab: "Cycle", href: "/cycle", hub: "market" },
+  { label: "TAM / SAM / SOM", tab: "TAM / SAM / SOM", href: "/tam", hub: "market", mock: true },
   { label: "Economic Signals", tab: "Economic signals", href: "/signals", hub: "market" },
   { label: "How the cycle engine works", tab: "Cycle engine", href: "/signals/engine", hub: "market" },
   { label: "Learning Center", tab: "Learning Center", href: "/learn", hub: "market" },
@@ -75,7 +76,6 @@ const ALL_NAV: NavItem[] = [
 
   { label: "Performance Tracker", tab: "Performance", href: "/performance", hub: "performance", mock: true },
   { label: "Market Share", tab: "Market share", href: "/market-share", hub: "performance", mock: true },
-  { label: "TAM / SAM / SOM", tab: "TAM / SAM / SOM", href: "/tam", hub: "performance", mock: true },
   { label: "Supply Chain", tab: "Supply chain", href: "/supply-chain", hub: "performance", mock: true },
   { label: "Design Pipeline", tab: "Design pipeline", href: "/design-pipeline", hub: "performance", mock: true },
   { label: "Customers & End Markets", tab: "Customers", href: "/customers", hub: "performance", mock: true },

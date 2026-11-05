@@ -10,7 +10,7 @@ import { getCompanyNews } from "@/lib/data/live/company-news";
 import { getCycle } from "@/lib/data/live/cycle";
 import { getEarningsCalendar, getNextRelease } from "@/lib/data/live/earnings-calendar";
 import { getCompanyEarnings, getPeerRows } from "@/lib/data/live/earnings";
-import type { Company } from "@/lib/data/live/earnings-model";
+import { isUsFiler, type Company } from "@/lib/data/live/earnings-model";
 import { getLiveNews } from "@/lib/data/live/news";
 import type { LiveArticle } from "@/lib/data/live/shared";
 import { getSignals, yearChange } from "@/lib/data/live/signals";
@@ -207,8 +207,10 @@ export async function supply(question: string): Promise<Answer> {
 }
 
 export async function earnings(question: string): Promise<Answer> {
-  const [rows, cal] = await Promise.all([getPeerRows(), getEarningsCalendar()]);
-  const s = season(rows, cal.events, cal.today);
+  const [peers, cal] = await Promise.all([getPeerRows(), getEarningsCalendar()]);
+  // US filers only for the MVP, as on Quarterly Earnings.
+  const rows = peers.filter((r) => isUsFiler(r.company));
+  const s = season(rows, cal.events.filter((e) => isUsFiler(e.company)), cal.today);
   const upcoming = [...s.thisWeek, ...s.nextWeek].filter((e) => e.status === "estimated").slice(0, 5);
   return {
     intent: "earnings",
