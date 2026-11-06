@@ -20,6 +20,7 @@ Last updated: 2026-11-05
 4. **Google Cloud Text-to-Speech** at launch for cost. ElevenLabs is the later premium option.
 5. **Profiles, preferences and brief history live in Oracle**, with row-level security so a user reads only their own. The shared corpus is readable by every signed-in user.
 6. **Customers are a watchlist plus discovery.** A user follows Avnet's top Americas customers and the customers they serve. The brief also surfaces customers they don't serve yet when the news is relevant to their suppliers or technologies ("Worth knowing").
+7. **Stitched audio for the pilot (2026-11-05).** The owner listened to the fixture brief both ways and judged the stitched version continuous enough, so briefs are built from shared clips, not whole-brief audio. Only tested on a 1.5-minute brief in one voice (Neural2-F); recheck on a full 10-minute brief and a Chirp 3 HD voice during B6, before voices are offered at onboarding.
 
 ## Length: recommendation
 
@@ -97,7 +98,7 @@ Tables: `brief_profiles`, `brief_runs` (one per user per day: script, sources, a
 | B1. Corpus job | This machine, file store | Job builds and stamps a day's corpus; customer facet tags it; runs on a schedule. **Built 2026-11-05:** `src/lib/brief/corpus.ts`, `/api/cron/brief-corpus`, `.github/workflows/brief-corpus.yml`; customers in `CUSTOMERS` in `tagging.ts`; top-customer list from `BRIEF_TOP_CUSTOMERS` or a gitignored file |
 | B2. Ranking | This machine | Hard-coded test profiles get sensible picks per chapter (a fixture eval like `src/lib/qbr/eval.ts`). **Built 2026-11-05:** `src/lib/brief/rank.ts` with test profiles in `profile.ts`; `rank-eval.ts` grades 10 cases on normal, quiet and heavy fixture days (`--live` adds today's corpus) and runs in `pnpm test` |
 | B3. Tiered synthesis | This machine | Story summaries at three tiers with sources; an eval checks every figure is in its source and no Avnet internal figures appear. **Built 2026-11-05, not yet run live:** `src/lib/brief/synthesis.ts`; `synthesis-eval.ts` grades recorded answers with planted mistakes in `pnpm test`, and `--live` runs real calls and measures cost |
-| B4. Google TTS | This machine | Clips per story and voice; a stitched 10-minute brief sounds continuous enough, or whole-brief audio is chosen. **Built 2026-11-05, listening test pending:** `script.ts`, `audio.ts`, `tts.ts`, tested against a fake voice; `scripts/brief-audio.ts` renders a brief both ways for the listening test |
+| B4. Google TTS | This machine | Clips per story and voice; a stitched 10-minute brief sounds continuous enough, or whole-brief audio is chosen. **Built 2026-11-05; stitched audio chosen after the listening test:** `script.ts`, `audio.ts`, `tts.ts`, tested against a fake voice; `scripts/brief-audio.ts` renders a brief both ways for the listening test |
 | B5. Profiles in Oracle | Avnet machine | Profile, runs and feedback tables with row-level security; a user cannot read another's rows (test it) |
 | B6. Onboarding | Avnet machine | Suppliers, customers, technologies, tier, voice (live samples) and length, from Start Here and settings |
 | B7. Pilot | Avnet machine | Six pilot users get a brief by 6:00 am Eastern for two weeks in January; feedback captured on quality, length, latency and onboarding |
