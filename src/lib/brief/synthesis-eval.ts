@@ -213,6 +213,17 @@ export function grade(item: CorpusItem, s: StorySummary | null, usage: Usage, in
   return fails;
 }
 
+/** Summaries for the fixture stories that have a recorded answer, and every filing: what a listening test can use for free. */
+export function fixtureSummaries(): Record<string, StorySummary> {
+  const out: Record<string, StorySummary> = {};
+  for (const item of FIXTURES.normal.items) {
+    const rec = RECORDED.find((r) => r.id === item.id);
+    const s = item.kind === "filing" ? filingSummary(item, "2026-11-05") : rec ? toSummary(item, rec.answer, "2026-11-05", []) : null;
+    if (s) out[item.id] = s;
+  }
+  return out;
+}
+
 const itemOf = (id: string) => {
   const i = FIXTURES.normal.items.find((x) => x.id === id);
   if (!i) throw new Error(`No fixture story ${id}`);

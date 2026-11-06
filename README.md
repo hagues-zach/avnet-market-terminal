@@ -94,6 +94,7 @@ All are listed with what they do and their defaults in [.env.example](.env.examp
 | --- | --- |
 | `SITE_PASSWORD` | Password gate for the whole site; open when unset |
 | `CRON_SECRET` | Secret for scheduled jobs; `/api/cron` refuses every call when unset |
+| `GOOGLE_TTS_API_KEY` | Google Cloud Text-to-Speech key for the morning brief's audio |
 | `BRIEF_TOP_CUSTOMERS` | Avnet's top customers for the morning brief; internal, never committed |
 | `SEC_USER_AGENT` | Contact sent to sec.gov; needed for Revenue mix and commentary |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` | Claude credential; AI features are off without one |
