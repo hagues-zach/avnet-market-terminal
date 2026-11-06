@@ -35,3 +35,6 @@ next-env.d.ts
 
 # Licensed data for the cycle engine (WSTS); only derived results are committed.
 data/cycle/licensed/
+
+# Internal lists kept out of the public repo (top customers for the morning brief).
+/data/private/

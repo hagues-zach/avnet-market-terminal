@@ -42,6 +42,7 @@ const a = (title: string, publishedAt: string, kind: "news" | "filing" = "news")
   publishedAt,
   segments: [],
   suppliers: [],
+  customers: [],
   endMarkets: [],
   regions: [],
 });

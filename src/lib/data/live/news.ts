@@ -42,6 +42,9 @@ const RSS_SOURCES: RssSource[] = [
   { outlet: "All About Circuits", url: "https://www.allaboutcircuits.com/rss/news/", screen: true },
 ];
 
+/** The trade-press outlets, which the morning brief ranks ahead of GDELT's long tail. */
+export const TRADE_PRESS = new Set(RSS_SOURCES.map((s) => s.outlet));
+
 const GDELT_URL =
   "https://api.gdeltproject.org/api/v2/doc/doc?" +
   new URLSearchParams({
@@ -117,8 +120,9 @@ async function fromGdelt(): Promise<LiveArticle[]> {
   return out.slice(0, MAX_PER_SOURCE);
 }
 
-const titleKey = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-const urlKey = (url: string) => url.replace(/^https?:\/\/(www\.)?/i, "").replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
+/** Dedup keys, shared with the morning brief's corpus. */
+export const titleKey = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+export const urlKey = (url: string) => url.replace(/^https?:\/\/(www\.)?/i, "").replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
 
 export async function getLiveNews(): Promise<LiveNews> {
   const jobs: { outlet: string; run: () => Promise<LiveArticle[]> }[] = [

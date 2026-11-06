@@ -20,6 +20,7 @@ Last updated: 2026-11-05
 4. **Google Cloud Text-to-Speech** at launch for cost. ElevenLabs is the later premium option.
 5. **Profiles, preferences and brief history live in Oracle**, with row-level security so a user reads only their own. The shared corpus is readable by every signed-in user.
 6. **Customers are a watchlist plus discovery.** A user follows Avnet's top Americas customers and the customers they serve. The brief also surfaces customers they don't serve yet when the news is relevant to their suppliers or technologies ("Worth knowing").
+7. **Stitched audio for the pilot (2026-11-05).** The owner listened to the fixture brief both ways and judged the stitched version continuous enough, so briefs are built from shared clips, not whole-brief audio. Only tested on a 1.5-minute brief in one voice (Neural2-F); recheck on a full 10-minute brief and a Chirp 3 HD voice during B6, before voices are offered at onboarding.
 
 ## Length: recommendation
 
@@ -66,6 +67,8 @@ At about 150 spoken words a minute, 10 minutes is about 1,500 words or 9,000 cha
 
 Score each item for a user from: facet matches against the profile (supplier, customer, technology, region), the existing High / Useful / Low relevance, freshness and source quality (trade press ahead of GDELT, as today). Pick per chapter until the length budget is spent.
 
+As built (`src/lib/brief/rank.ts`): each chapter has a share of about 10 minutes (1, 3, 2.5, 2.5 and 1.5 minutes). Stories below a floor score are never used as padding, so a quiet day gives a short brief. On a heavy day the strongest leftovers may run a chapter to twice its share, up to the 15-minute cap, and the rest go to the written brief. A story already in an earlier brief is held back. The top three must match the user's own suppliers, customers or technologies; a top customer the user only follows goes in Your customers. Quick is the top three plus one line per story, up to 5 minutes. Ranking leans on Claude's relevance ratings: on a corpus built without them, general items with a keyword match get in, so the corpus job should run with Claude on.
+
 ### Synthesis rules
 
 - Tiers as the handoff describes: **beginner** (plain language, acronyms defined), **intermediate** (the default analyst level), **advanced** (lead times, book-to-bill, packaging, nodes, competitive moves).
@@ -92,15 +95,17 @@ Tables: `brief_profiles`, `brief_runs` (one per user per day: script, sources, a
 
 | Phase | Where | Done when |
 |---|---|---|
-| B1. Corpus job | This machine, file store | Job builds and stamps a day's corpus; customer facet tags it; runs on a schedule |
-| B2. Ranking | This machine | Hard-coded test profiles get sensible picks per chapter (a fixture eval like `src/lib/qbr/eval.ts`) |
-| B3. Tiered synthesis | This machine | Story summaries at three tiers with sources; an eval checks every figure is in its source and no Avnet internal figures appear |
-| B4. Google TTS | This machine | Clips per story and voice; a stitched 10-minute brief sounds continuous enough, or whole-brief audio is chosen |
+| B1. Corpus job | This machine, file store | Job builds and stamps a day's corpus; customer facet tags it; runs on a schedule. **Built 2026-11-05:** `src/lib/brief/corpus.ts`, `/api/cron/brief-corpus`, `.github/workflows/brief-corpus.yml`; customers in `CUSTOMERS` in `tagging.ts`; top-customer list from `BRIEF_TOP_CUSTOMERS` or a gitignored file |
+| B2. Ranking | This machine | Hard-coded test profiles get sensible picks per chapter (a fixture eval like `src/lib/qbr/eval.ts`). **Built 2026-11-05:** `src/lib/brief/rank.ts` with test profiles in `profile.ts`; `rank-eval.ts` grades 10 cases on normal, quiet and heavy fixture days (`--live` adds today's corpus) and runs in `pnpm test` |
+| B3. Tiered synthesis | This machine | Story summaries at three tiers with sources; an eval checks every figure is in its source and no Avnet internal figures appear. **Built 2026-11-05, not yet run live:** `src/lib/brief/synthesis.ts`; `synthesis-eval.ts` grades recorded answers with planted mistakes in `pnpm test`, and `--live` runs real calls and measures cost |
+| B4. Google TTS | This machine | Clips per story and voice; a stitched 10-minute brief sounds continuous enough, or whole-brief audio is chosen. **Built 2026-11-05; stitched audio chosen after the listening test:** `script.ts`, `audio.ts`, `tts.ts`, tested against a fake voice; `scripts/brief-audio.ts` renders a brief both ways for the listening test |
 | B5. Profiles in Oracle | Avnet machine | Profile, runs and feedback tables with row-level security; a user cannot read another's rows (test it) |
 | B6. Onboarding | Avnet machine | Suppliers, customers, technologies, tier, voice (live samples) and length, from Start Here and settings |
 | B7. Pilot | Avnet machine | Six pilot users get a brief by 6:00 am Eastern for two weeks in January; feedback captured on quality, length, latency and onboarding |
 
 ## Costs (planning estimates; confirm live rates)
+
+**As built (B4).** Story summaries, chapter openings and the sign-off are shared clips, one per voice and text, kept so no user pays for them twice. A brief's only personal audio is its opening line (about 140 characters: the day and the chapters ahead). Clips are 24 kHz LINEAR16; stitching levels each clip to the same loudness, fades the edges so joins don't click, and puts fixed pauses between stories (0.65 s) and before chapters (0.9 s). Google ends each clip with 0.2 to 0.7 seconds of silence, which made gaps uneven, so clip edges are trimmed to 20 ms and 80 ms first; measured after that on the fixture brief, the pauses between stories in the stitched version (about 0.73 s) match the pauses Google itself leaves between paragraphs in whole-brief audio (0.71 to 0.75 s). The 15-minute cap, or 5 for Quick, is enforced on the real audio length by dropping the last stories and rewriting the opening to match. Whole-brief audio, the fallback, voices each chapter in one request (Google takes at most 5,000 bytes a request, so a 9,000-character brief is several requests either way) and costs every character per user.
 
 **Google Cloud Text-to-Speech** is billed per character. Planning rates: about $16 per million characters for Neural2 voices and about $30 per million for Chirp 3 HD voices, with a monthly free allowance. Check the Google Cloud pricing page before budgeting.
 
@@ -112,6 +117,8 @@ Tables: `brief_profiles`, `brief_runs` (one per user per day: script, sources, a
 Assumptions: 22 briefing days a month, 9,000 characters per brief, about 40 stories a day at three tiers and four voices.
 
 **Claude synthesis.** QBR talking points cost about 1.3 cents each today. Shared story summaries keep the per-user cost to the intro and transitions. Measure it in B3 and B7 before quoting a figure for 500 users.
+
+B3 estimate (2026-11-05, before any live call): one Claude Opus 5.5 call per story at low effort returns all three tiers plus a one-line Quick version, about 600 tokens in and 530 out, so **about 1.3 cents a story**. At 40 stories a day and 22 briefing days that is **about $11 a month for any number of users**. Filings use a template and cost nothing. Running the shared synthesis through the Message Batches API between the corpus job and 6:00 am would halve that. Confirm with `npx tsx src/lib/brief/synthesis-eval.ts --live` (six stories, about 10 cents) once spending is approved.
 
 **X (roadmap, FY27 Q4).** About $200 a month at the planning ceiling: 30,000 post reads at $0.005 and 5,000 user reads at $0.010, pay-per-use, with a spend cap of $500 or lower in the X Developer Console. Reads only, one shared pull a day, never per user. `news.new` events stay behind a flag until access is confirmed.
 

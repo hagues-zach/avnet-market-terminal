@@ -1,0 +1,30 @@
+# Builds the morning brief's shared corpus each weekday before the 6:00 am Eastern
+# brief. 07:00 UTC is 02:00 Eastern in winter and 03:00 in summer. The steps live
+# in scripts/brief-corpus.sh so any other scheduler can run the same thing.
+# Skipped until the SITE_URL repository variable is set; also needs the CRON_SECRET
+# secret, matching the value on the site. See "Morning brief corpus" in the README.
+name: brief-corpus
+
+on:
+  schedule:
+    - cron: "0 7 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brief-corpus
+
+jobs:
+  corpus:
+    name: Build the day's corpus
+    if: ${{ vars.SITE_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/brief-corpus.sh
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
