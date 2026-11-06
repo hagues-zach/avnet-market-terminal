@@ -2,7 +2,7 @@
 // stitching, chapter marks, the 15- and 5-minute limits, shared clips and the
 // Google request. Nothing calls Google. Run with: npx tsx src/lib/brief/audio.test.ts
 import assert from "node:assert/strict";
-import { level, parseWav, rms, seconds, stitch, toWav, trimScript, type Pcm } from "./audio";
+import { level, parseWav, trimSilence, rms, seconds, stitch, toWav, trimScript, type Pcm } from "./audio";
 import { FIXTURES } from "./fixtures";
 import { TEST_PROFILES, type BriefProfile } from "./profile";
 import { CAP_SECONDS, planBrief, QUICK_SECONDS } from "./rank";
@@ -65,6 +65,13 @@ async function main() {
   assert.ok(Math.abs(rms(a.samples) - rms(b.samples)) / rms(a.samples) < 0.02, "same loudness after leveling");
   assert.equal(a.samples[0], 0);
   assert.equal(a.samples[a.samples.length - 1], 0);
+
+  // Edge silence is cut to a fixed amount, so the set pauses are the only gaps.
+  const padded: Pcm = { sampleRate: SAMPLE_RATE, samples: new Int16Array(SAMPLE_RATE) };
+  padded.samples.fill(8000, 6000, 12000); // 0.25 s silence, 0.25 s sound, 0.5 s silence
+  const cut = trimSilence(padded);
+  assert.equal(cut.samples.length, 6000 + Math.round(0.02 * SAMPLE_RATE) + Math.round(0.08 * SAMPLE_RATE));
+  assert.equal(trimSilence({ sampleRate: SAMPLE_RATE, samples: new Int16Array(100) }).samples.length, 100, "an all-silent clip is left alone");
 
   // Script: chapters in order, worth knowing opened once, every story from the user's tier, sign-off last.
   const all = summaries();

@@ -7,6 +7,8 @@ import type { ChapterId } from "./rank";
 // longer before a chapter. The result is one WAV with chapter start times, cut
 // to the length limit by dropping the last stories (the written brief keeps
 // them). Pure, apart from Buffer.
+//
+// Order per clip: trim the edge silence, level, fade.
 
 export interface Pcm {
   sampleRate: number;
@@ -75,8 +77,31 @@ export function rms(samples: Int16Array): number {
   return Math.sqrt(sum / samples.length);
 }
 
-/** Same loudness as every other clip, short fades in and out, peaks kept below clipping. */
-export function level(p: Pcm): Pcm {
+/** Silence kept at each end of a clip, in milliseconds, so the set pauses are the only gaps. */
+export const EDGE_MS = { lead: 20, tail: 80 };
+/** Below this level (about -40 dBFS) a sample counts as silence. */
+const SILENCE = 0.01 * 32768;
+
+/**
+ * Cut a clip's leading and trailing silence down to EDGE_MS. Google ends clips
+ * with anywhere from about 0.2 to 0.7 seconds of silence, which made the gaps
+ * between stories uneven (measured 2026-11-05).
+ */
+export function trimSilence(p: Pcm): Pcm {
+  const { samples, sampleRate } = p;
+  let start = 0;
+  while (start < samples.length && Math.abs(samples[start]) <= SILENCE) start++;
+  if (start === samples.length) return p;
+  let end = samples.length;
+  while (end > start && Math.abs(samples[end - 1]) <= SILENCE) end--;
+  const from = Math.max(0, start - Math.round((EDGE_MS.lead / 1000) * sampleRate));
+  const to = Math.min(samples.length, end + Math.round((EDGE_MS.tail / 1000) * sampleRate));
+  return { sampleRate, samples: samples.slice(from, to) };
+}
+
+/** Same loudness as every other clip, edges trimmed, short fades in and out, peaks kept below clipping. */
+export function level(clip: Pcm): Pcm {
+  const p = trimSilence(clip);
   const now = rms(p.samples);
   let peak = 0;
   for (const s of p.samples) peak = Math.max(peak, Math.abs(s));
