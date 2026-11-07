@@ -27,6 +27,9 @@ const SEGMENTS: Rule[] = [
   ["RF & Connectivity", /\b(5G|6G|Wi-?Fi|Bluetooth|wireless|cellular|mmWave|antennas?|UWB)\b|\bRF\b/],
 ];
 
+/** The segment labels, in order: the rows of Lead Times & Signals and the News segment filter. */
+export const SEGMENT_LABELS: readonly string[] = SEGMENTS.map(([label]) => label);
+
 const SUPPLIERS: Rule[] = [
   ["Nvidia", /\bNvidia\b/i],
   ["AMD", /\bAMD\b|Advanced Micro Devices/],

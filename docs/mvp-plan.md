@@ -71,7 +71,10 @@ Role gating (internal pages visible only to global users) is new: `HIDDEN_PATHS`
 1. **Market News: per-user morning brief.** See `docs/morning-brief-plan.md`.
 2. **Market: forecasts and cycle view.** Keep as is. WSTS and Gartner forecasts tied to the quarterly TAM, including macro, paired with public earnings to show the cycle. TAM / SAM / SOM moves into this hub. Users size the whole market or their slice of it. SOM is Avnet's own share, so the SOM figures show for global users only.
 3. **Companies: Americas earnings.** US-headquartered SEC filers with clean 8-K / 10-K schema. Non-US companies carry a Beta label. Avnet vs Arrow stays (public data).
-4. **Market: Lead Times & Signals.** A new page in the Market hub beside Economic Signals, from public lead-time data, visible to everyone. Which public sources, and how often they update, is settled when the page is built.
+4. **Market: Lead Times & Signals.** A new page in the Market hub beside Economic Signals, from public lead-time data, visible to everyone. Built at `/lead-times` (adapter `src/lib/data/live/lead-times.ts`), with sources settled on 2026-11-06:
+   - **Lead-time stories** from the Market News trade-press feeds, Supply Chain Dive and a GDELT search (every 15 minutes), read for direction and quoted weeks and tagged by segment.
+   - **Supply-pressure series** (monthly, checked every six hours): the New York Fed's GSCPI, the Philadelphia Fed's delivery-times index and Census M3 unfilled orders for computers and electronics, via FRED.
+   - **Published reports, linked only:** Sourceability's quarterly highlights (titles and dates read from its public list), ECIA's monthly Industry Pulse summary and TrustedParts. ECIA's and Sourceability's terms forbid copying their figures (and ECIA's forbid automated access), so none are shown. ECIA's weekly lead times by category are member-only; if Avnet's membership covers them, they belong on the Avnet machine, not in this public repo.
 5. **Avnet performance.** Performance, Market Share, Design Pipeline, Customers. Data: billings and book-to-bill first. First priority is accurate **global** data for the two global users. No regional, supplier or customer-scoped rollout until scoped row-level security is built.
 6. **Pitch Deck Builder** (the only MVP tool). Audience templates: supplier, customer, internal. Built on the correct FY27 template layouts and the owner's hand-built example slides as ground truth. The existing export (`/api/deck/export`, `src/lib/deck/pptx.ts`, `src/lib/brand/pptx`) is the base. Self-serve, so the owner stops building decks by hand.
 
@@ -89,9 +92,9 @@ Ordered by what blocks what. Items marked **(external)** need someone outside th
 
 ### Step 1. Cut to the MVP (this machine, before 2026-11-23)
 
-- [ ] Hide the Cycle engine, Scenario Modeler and QBR Prep; move TAM / SAM / SOM to the Market hub; add Lead Times & Signals.
-- [ ] Beta label on non-US companies; earnings reporting limited to US SEC filers.
-- [ ] Roadmap page from a typed file (design toolkit: Taste skill, UI UX Pro Max, then web-design-guidelines and Playwright).
+- [x] Hide the Cycle engine, Scenario Modeler and QBR Prep; move TAM / SAM / SOM to the Market hub (PR 54); add Lead Times & Signals (`/lead-times`).
+- [x] Beta label on non-US companies; earnings reporting limited to US SEC filers (PR 54).
+- [x] Roadmap page from a typed file (design toolkit: Taste skill, UI UX Pro Max, then web-design-guidelines and Playwright) (PR 54).
 
 ### Step 2. Morning brief without accounts (this machine)
 
