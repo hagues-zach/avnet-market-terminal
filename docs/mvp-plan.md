@@ -2,7 +2,7 @@
 
 The plan for shipping a tight MVP of the terminal and moving everything else onto a public roadmap. It narrows `docs/superapp-build-plan.md`: where the two disagree, this file wins until the MVP ships. The per-user morning brief has its own plan in `docs/morning-brief-plan.md`.
 
-Last updated: 2026-11-05
+Last updated: 2026-11-06
 
 **Guiding principle:** stop adding features before users see the app. Ship the MVP, put the rest on the roadmap page, and widen only after the pilot proves it.
 
@@ -11,7 +11,7 @@ Last updated: 2026-11-05
 | Date | What |
 |---|---|
 | 2026-11-05 | This plan |
-| 2026-11-23 | The repo moves to the Avnet-provisioned machine; development continues there with GitHub Copilot. Write this plan and its follow-ups so they stand on their own without this session's history. |
+| 2026-11-23 | The repo moves to the Avnet-provisioned machine; development continues there with GitHub Copilot. Setup and the list of what still needs a live check: `docs/avnet-machine-setup.md`. Copilot's conventions: `.github/copilot-instructions.md`. |
 | 2027-01 | Pilot dry run with the six pilot users |
 | **2027-02-01** | **MVP launch (FY27 Q3)** |
 
@@ -86,33 +86,45 @@ Ordered by what blocks what. Items marked **(external)** need someone outside th
 
 - [ ] Avnet SSO: an app registration in Avnet's identity provider (Entra ID) for the terminal, with redirect URLs for the Avnet host.
 - [ ] Oracle: a schema for the app, credentials, and permission to create row-level security policies.
-- [ ] Databricks: a decision with the data team on how row-level security knows the end user (open question 4), and the billings and book-to-bill views (build plan 5.3).
+- [ ] Databricks: a decision with the data team on how row-level security knows the end user (open question 1 below), and the billings and book-to-bill views (build plan 5.3; view shapes in `docs/data-contracts.md`).
 - [ ] Hosting on Avnet infrastructure with a scheduled job that can run before 6:00 am Eastern.
 - [ ] Google Cloud project with Text-to-Speech enabled and billing, and a funded `ANTHROPIC_API_KEY` on Avnet's account.
 
 ### Step 1. Cut to the MVP (this machine, before 2026-11-23)
 
-- [x] Hide the Cycle engine, Scenario Modeler and QBR Prep; move TAM / SAM / SOM to the Market hub (PR 54); add Lead Times & Signals (`/lead-times`).
-- [x] Beta label on non-US companies; earnings reporting limited to US SEC filers (PR 54).
-- [x] Roadmap page from a typed file (design toolkit: Taste skill, UI UX Pro Max, then web-design-guidelines and Playwright) (PR 54).
+- [x] Hide the Cycle engine (`/signals/engine`), Scenario Modeler (`/forecast`) and QBR Prep (`/tools/qbr`) through `HIDDEN_PATHS`, and drop the links that led to them (PR 54).
+- [x] Move TAM / SAM / SOM to the Market hub (`src/components/layout/nav.ts`, PR 54).
+- [x] Add Lead Times & Signals: a new tab in the Market hub after Economic signals, at `/lead-times`, from public lead-time data (decision 9, MVP item 4; sources under item 4 above).
+- [x] Beta label on non-US companies in Company Profiles; Quarterly Earnings, the earnings season and Ask the Terminal's season answer limited to US 10-Q and 10-K filers (`US_FILERS` in `src/lib/data/live/earnings-model.ts`, PR 54).
+- [x] Roadmap page at `/roadmap`, linked from the sidebar footer, drawn from the typed file `src/lib/roadmap/items.ts` (PR 54). Edit that file to move items.
 
 ### Step 2. Morning brief without accounts (this machine)
 
 The shared daily corpus, tiered synthesis and Google TTS can be built and evaluated on the file store with hard-coded test profiles before SSO exists. See phases B1 to B4 in `docs/morning-brief-plan.md`.
 
+- [x] B1 to B4 built (PR 55): corpus job, ranking for test profiles, tiered Claude summaries, Google TTS with stitched clips.
+- [ ] Run the summaries live once spending is approved: `npx tsx src/lib/brief/synthesis-eval.ts --live`.
+- [ ] Recheck stitched audio on a full 10-minute brief and a Chirp 3 HD voice (it was judged on a 1.5-minute brief only).
+
+Both checks are described in `docs/avnet-machine-setup.md`, section 4.
+
 ### Step 3. Accounts, roles and row-level security (Avnet machine)
 
-- [ ] SSO sign-in replaces `SITE_PASSWORD`.
-- [ ] Oracle: users, roles and profiles tables with row-level security; run `pnpm check:store` against the real Oracle.
-- [ ] Two roles at launch: `global` (internal + market) and `market` (market only). Gate internal pages and Avnet figures on Start Here, TAM / SAM / SOM and the Pitch Deck Builder by role.
-- [ ] Databricks: billings and book-to-bill live for global users (5.3).
+Needs the Step 0 access. Nothing here exists in the code yet.
+
+- [ ] SSO sign-in with Avnet's Entra ID replaces `SITE_PASSWORD` (the password gate lives in the middleware and `/login`). The app then knows each user and their role.
+- [ ] Oracle: run `db/migrations/oracle/001_store.sql`, set `STORE_ADAPTER=oracle` and run `pnpm check:store oracle`; the adapter has only been tested against a fake. Then add users, roles and profiles tables with row-level security so a user reads only their own row (decision 2).
+- [ ] Two roles at launch: `global` (internal + market) and `market` (market only). `HIDDEN_PATHS` hides pages from everyone, so add a second, per-role check beside it: Avnet performance pages, SOM on TAM / SAM / SOM, Avnet figures on Start Here and in the Pitch Deck Builder, and Ask the Terminal's internal-data tools answer only for `global` (decisions 4, 10, 11).
+- [ ] Databricks: billings and book-to-bill live for global users (build plan 5.3). Set `AVNET_DATA=databricks`, keep unpublished datasets on mock with `AVNET_MOCK_DATASETS`, and pass `AVNET_DATA=databricks npx tsx scripts/check-avnet-data.ts` first.
 
 ### Step 4. Brief onboarding and pilot (Avnet machine, December to January)
 
-- [ ] Onboarding: suppliers, customers, technologies, tech tier, voice with live samples, brief length.
-- [ ] Brief built for each pilot user by 6:00 am Eastern.
-- [ ] Pitch Deck Builder rebuilt on the correct layouts and the owner's example slides.
-- [ ] Pilot dry run in January; fix what it finds; launch 2027-02-01.
+Needs Step 3's users and roles. Phases B5 to B7 in `docs/morning-brief-plan.md` give the detail.
+
+- [ ] Onboarding (B6): suppliers, customers, technologies, tech tier, voice with live samples, brief length. Profiles are stored in Oracle and replace the hard-coded test profiles in `src/lib/brief/profile.ts`.
+- [ ] Brief built for each pilot user by 6:00 am Eastern: the corpus job (`.github/workflows/brief-corpus.yml`, 07:00 UTC) followed by per-user ranking, summaries and audio, on a scheduler that can reach the Avnet host.
+- [ ] Pitch Deck Builder rebuilt on the correct FY27 layouts and the owner's example slides (decision 7). The owner supplies both when this starts; the export to build on is `/api/deck/export`, `src/lib/deck/pptx.ts` and `src/lib/brand/pptx`.
+- [ ] Pilot dry run in January with the six pilot users; fix what it finds; launch 2027-02-01.
 
 ## Draft roadmap
 
@@ -141,4 +153,3 @@ Left off on purpose (still hidden, not promised): Learning Center, Line Cards, S
 Questions 1, 2, 3 and 5 from the first draft were answered on 2026-11-05 and are now decisions 5, 9, 10 and 11.
 
 1. **How Databricks knows the user.** The app reads Databricks with one service identity, so Unity Catalog row filters see the app, not the person. Either pass the user's SSO token through to Databricks (filters key on the real user; needs Entra and Databricks set up for it), or keep a user-to-scope mapping table that the views filter on through a session parameter. The first is real row-level security; the second relies on the app. Decide with the data team.
-The Roadmap page is built at `/roadmap` (footer, beside Setup). Its items live in `src/lib/roadmap/items.ts`; edit that file to move them.
