@@ -1,5 +1,5 @@
 // Pages hidden from the whole app: the nav, direct URLs, links from other pages,
-// deck slides, QBR briefs, Start Here and Ask the Terminal. Their code stays in
+// deck slides, QBR briefs and Ask the Terminal. Their code stays in
 // place. Remove a path here to bring the page back everywhere. Kept free of UI
 // imports so the edge middleware can read it.
 export const HIDDEN_PATHS: string[] = [
@@ -7,6 +7,8 @@ export const HIDDEN_PATHS: string[] = [
   "/line-cards", // Line Cards
   "/supply-chain", // Supply Chain
   "/tools/leads", // Lead Finder
+  "/design-pipeline", // Design Pipeline
+  "/customers", // Customers & End Markets
   // Cut for the MVP (docs/mvp-plan.md); each returns in its roadmap quarter.
   "/signals/engine", // How the cycle engine works
   "/forecast", // Scenario Modeler

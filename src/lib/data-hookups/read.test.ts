@@ -136,11 +136,8 @@ const specIds = (name: string) => (specs[name]?.sections ?? []).flatMap((s) => s
 for (const p of PAGE_HOOKUPS) {
   const found = new Set(p.files.flatMap((f) => [...markerIds(f)]));
   if (p.from) {
-    // Start Here shows only its KPI section's marker; shell pages show every section's.
-    const spec = specs[p.from.spec];
-    assert.ok(spec, p.from.spec);
-    const shown = p.href === "/start" ? (spec.sections.find((s) => s.kind === "kpis")?.hookups ?? []) : specIds(p.from.spec);
-    shown.forEach((x) => found.add(x));
+    assert.ok(specs[p.from.spec], p.from.spec);
+    specIds(p.from.spec).forEach((x) => found.add(x));
   }
   assert.deepEqual([...found].sort(), [...p.ids].sort(), `${p.href}: ids match what the page shows`);
 }

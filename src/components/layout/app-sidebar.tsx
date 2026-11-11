@@ -21,7 +21,7 @@ export function AppSidebar() {
   return (
     <aside className="flex h-screen w-sidebar shrink-0 flex-col border-r border-hairline bg-surface">
       <div className="flex h-topbar items-center border-b border-hairline px-4">
-        <Link href="/start" aria-label="Avnet Market Intelligence, Start Here">
+        <Link href="/news" aria-label="Avnet Market Intelligence, Market News">
           <Wordmark className="h-6" />
         </Link>
       </div>

@@ -2,7 +2,6 @@ import {
   Building2,
   ClipboardList,
   Gauge,
-  Home,
   Milestone,
   Newspaper,
   Plug,
@@ -23,7 +22,7 @@ export type Pillar = "home" | "knowledge" | "network" | "performance" | "tools" 
  * above the page (HubTabs). "main" hubs sit at the top, "tools" under a Tools
  * heading, "footer" at the foot of the sidebar, and "topbar" only in the top bar.
  */
-export type HubId = "start" | "news" | "market" | "companies" | "performance" | "qbr" | "deck" | "leads" | "setup" | "roadmap" | "ask";
+export type HubId = "news" | "market" | "companies" | "performance" | "qbr" | "deck" | "leads" | "setup" | "roadmap" | "ask";
 
 export interface Hub {
   id: HubId;
@@ -33,7 +32,6 @@ export interface Hub {
 }
 
 export const HUBS: Hub[] = [
-  { id: "start", label: "Start Here", icon: Home, section: "main" },
   { id: "news", label: "News", icon: Newspaper, section: "main" },
   { id: "market", label: "Market", icon: Gauge, section: "main" },
   { id: "companies", label: "Companies", icon: Building2, section: "main" },
@@ -60,8 +58,6 @@ export interface NavItem {
 // Every page, in tab order within its hub. Pages listed in HIDDEN_PATHS are
 // filtered out, so a hidden page comes back as a tab when it is unhidden.
 const ALL_NAV: NavItem[] = [
-  { label: "Start Here", tab: "Start Here", href: "/start", hub: "start", mock: true },
-
   { label: "Market News", tab: "News", href: "/news", hub: "news" },
 
   { label: "Market Overview", tab: "Overview", href: "/overview", hub: "market", mock: true },
@@ -105,7 +101,7 @@ export const hubPages = (hub: HubId): NavItem[] => NAV.filter((item) => item.hub
 export const visibleHubs = (section: Hub["section"]): Hub[] => HUBS.filter((h) => h.section === section && hubPages(h.id).length > 0);
 
 /** Where a hub's sidebar link goes: its first visible page. */
-export const hubHref = (hub: HubId): string => hubPages(hub)[0]?.href ?? "/start";
+export const hubHref = (hub: HubId): string => hubPages(hub)[0]?.href ?? "/news";
 
 /** A hub shows the mock ring only when every one of its visible pages is mock. */
 export const hubMock = (hub: HubId): boolean => {

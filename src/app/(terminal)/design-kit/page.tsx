@@ -55,7 +55,6 @@ export default function DesignKitPage() {
         current="/design-kit"
         items={[
           { label: "Components", href: "/design-kit" },
-          { label: "Start Here", href: "/start" },
           { label: "Market Share", href: "/market-share" },
         ]}
       />

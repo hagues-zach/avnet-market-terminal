@@ -20,7 +20,7 @@ export interface Step {
 
 export const PATHS: Record<Role, Step[]> = {
   seller: [
-    { page: "Start Here", href: "/start", why: "Your week in one page: what changed and where to go next." },
+    { page: "Market Cycle", href: "/cycle", why: "Where the industry is in the cycle, and what that means for a customer's orders." },
     { page: "Market News", href: "/news", why: "Stories with a line on why each matters to a customer." },
     { page: "Company Profiles", href: "/network", why: "A supplier or customer at a glance before a call." },
     { page: "QBR Prep", href: "/tools/qbr", why: "A brief for the meeting, built from the profile, news and the cycle." },
@@ -41,7 +41,7 @@ export const PATHS: Record<Role, Step[]> = {
     { page: "Quarterly Earnings", href: "/earnings", why: "Each supplier's quarter, and its group's median for comparison." },
   ],
   leader: [
-    { page: "Start Here", href: "/start", why: "The numbers that matter this week." },
+    { page: "Market Overview", href: "/overview", why: "The market this week, in the numbers that matter." },
     { page: "Performance Tracker", href: "/performance", why: "Billings, bookings, backlog and the regions behind them." },
     { page: "Customers & End Markets", href: "/customers", why: "Which markets drive growth, and whether demand is behind it." },
     { page: "Market Cycle", href: "/cycle", why: "Where the industry is in the cycle, stage by stage." },
