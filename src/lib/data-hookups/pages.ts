@@ -15,13 +15,6 @@ export interface PageHookups {
 }
 
 export const PAGE_HOOKUPS: PageHookups[] = [
-  {
-    href: "/start",
-    title: "Start Here",
-    ids: ["billings", "bookings", "backlog", "tam-sam-som", "drms"],
-    files: ["src/components/start/sections.tsx"],
-    from: { spec: "START" },
-  },
   { href: "/overview", title: "Market Overview", ids: ["wsts", "gartner-forecast"], files: ["src/components/overview/sections.tsx"] },
   {
     href: "/network",
