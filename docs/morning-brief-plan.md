@@ -2,7 +2,7 @@
 
 The build plan for the per-user morning brief: a spoken and written briefing, ready each morning, scoped to the suppliers, customers and technologies a user covers. Part of the MVP in `docs/mvp-plan.md`.
 
-Last updated: 2026-11-05
+Last updated: 2026-11-07
 
 ## What it is
 
@@ -99,6 +99,7 @@ Tables: `brief_profiles`, `brief_runs` (one per user per day: script, sources, a
 | B2. Ranking | This machine | Hard-coded test profiles get sensible picks per chapter (a fixture eval like `src/lib/qbr/eval.ts`). **Built 2026-11-05:** `src/lib/brief/rank.ts` with test profiles in `profile.ts`; `rank-eval.ts` grades 10 cases on normal, quiet and heavy fixture days (`--live` adds today's corpus) and runs in `pnpm test` |
 | B3. Tiered synthesis | This machine | Story summaries at three tiers with sources; an eval checks every figure is in its source and no Avnet internal figures appear. **Built 2026-11-05, not yet run live:** `src/lib/brief/synthesis.ts`; `synthesis-eval.ts` grades recorded answers with planted mistakes in `pnpm test`, and `--live` runs real calls and measures cost |
 | B4. Google TTS | This machine | Clips per story and voice; a stitched 10-minute brief sounds continuous enough, or whole-brief audio is chosen. **Built 2026-11-05; stitched audio chosen after the listening test:** `script.ts`, `audio.ts`, `tts.ts`, tested against a fake voice; `scripts/brief-audio.ts` renders a brief both ways for the listening test |
+| Page. Brief on Market News | This machine | **Built 2026-11-07:** `assembleBrief` in `src/lib/brief/assemble.ts` puts one user's brief together from the stored corpus, plan, summaries and clips, never calling Claude or Google at page load; `/api/brief/audio/[key]` streams the stitched file (MP3 when the server has ffmpeg, else WAV) with byte ranges for chapter jumps. The profile comes from `currentBriefProfile` in `current-profile.ts`, a dev-only test-profile picker until B5. `scripts/brief-demo.ts` seeds a free local demo (fixture day, macOS voice). **Not built yet:** a morning job that voices each user's clips (shared clips plus the personal opening line) after synthesis; until it runs, the page shows "Audio isn't voiced yet" |
 | B5. Profiles in Oracle | Avnet machine | Profile, runs and feedback tables with row-level security; a user cannot read another's rows (test it) |
 | B6. Onboarding | Avnet machine | Suppliers, customers, technologies, tier, voice (live samples) and length, from Start Here and settings |
 | B7. Pilot | Avnet machine | Six pilot users get a brief by 6:00 am Eastern for two weeks in January; feedback captured on quality, length, latency and onboarding |
