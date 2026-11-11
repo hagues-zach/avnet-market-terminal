@@ -68,6 +68,7 @@ const ALL_NAV: NavItem[] = [
   { label: "Market Cycle", tab: "Cycle", href: "/cycle", hub: "market" },
   { label: "TAM / SAM / SOM", tab: "TAM / SAM / SOM", href: "/tam", hub: "market", mock: true },
   { label: "Economic Signals", tab: "Economic signals", href: "/signals", hub: "market" },
+  { label: "Lead Times & Signals", tab: "Lead times & signals", href: "/lead-times", hub: "market" },
   { label: "How the cycle engine works", tab: "Cycle engine", href: "/signals/engine", hub: "market" },
   { label: "Learning Center", tab: "Learning Center", href: "/learn", hub: "market" },
 

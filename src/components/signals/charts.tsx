@@ -1,6 +1,6 @@
 "use client";
 
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { endLabels } from "@/components/charts/end-labels";
 import { CHART } from "@/lib/colors";
 
@@ -19,10 +19,12 @@ export interface LineSeries {
 export type Row = { label: string } & Record<string, string | number | undefined>;
 
 /** How values print. A name, not a function, so a server component can pass it. */
-export type Format = "index" | "percent";
+export type Format = "index" | "percent" | "decimal" | "usd-millions";
 const FORMATS: Record<Format, (v: number) => string> = {
   index: (v) => v.toFixed(0),
   percent: (v) => `${Number.isInteger(v) ? v : v.toFixed(1)}%`,
+  decimal: (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1)),
+  "usd-millions": (v) => `$${(v / 1000).toFixed(v >= 100_000 ? 0 : 1)}B`,
 };
 
 const tick = { fontSize: CHART.tickFontSize, fill: CHART.tick };
@@ -32,18 +34,21 @@ export function SignalLines({
   series,
   format: unit,
   height = 240,
+  zeroLine = false,
 }: {
   rows: Row[];
   series: LineSeries[];
   /** Axis ticks, end labels and tooltip values. */
   format: Format;
   height?: number;
+  /** A reference line at zero, for series read as above or below normal. */
+  zeroLine?: boolean;
 }) {
   const format = FORMATS[unit];
   const values = rows.flatMap((r) => series.map((s) => r[s.key])).filter((v): v is number => typeof v === "number");
   if (!values.length) return <p className="py-10 text-center text-body-sm text-ink-muted">Not available right now.</p>;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const min = Math.min(...values, ...(zeroLine ? [0] : []));
+  const max = Math.max(...values, ...(zeroLine ? [0] : []));
   // A round axis: about four steps of 1, 2, 2.5 or 5 times a power of ten.
   const raw = (max - min || 1) / 4;
   const mag = 10 ** Math.floor(Math.log10(raw));
@@ -58,6 +63,7 @@ export function SignalLines({
         <CartesianGrid stroke={CHART.grid} vertical={false} />
         <XAxis dataKey="label" tick={tick} axisLine={{ stroke: CHART.axis }} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
         <YAxis tick={tick} axisLine={false} tickLine={false} width={44} domain={[lo, hi]} ticks={ticks} tickFormatter={format} />
+        {zeroLine && <ReferenceLine y={0} stroke={CHART.axis} />}
         <Tooltip contentStyle={{ ...CHART.tooltip, padding: "6px 8px" }} formatter={(v: number, n: string) => [format(v), n]} />
         {series.map((s) => (
           <Line
