@@ -1,6 +1,6 @@
 # Setting up on the Avnet machine
 
-From 2026-11-23 the terminal is developed on an Avnet-provisioned machine with GitHub Copilot. This page is everything needed to get from a clean machine to a running app, and an honest list of what has been proven against real systems and what has only been tested against fakes. What to build next is in `docs/mvp-plan.md`; Copilot reads `.github/copilot-instructions.md`.
+From 2026-11-23 the terminal is developed on an Avnet-provisioned machine with GitHub Copilot. This page is everything needed to get from a clean machine to a running app, and an honest list of what has been proven against real systems and what has only been tested against fakes. What to build next is in `docs/mvp-plan.md`; the state of the app and its traps are in `docs/handoff.md`; Copilot reads `.github/copilot-instructions.md`.
 
 ## 1. Clone and install
 
@@ -8,6 +8,7 @@ Needs Node 20 or later (CI uses 22), pnpm 10, git, and `unzip` on the PATH (the 
 
 ```bash
 npm install -g pnpm@10.33.2
+# Use the repository's address under Avnet's GitHub organisation once it has moved.
 git clone https://github.com/hagues-zach/avnet-market-terminal.git
 cd avnet-market-terminal
 pnpm install
@@ -39,13 +40,13 @@ Every variable is optional and documented in `.env.example`. Copy it to `.env.lo
 |---|---|---|
 | `SITE_PASSWORD` | Password gate for the whole site. Replaced by Avnet SSO in Step 3 of the MVP plan. | Owner's choice until SSO |
 | `CRON_SECRET` | Shared secret for `/api/cron` (filing refresh, brief corpus). Unset refuses every call. `openssl rand -hex 32` | Generate; same value in GitHub secrets |
-| `BRIEF_TOP_CUSTOMERS` | Avnet's top Americas customers, flagged in the brief corpus. Internal: set it on the host or write `data/private/top-customers.json`, never commit it. | **Avnet side** |
+| `BRIEF_TOP_CUSTOMERS` | Dormant while the morning brief is off Market News. Avnet's top Americas customers, flagged in the brief corpus. Internal: set it on the host or write `data/private/top-customers.json`, never commit it. | **Avnet side** |
 | `SEC_USER_AGENT` | Contact sent to sec.gov. Needed for revenue mix, segment history and commentary. | An Avnet contact email |
 | `DART_API_KEY` | Korean suppliers' statements (SK hynix, Samsung EM). | Public, free key |
 | `KCS_SERVICE_KEY` | Reserved for the cycle engine's Korea adapter; not read yet. | Public, later |
-| `ANTHROPIC_API_KEY` | Claude for news angles, commentary, Ask, talking points and brief summaries. | **Avnet side**: a funded key on Avnet's account |
+| `ANTHROPIC_API_KEY` | Claude for news angles, article briefs and author details on Market News, commentary, Ask, talking points and brief summaries. | **Avnet side**: a funded key on Avnet's account |
 | `ANTHROPIC_AUTH_TOKEN` | Alternative Claude credential, e.g. through an Avnet gateway. Either this or the key turns AI on. | **Avnet side**, if a gateway is used |
-| `GOOGLE_TTS_API_KEY` | Google Cloud Text-to-Speech for the brief's audio. | **Avnet side**: a Google Cloud project with billing |
+| `GOOGLE_TTS_API_KEY` | Dormant while the morning brief is off Market News. Google Cloud Text-to-Speech for the brief's audio. | **Avnet side**: a Google Cloud project with billing |
 | `STORE_ADAPTER` | Where saved results live: `file` (default), `databricks` or `oracle`. Per the MVP plan, Oracle. | Set to `oracle` once Oracle exists |
 | `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA` | Where `store_kv` and `store_snapshots` live when `STORE_ADAPTER=databricks`. | **Avnet side** |
 | `ORACLE_USER`, `ORACLE_PASSWORD`, `ORACLE_CONNECT_STRING` | Oracle login for the store tables (thin mode, no Instant Client). | **Avnet side**: the app's Oracle schema |
@@ -61,13 +62,13 @@ Avnet SSO (Entra ID) has no variables yet; they are added when Step 3 of the MVP
 
 ## 3. Scheduled jobs
 
-All live in `.github/workflows/`. Scheduled workflows run only from `main`. The two cron jobs are skipped until the `SITE_URL` repository variable is set, and need the `CRON_SECRET` repository secret to match the site's. Each calls a shell script, so an Avnet scheduler (Azure Pipelines, a cron on the host) can run the same script with `SITE_URL` and `CRON_SECRET` set if GitHub Actions can't reach the Avnet host.
+All live in `.github/workflows/`. Scheduled workflows run only from `main`, and GitHub Actions settings do not move with the code: recreate the `SITE_URL` variable and the `CRON_SECRET` secret in the new repository. The two cron jobs are skipped until the `SITE_URL` repository variable is set, and need the `CRON_SECRET` repository secret to match the site's. Each calls a shell script, so an Avnet scheduler (Azure Pipelines, a cron on the host) can run the same script with `SITE_URL` and `CRON_SECRET` set if GitHub Actions can't reach the Avnet host.
 
 | Workflow | When | What it does |
 |---|---|---|
 | `terminal-ci.yml` | Every pull request and push to `main` | `scripts/ci.sh` (typecheck, tests, build) and a Docker image build. No secrets. |
 | `refresh-filings.yml` | Every 6 hours | `scripts/refresh-filings.sh`: reloads cached company filings so visitors never wait. |
-| `brief-corpus.yml` | 07:00 UTC weekdays (02:00 Eastern in winter, 03:00 in summer) | `scripts/brief-corpus.sh`: builds the morning brief's shared corpus for the day via `/api/cron/brief-corpus`. Needs `ANTHROPIC_API_KEY` on the site for relevance ratings. |
+| `brief-corpus.yml` | By hand only; the weekday 07:00 UTC schedule is paused while the brief is off Market News (the file says how to restore it) | `scripts/brief-corpus.sh`: builds the morning brief's shared corpus for the day via `/api/cron/brief-corpus`. Needs `ANTHROPIC_API_KEY` on the site for relevance ratings. |
 
 Manual jobs, not scheduled: `npx tsx scripts/fetch-mops.ts` after each Taiwan filing deadline (mid-May, mid-August, mid-November, end of March); a new row in `src/lib/data/live/foreign/rs-halves.ts` each November when RS Group reports its first half; `npx tsx scripts/run-cycle-engine.ts` when the cycle engine's history is refreshed.
 
@@ -88,7 +89,16 @@ Nothing below has been run against a real Avnet system. Each needs its live chec
 
 - [ ] **Databricks views for Avnet's figures** (`src/lib/avnet/databricks`). Tested only with the mock written out as view rows. Once the data team publishes the `terminal_*` views (`docs/data-contracts.md`), run `AVNET_DATA=databricks npx tsx scripts/check-avnet-data.ts`.
 
-### Morning brief
+### Market News article pages
+
+- [ ] **Claude article briefs** (`src/lib/ai/news-brief.ts`). Never run live: the key on the old machine was rejected. With a funded key, open three stories (one with full feed text, a GDELT story, a Federal Register notice), check each brief is in plain words with no copied sentences, then reload and check the second load makes no Claude call. Expected cost: about 2 to 7 cents per story, once; see `docs/handoff.md`.
+- [ ] **Author lookup** (`src/lib/news/authors.ts`). Never run live. Open a Semiconductor Engineering or EE Times story with a byline and check the About the author panel shows the outlet's own title and bio, or just the name when the outlet has no author page.
+- [x] **Feed text never reaches the browser.** Checked on a production build: eight story pages and the feed, first visits, no feed text in the HTML.
+
+### Morning brief (paused)
+
+The brief's UI was removed from Market News on 2026-11-19 (PR 59); its pipeline (`src/lib/brief`, the audio route, the corpus cron) is still in the code. The checks below matter only if it comes back.
+
 
 - [x] **Corpus, ranking, script and stitching logic** (B1, B2, B4). Covered by `pnpm test` with fixtures and a fake voice.
 - [ ] **Claude story summaries** (B3, `src/lib/brief/synthesis.ts`). Never run live; the eval grades recorded answers with planted mistakes. With a funded key, run `npx tsx src/lib/brief/synthesis-eval.ts --live` (six stories, about 10 to 15 cents). It checks every figure is in its source, no Avnet internal figure appears, and prints the real cost per story against the 1.3 cent estimate in `docs/morning-brief-plan.md`.
