@@ -82,7 +82,7 @@ Scheduled workflows only run from `main`. Elsewhere, have any scheduler run `scr
 
 ### Morning brief corpus
 
-The morning brief reads one shared corpus a day instead of calling news sources per user (`docs/morning-brief-plan.md`, phase B1). `.github/workflows/brief-corpus.yml` runs `scripts/brief-corpus.sh` at 07:00 UTC on weekdays (02:00 Eastern in winter, 03:00 in summer), which calls `/api/cron/brief-corpus`. The job reads every Market News source, tags each item (customers included), adds Claude's relevance through the same cached call Market News makes, stamps each item with when it was first seen, and saves the day under `brief-corpus-v1` in the store, keeping 14 days. It needs the same `CRON_SECRET` and `SITE_URL` as the filing refresh. To build one locally without the site, run `npx tsx scripts/build-corpus.ts`.
+Paused: the brief was taken off Market News on 2026-11-19, so its workflow runs only by hand until it comes back (`.github/workflows/brief-corpus.yml` says how to restore the schedule). The morning brief reads one shared corpus a day instead of calling news sources per user (`docs/morning-brief-plan.md`, phase B1). `.github/workflows/brief-corpus.yml` runs `scripts/brief-corpus.sh`, which calls `/api/cron/brief-corpus`. The job reads every Market News source, tags each item (customers included), adds Claude's relevance through the same cached call Market News makes, stamps each item with when it was first seen, and saves the day under `brief-corpus-v1` in the store, keeping 14 days. It needs the same `CRON_SECRET` and `SITE_URL` as the filing refresh. To build one locally without the site, run `npx tsx scripts/build-corpus.ts`.
 
 Which customers are Avnet's top customers is internal, so the list never goes in the repo: set `BRIEF_TOP_CUSTOMERS` or write `data/private/top-customers.json` (gitignored).
 
@@ -94,10 +94,10 @@ All are listed with what they do and their defaults in [.env.example](.env.examp
 | --- | --- |
 | `SITE_PASSWORD` | Password gate for the whole site; open when unset |
 | `CRON_SECRET` | Secret for scheduled jobs; `/api/cron` refuses every call when unset |
-| `GOOGLE_TTS_API_KEY` | Google Cloud Text-to-Speech key for the morning brief's audio |
-| `BRIEF_TOP_CUSTOMERS` | Avnet's top customers for the morning brief; internal, never committed |
+| `GOOGLE_TTS_API_KEY` | Google Cloud Text-to-Speech key for the morning brief's audio; dormant while the brief is paused |
+| `BRIEF_TOP_CUSTOMERS` | Avnet's top customers for the morning brief; internal, never committed; dormant while the brief is paused |
 | `SEC_USER_AGENT` | Contact sent to sec.gov; needed for Revenue mix and commentary |
-| `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` | Claude credential; AI features are off without one |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` | Claude credential; AI features (including Market News article briefs) are off without one |
 | `STORE_ADAPTER` | Where saved results live; default `file` |
 | `KCS_SERVICE_KEY` | Korea Customs key, reserved for the cycle engine |
 | `ASK_EVAL_URL`, `QBR_EVAL_URL`, `NEXT_DIST_DIR` | Development only |

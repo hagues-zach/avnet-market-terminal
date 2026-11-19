@@ -4,6 +4,8 @@ The plan for shipping a tight MVP of the terminal and moving everything else ont
 
 Last updated: 2026-11-06
 
+> **Status, 2026-11-19:** Start Here and the morning brief were taken out of the app (PR 59). The brief's pipeline is still in the code, but the plan below still lists both as MVP features. Confirm with the owner whether they return before building on them; `docs/handoff.md` has the current state.
+
 **Guiding principle:** stop adding features before users see the app. Ship the MVP, put the rest on the roadmap page, and widen only after the pilot proves it.
 
 ## Dates

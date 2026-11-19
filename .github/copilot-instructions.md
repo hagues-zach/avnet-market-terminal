@@ -1,6 +1,6 @@
 # Copilot instructions: Avnet Market Intelligence Terminal
 
-Next.js 15 (App Router), React 19, TypeScript, Tailwind 3, pnpm 10, Node 20 or later (CI uses 22). The dev server runs on port 3002. Start with `README.md` (run, test, deploy), `DESIGN.md` (visual and copy rules) and `docs/mvp-plan.md` (what to build next, launch 2027-02-01). Setup on the Avnet machine is in `docs/avnet-machine-setup.md`.
+Next.js 15 (App Router), React 19, TypeScript, Tailwind 3, pnpm 10, Node 20 or later (CI uses 22). The dev server runs on port 3002. **Read `docs/handoff.md` first**: what the app does today, what changed most recently, what has never run against a real system, and the traps. Then `README.md` (run, test, deploy), `DESIGN.md` (visual and copy rules) and `docs/mvp-plan.md` (what to build next, launch 2027-02-01). Setup on the Avnet machine is in `docs/avnet-machine-setup.md`.
 
 ## Public repo
 
@@ -35,11 +35,14 @@ pnpm -s test
 - Pages live in `src/app/(terminal)/<route>/page.tsx`; their parts in `src/components/<area>/`; logic in `src/lib/<area>/`, kept free of UI imports so it can be tested with `tsx`.
 - **Saved results go through the store seam**, `src/lib/store` (`store` and `snapshots` from `src/lib/store/index.ts`). Never write files or call a database directly for saved data. Namespaces carry a version (`brief-corpus-v1`); change the shape by bumping the version, not by migrating. Writes never throw. `STORE_ADAPTER` picks `file`, `databricks` or `oracle`; see `docs/storage.md`.
 - **Avnet's own data goes through `src/lib/avnet`** (`AVNET_DATA` picks `mock` or `databricks`), checked against the contracts in `docs/data-contracts.md`.
-- **Hiding a page:** add its path to `HIDDEN_PATHS` in `src/lib/visibility.ts`. That hides it from the nav, direct URLs, links, decks, Start Here and Ask the Terminal while keeping its code. Any plain `<Link>` to a hideable page must be wrapped in `isHidden(...)`, or use `visible(links)`. Tab order and hubs are in `src/components/layout/nav.ts`.
+- **Hiding a page:** add its path to `HIDDEN_PATHS` in `src/lib/visibility.ts`. That hides it from the nav, direct URLs, links, decks and Ask the Terminal while keeping its code. Any plain `<Link>` to a hideable page must be wrapped in `isHidden(...)`, or use `visible(links)`. Tab order and hubs are in `src/components/layout/nav.ts`.
 - Roadmap items live in `src/lib/roadmap/items.ts`; edit that file to move them.
 - The Claude model id is `MODEL` in `src/lib/ai/claude.ts`. Every feature that needs a key (Claude, TTS, DART, SEC) must still render without it and say what is missing.
 - Every new environment variable goes in `.env.example` with what it does, its default and whether it is optional.
 - PowerPoint and PDF exports build on `assets/brand/avnet-template-fy27.pptx` through `src/lib/brand/pptx`.
+- **Market News article pages** (`/news/[slug]`, `src/app/(terminal)/news/[slug]`): a story's page shows a brief Claude writes once in its own words (`src/lib/ai/news-brief.ts`) and an author panel from the outlet's own author page (`src/lib/news/authors.ts`), both stored. The outlet's feed text (`body` on `LiveArticle`) is Claude's input only: never render it, store it or pass it to a client component; `getLiveNews()` already strips it, and only `getArticleWithText()` returns it. Keep the brief in our own words with no copied sentences (copyright).
+- **Links to article pages use `prefetch={false}`.** Rendering an article page writes its brief, a paid Claude call, so a prefetch would spend money on every headline a reader scrolls past.
+- **Check data leaks on a production build, not `pnpm dev`.** In dev, React adds debug data to the page, which can include raw fetched responses the first time a page loads them; production builds strip it.
 
 ## Design rules (full detail in DESIGN.md)
 
@@ -57,4 +60,4 @@ For UI copy, docs, commit messages and every prompt that asks Claude to write te
 - No slashes or middle dots in prose; write "to", "and" or "or". (Product names that contain one, such as "TAM / SAM / SOM", stay.)
 - Plain sentences, as to a colleague. Lead with the answer.
 - Claude prompts already carry this rule (see `src/lib/ask/claude.ts`, `src/lib/brief/synthesis.ts`); keep it in new prompts, and pass Claude's text through `plainDashes` or `plainDeep` from `src/lib/ai/dashes.ts` before showing or caching it.
-- Claude output must not invent figures or include Avnet internal figures for users without access; the brief's eval (`src/lib/brief/synthesis-eval.ts`) checks both.
+- Claude output must not invent figures or include Avnet internal figures for users without access; the morning brief's eval (`src/lib/brief/synthesis-eval.ts`) checks both, and new prompts should follow the same rules.

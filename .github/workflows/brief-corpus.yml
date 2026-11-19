@@ -1,13 +1,15 @@
-# Builds the morning brief's shared corpus each weekday before the 6:00 am Eastern
-# brief. 07:00 UTC is 02:00 Eastern in winter and 03:00 in summer. The steps live
-# in scripts/brief-corpus.sh so any other scheduler can run the same thing.
+# Builds the morning brief's shared corpus. The schedule is paused: the brief was
+# taken off Market News on 2026-11-19 (PR 59), and the daily run calls Claude for
+# relevance ratings that no page shows. It still runs by hand from the Actions tab.
+# To turn the daily run back on with the brief, restore:
+#   schedule:
+#     - cron: "0 7 * * 1-5"   # 07:00 UTC, 02:00 Eastern in winter, 03:00 in summer
+# The steps live in scripts/brief-corpus.sh so any other scheduler can run them.
 # Skipped until the SITE_URL repository variable is set; also needs the CRON_SECRET
 # secret, matching the value on the site. See "Morning brief corpus" in the README.
 name: brief-corpus
 
 on:
-  schedule:
-    - cron: "0 7 * * 1-5"
   workflow_dispatch:
 
 permissions:
