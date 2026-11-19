@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import type { Angle } from "@/lib/ai/news-angles";
-import type { LiveArticle } from "@/lib/data/live/shared";
+import { articleSlug, type LiveArticle } from "@/lib/data/live/shared";
 import type { Company } from "@/lib/data/live/earnings-model";
 import { ago, entityOf, qbrHref, RELEVANCE_WORD, stamp } from "@/lib/news/briefing";
 import { Chip } from "@/components/ui/chip";
@@ -27,19 +27,42 @@ export function RelevanceChip({ angle }: { angle?: Angle }) {
   );
 }
 
-/** The headline, linked to the source in a new tab. */
+/**
+ * The headline. A news or regulatory story opens its own page in the terminal
+ * (/news/[slug]), with a small secondary link to the outlet beside it. A filing
+ * has nothing to brief, so it links straight to SEC.
+ */
 export function Headline({ article, className }: { article: LiveArticle; className?: string }) {
+  if (article.kind === "filing") {
+    return (
+      <a
+        href={article.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn("group inline text-ink underline-offset-2 hover:underline", className)}
+      >
+        {article.title}
+        <ExternalLink className="ml-1 inline h-3 w-3 -translate-y-px text-ink-muted" strokeWidth={1.5} aria-hidden />
+        <span className="sr-only"> (opens {article.outlet} in a new tab)</span>
+      </a>
+    );
+  }
   return (
-    <a
-      href={article.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn("group inline text-ink underline-offset-2 hover:underline", className)}
-    >
-      {article.title}
-      <ExternalLink className="ml-1 inline h-3 w-3 -translate-y-px text-ink-muted" strokeWidth={1.5} aria-hidden />
-      <span className="sr-only"> (opens {article.outlet} in a new tab)</span>
-    </a>
+    <span className="inline">
+      <Link href={`/news/${articleSlug(article)}`} prefetch={false} className={cn("text-ink underline-offset-2 hover:underline", className)}>
+        {article.title}
+      </Link>
+      <a
+        href={article.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={`Open on ${article.outlet}`}
+        className="ml-1 inline-flex -translate-y-px align-middle text-ink-muted hover:text-ink"
+      >
+        <ExternalLink className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+        <span className="sr-only">Open on {article.outlet} (new tab)</span>
+      </a>
+    </span>
   );
 }
 

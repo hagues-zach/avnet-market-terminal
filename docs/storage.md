@@ -151,6 +151,8 @@ Run it first on any new database, before setting `STORE_ADAPTER` for the app.
 | `ask-claude-v3` | `src/lib/ask/claude.ts` | same | `YYYY-MM-DD question` (lower case, spaces collapsed) | Ask the Terminal `Answer` | about 3 KB each, a handful a day | 7 days, by the date in the key |
 | `qbr-points-v1` | `src/lib/qbr/talking-points.ts` (QBR Prep, and the deck builder on a miss) | same, `src/lib/deck/preview.ts` | `slug\|meeting\|focus\|filed\|YYYY-Www` | `TalkingPoints` with `writtenAt` | about 3 KB each | 21 days, by `writtenAt` |
 | `news-angles-v1` | `src/lib/ai/news-angles.ts` | same, `src/lib/qbr/gather.ts`, `src/lib/ask/answer.ts`, `src/components/overview/sections.tsx` | the story's URL | `{ relevance, angle }` | about 150 bytes each, 440 entries and growing | never |
+| `news-briefs-v1` | `src/lib/ai/news-brief.ts` (the article page, `/news/[slug]`, on first open) | same | the story's slug (`articleSlug`, 14 characters) | `StoredArticle`: the story's details without the feed text, the brief, `writtenAt` | about 2 KB each, one per story opened | 180 days, by `writtenAt` |
+| `news-authors-v1` | `src/lib/news/authors.ts` (the article page) | same | `outlet\|author name` (lower case) | `{ profile, checkedAt }`; `profile` is null when the outlet has no author page (tried again after 30 days) | about 400 bytes each, one per byline | 365 days, by `checkedAt` |
 | `commentary-v1` | `src/lib/ai/commentary.ts` | same | SEC accession number (`0000827054-26-000037`; the first ten digits are the filer's CIK) | `{ digest, filed, releaseUrl }` | about 2 to 3 KB each | never |
 
 `ask-claude-v2` may still be on disk from before; nothing reads it.

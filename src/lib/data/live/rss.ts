@@ -1,6 +1,8 @@
 // Minimal RSS 2.0 / Atom reader for the open-data news adapters. Dependency-free on
 // purpose: feeds are only mined for headline, link, date, a short snippet and the
-// publisher's own category labels.
+// publisher's own category labels, plus the byline and, where the outlet puts it in
+// the feed, the article text. The text is only ever read by Claude to write our own
+// brief (src/lib/ai/news-brief.ts); it is never shown or stored.
 
 export interface RawFeedItem {
   title: string;
@@ -8,6 +10,10 @@ export interface RawFeedItem {
   publishedAt: string | null; // ISO
   snippet: string;
   categories: string[];
+  /** Byline: RSS dc:creator or Atom <author><name>. */
+  author?: string;
+  /** Plain text of content:encoded, when the feed carries the full article. */
+  body?: string;
 }
 
 const ENTITIES: Record<string, string> = {
@@ -82,6 +88,26 @@ function dateOf(block: string): string | null {
   return Number.isNaN(t) ? null : new Date(t).toISOString();
 }
 
+const MAX_BODY = 20_000;
+const GENERIC_BYLINE = /\b(news|desk|staff|editors?|editorial|newsroom|team|admin|contributors?|press release|sponsored)\b/i;
+
+function authorOf(block: string): string | undefined {
+  const raw = tagText(block, "dc:creator") ?? tagText(tagText(block, "author") ?? "", "name") ?? "";
+  const name = toPlainText(raw);
+  // RSS <author> is an email address; only a plain name is a byline. "News Desk",
+  // "Staff" and the like are the outlet, not a person to look up.
+  if (!name || name.includes("@") || name.length > 120 || GENERIC_BYLINE.test(name)) return undefined;
+  return name;
+}
+
+function bodyOf(block: string): string | undefined {
+  const raw = tagText(block, "content:encoded") ?? tagText(block, "content");
+  if (!raw) return undefined;
+  const text = toPlainText(raw).replace(/\s*The post .* appeared first on .*$/i, "");
+  // A teaser repeated as "content" adds nothing over the snippet.
+  return text.length > 400 ? text.slice(0, MAX_BODY) : undefined;
+}
+
 export function parseFeed(xml: string): RawFeedItem[] {
   const blocks =
     xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? xml.match(/<entry[\s>][\s\S]*?<\/entry>/gi) ?? [];
@@ -97,6 +123,8 @@ export function parseFeed(xml: string): RawFeedItem[] {
       publishedAt: dateOf(block),
       snippet: snippetOf(block),
       categories: [...allTagText(block, "category").map(toPlainText), ...atomCats].filter(Boolean),
+      author: authorOf(block),
+      body: bodyOf(block),
     });
   }
   return items;

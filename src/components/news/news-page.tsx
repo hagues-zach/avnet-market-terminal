@@ -126,7 +126,7 @@ export function NewsPage({ data, anglesPromise }: { data: LiveNews; anglesPromis
 
       <p className="text-caption text-ink-muted">
         Headlines and snippets from trade-press RSS feeds and the GDELT open news index, with SEC EDGAR filings and Federal Register notices. Each
-        story links to its source. Tags are rule-based. &ldquo;Why it matters&rdquo; and the relevance rating are written by Claude from the headline
+        story opens a page with Claude&rsquo;s summary in our own words and a link to the original; filings link straight to SEC. Tags are rule-based. &ldquo;Why it matters&rdquo; and the relevance rating are written by Claude from the headline
         and snippet only, and can be wrong. Refreshed <time dateTime={fetchedAt}>{stamp(fetchedAt)}</time>, about every 15
         minutes.
         {angles?.status === "off" && " Claude is off, so stories show without ratings."}

@@ -62,6 +62,12 @@ function render(articles: LiveArticle[]): string {
   return `<stories>\n${blocks.join("\n")}\n</stories>`;
 }
 
+/** One story's stored angle, if it has been rated. */
+export async function getStoredAngle(id: string): Promise<Angle | undefined> {
+  const angle = await store.get<Angle>(CACHE, id);
+  return angle && { ...angle, angle: plainDashes(angle.angle) };
+}
+
 export async function getNewsAngles(articles: LiveArticle[]): Promise<Angles> {
   const cached = await store.getAll<Angle>(CACHE);
   const eligible = articles.filter((a) => KINDS.has(a.kind));

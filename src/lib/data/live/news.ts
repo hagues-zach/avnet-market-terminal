@@ -1,7 +1,7 @@
 import { parseFeed } from "./rss";
 import { getFilings } from "./filings";
 import { getRegulatory } from "./regulatory";
-import { REVALIDATE_SECONDS, fetchText, type ArticleKind, type LiveArticle, type LiveNews, type SourceStatus } from "./shared";
+import { REVALIDATE_SECONDS, articleSlug, fetchText, forClient, type ArticleKind, type LiveArticle, type LiveNews, type SourceStatus } from "./shared";
 import { isOnTopic, tagArticle } from "./tagging";
 
 export type { LiveArticle, LiveNews, SourceStatus } from "./shared";
@@ -12,6 +12,9 @@ export type { LiveArticle, LiveNews, SourceStatus } from "./shared";
 
 // GDELT is supplementary and often throttled; don't let it hold the page.
 const GDELT_TIMEOUT_MS = 4000;
+// Market News is the landing page and waits on every feed, so a slow outlet is
+// marked down after 4s rather than holding a cold first load for the full 8s.
+const RSS_TIMEOUT_MS = 4000;
 // The fetch cache keeps only successes, so an outage would cost the timeout on every
 // load. After a failure, skip GDELT for as long as a good response would be kept.
 const GDELT_RETRY_MS = REVALIDATE_SECONDS * 1000;
@@ -58,18 +61,29 @@ const GDELT_URL =
 
 function toArticle(
   outlet: string,
-  item: { title: string; url: string; publishedAt: string | null; snippet: string; categories: string[] },
+  item: { title: string; url: string; publishedAt: string | null; snippet: string; categories: string[]; author?: string; body?: string },
 ): { article: LiveArticle; onTopic: boolean } | null {
   if (!item.publishedAt) return null;
   const tags = tagArticle([item.title, item.snippet, item.categories.join(" · ")].join(" \n "));
   return {
-    article: { id: item.url, kind: "news", title: item.title, summary: item.snippet, outlet, url: item.url, publishedAt: item.publishedAt, ...tags },
+    article: {
+      id: item.url,
+      kind: "news",
+      title: item.title,
+      summary: item.snippet,
+      outlet,
+      url: item.url,
+      publishedAt: item.publishedAt,
+      ...(item.author && { author: item.author }),
+      ...(item.body && { body: item.body }),
+      ...tags,
+    },
     onTopic: isOnTopic(tags),
   };
 }
 
 async function fromRss(source: RssSource): Promise<LiveArticle[]> {
-  const items = parseFeed(await fetchText(source.url));
+  const items = parseFeed(await fetchText(source.url, RSS_TIMEOUT_MS));
   const out: LiveArticle[] = [];
   for (const item of items) {
     const mapped = toArticle(source.outlet, item);
@@ -124,7 +138,26 @@ async function fromGdelt(): Promise<LiveArticle[]> {
 export const titleKey = (title: string) => title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 export const urlKey = (url: string) => url.replace(/^https?:\/\/(www\.)?/i, "").replace(/[?#].*$/, "").replace(/\/$/, "").toLowerCase();
 
+/** The feed for pages and features: every article without its feed text. */
 export async function getLiveNews(): Promise<LiveNews> {
+  const news = await loadLiveNews();
+  return { ...news, articles: forClient(news.articles) };
+}
+
+/**
+ * One article with its feed text, for writing its brief, and the feed without
+ * text for the rest of the article page. Server-only; the text goes to Claude
+ * and nowhere else.
+ */
+export async function getArticleWithText(slug: string): Promise<{ article?: LiveArticle; news: LiveNews }> {
+  const news = await loadLiveNews();
+  return {
+    article: news.articles.find((a) => articleSlug(a) === slug),
+    news: { ...news, articles: forClient(news.articles) },
+  };
+}
+
+async function loadLiveNews(): Promise<LiveNews> {
   const jobs: { outlet: string; run: () => Promise<LiveArticle[]> }[] = [
     ...RSS_SOURCES.map((s) => ({ outlet: s.outlet, run: () => fromRss(s) })),
     { outlet: "GDELT", run: fromGdelt },
