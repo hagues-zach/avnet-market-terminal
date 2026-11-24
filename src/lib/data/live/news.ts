@@ -157,6 +157,15 @@ export async function getArticleWithText(slug: string): Promise<{ article?: Live
   };
 }
 
+/**
+ * The whole feed with each article's feed text, for writing briefs ahead of time
+ * (src/lib/news/prewrite.ts) and for the brief eval's sample. Server-only; never
+ * pass the result to a page or the browser.
+ */
+export async function getLiveNewsWithText(): Promise<LiveNews> {
+  return loadLiveNews();
+}
+
 async function loadLiveNews(): Promise<LiveNews> {
   const jobs: { outlet: string; run: () => Promise<LiveArticle[]> }[] = [
     ...RSS_SOURCES.map((s) => ({ outlet: s.outlet, run: () => fromRss(s) })),
