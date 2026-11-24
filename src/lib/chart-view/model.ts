@@ -101,7 +101,8 @@ export function formatAxis(unit: Unit, v: number): string {
       return `${v < 0 ? "−" : ""}${formatUsdMillions(Math.abs(v) / 1e6)}`;
     case "pct":
     case "growth":
-      return `${Math.round(v * 100)}%`;
+      // One decimal where it's needed, so a narrow range (3.8% to 4.3%) doesn't read "4%, 4%, 4%".
+      return `${Number((v * 100).toFixed(1))}%`;
     case "days":
       return `${Math.round(v)}d`;
     case "eps":
@@ -143,6 +144,9 @@ export function describeSeries(name: string, unit: Unit, values: (number | null)
   if (cur === null || cur === undefined) return null;
   let s = `${name} was ${formatValue(unit, cur)} in ${periods[last]}`;
   const prev = values[last - yearBack];
+  // A change that rounds to nothing reads as level, and a run of tiny moves isn't worth naming.
+  const level = prev !== null && prev !== undefined && /\b0(\.0)?( pts|%| days)$/.test(describeChange(unit, cur, prev));
+  if (level) return `${s}, about level with a year ago.`;
   if (prev !== null && prev !== undefined) s += `, ${describeChange(unit, cur, prev)} on a year ago`;
   // Count consecutive moves in the same direction, ending at the latest period.
   let run = 0;

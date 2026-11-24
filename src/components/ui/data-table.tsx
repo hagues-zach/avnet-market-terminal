@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Segmented } from "./tabs";
@@ -31,6 +31,9 @@ export function DataTable<Row>({
   densityToggle = false,
   defaultDensity = "compact",
   className,
+  selectedKey,
+  onRowClick,
+  onOrder,
 }: {
   columns: Column<Row>[];
   rows: Row[];
@@ -41,6 +44,12 @@ export function DataTable<Row>({
   densityToggle?: boolean;
   defaultDensity?: Density;
   className?: string;
+  /** The row to mark as selected (selected fill and a green left edge). */
+  selectedKey?: string | null;
+  /** Makes rows clickable. Keep a real button in the row for keyboard users. */
+  onRowClick?: (row: Row) => void;
+  /** Called with the row keys in their displayed (sorted) order, whenever it changes. */
+  onOrder?: (keys: string[]) => void;
 }) {
   const [sort, setSort] = useState(defaultSort);
   const [density, setDensity] = useState<Density>(defaultDensity);
@@ -56,6 +65,12 @@ export function DataTable<Row>({
       return sort!.dir === "asc" ? cmp : -cmp;
     });
   }, [rows, columns, sort]);
+
+  const order = sorted.map(rowKey).join("\u0000");
+  useEffect(() => {
+    onOrder?.(order ? order.split("\u0000") : []);
+    // Only when the displayed order changes, not on every new onOrder function.
+  }, [order]);
 
   const toggleSort = (key: string) =>
     setSort((s) => (s?.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "desc" }));
@@ -113,7 +128,15 @@ export function DataTable<Row>({
           </thead>
           <tbody>
             {sorted.map((row) => (
-              <tr key={rowKey(row)} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
+              <tr
+                key={rowKey(row)}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={cn(
+                  "border-b border-hairline last:border-b-0",
+                  onRowClick && "cursor-pointer",
+                  selectedKey != null && rowKey(row) === selectedKey ? "bg-surface-selected shadow-[inset_3px_0_0_theme(colors.primary)]" : "hover:bg-surface-sunken",
+                )}
+              >
                 {columns.map((c) => (
                   <td
                     key={c.key}
