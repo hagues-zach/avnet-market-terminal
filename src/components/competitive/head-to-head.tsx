@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, ExternalLink, Info } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 import { getCommentary, type Commentary } from "@/lib/ai/commentary";
 import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { getNextRelease } from "@/lib/data/live/earnings-calendar";
@@ -13,6 +13,8 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { EmptyState, ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { PairLines, type PairRow, type Unit } from "./charts";
 import { PairSpark } from "./pair-spark";
+import { ScorecardTable } from "./scorecard-table";
+import { scorecardChartData } from "@/lib/chart-view/scorecard";
 import { cn } from "@/lib/utils";
 
 // Which of each company's segments is its components distribution business: the
@@ -52,13 +54,6 @@ function Marker({ side }: { side: Side }) {
   return <span className={cn("inline-block h-2.5 w-2.5 shrink-0", side === "Avnet" ? "bg-viz-avnet" : "bg-viz-arrow")} aria-hidden />;
 }
 
-function gapText(row: Pick<ScoreRow, "kind">, gap: number | undefined): string {
-  if (gap === undefined) return NA;
-  if (row.kind === "usd") return `${gap.toFixed(2)}×`;
-  const sign = gap >= 0 ? "+" : "−";
-  return row.kind === "days" ? `${sign}${Math.round(Math.abs(gap))}` : `${sign}${(Math.abs(gap) * 100).toFixed(1)} pts`;
-}
-
 /* ---------- Verdict, scorecard and strengths ---------- */
 
 /** Server component: both companies' structured financials. */
@@ -77,6 +72,8 @@ export async function Overview() {
   const ago = yearBefore(latest);
   const rows = scorecard(a, b, pair.qa.get(ago), pair.qb.get(ago));
   const count = tally(rows);
+  // Each measure's chart for the drawer: both companies over the last eight shared quarters.
+  const charts = Object.fromEntries(rows.map((r) => [r.metric, scorecardChartData(r, series(pair, r.metric), latest)]));
   const [nextA, nextB] = await Promise.all([getNextRelease("avnet").catch(() => null), getNextRelease("arrow").catch(() => null)]);
   const next = [nextB && { name: "Arrow", e: nextB }, nextA && { name: "Avnet", e: nextA }]
     .filter((x): x is { name: string; e: NonNullable<typeof nextA> } => Boolean(x))
@@ -101,65 +98,7 @@ export async function Overview() {
         bodyClassName="p-0"
         footer={<SourceLine source="SEC filings, GAAP as reported" asOf={latest} />}
       >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse font-body text-table">
-            <caption className="sr-only">Avnet against Arrow on each measure for {latest}</caption>
-            <thead className="bg-surface-sunken">
-              <tr className="border-b border-hairline">
-                <th scope="col" className={cn(TH, "text-left")}>
-                  Measure
-                </th>
-                <th scope="col" className={cn(TH, "text-right")}>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Marker side="Avnet" />
-                    Avnet
-                  </span>
-                </th>
-                <th scope="col" className={cn(TH, "text-right")}>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Marker side="Arrow" />
-                    Arrow
-                  </span>
-                </th>
-                <th scope="col" className={cn(TH, "text-right")} title="Avnet minus Arrow, in points or days; a ratio for dollar amounts">
-                  Gap
-                </th>
-                <th scope="col" className={cn(TH, "text-left")}>
-                  Leads
-                </th>
-                <th scope="col" className={cn(TH, "text-right")}>
-                  Gap a year ago
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.metric} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
-                  <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
-                    <span className="inline-flex items-center gap-1.5">
-                      {r.label}
-                      {r.caveat && (
-                        <span title={r.caveat} className="inline-flex text-ink-muted">
-                          <Info className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-                          <span className="sr-only">{r.caveat}</span>
-                        </span>
-                      )}
-                    </span>
-                  </th>
-                  <td className={cn("px-3 py-1.5 text-right tabular-nums text-ink", r.leads === "Avnet" && "font-semibold")}>
-                    {format(r.kind, r.avnet)}
-                  </td>
-                  <td className={cn("px-3 py-1.5 text-right tabular-nums text-ink", r.leads === "Arrow" && "font-semibold")}>
-                    {format(r.kind, r.arrow)}
-                  </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-ink">{r.caveat ? NA : gapText(r, r.gap)}</td>
-                  <td className="px-3 py-1.5 text-left text-ink">{r.leads ?? <span className="text-ink-muted">n/a</span>}</td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-ink-muted">{r.caveat ? NA : gapText(r, r.gapYearAgo)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ScorecardTable rows={rows} latest={latest} charts={charts} />
       </Panel>
 
       <div className="grid items-start gap-4 xl:grid-cols-2 [&>*]:min-w-0">

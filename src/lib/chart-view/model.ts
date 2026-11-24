@@ -9,7 +9,8 @@
 import { VIZ } from "@/lib/colors";
 import { formatPctSigned, formatUsdMillions } from "@/lib/format";
 
-export type Unit = "usd" | "pct" | "growth" | "days" | "eps";
+/** "pts" is a difference between two percentages, in percentage points. */
+export type Unit = "usd" | "pct" | "growth" | "days" | "eps" | "pts";
 
 /**
  * How a series is coloured. "company" is the company's own colour (Avnet Green
@@ -88,6 +89,8 @@ export function formatValue(unit: Unit, v: number | null | undefined): string {
       return `${Math.round(v)} days`;
     case "eps":
       return `${v < 0 ? "−" : ""}$${Math.abs(v).toFixed(2)}`;
+    case "pts":
+      return `${v >= 0 ? "+" : "−"}${Math.abs(v * 100).toFixed(1)} pts`;
   }
 }
 
@@ -103,6 +106,8 @@ export function formatAxis(unit: Unit, v: number): string {
       return `${Math.round(v)}d`;
     case "eps":
       return `$${v.toFixed(2)}`;
+    case "pts":
+      return `${v < 0 ? "−" : ""}${Math.abs(Math.round(v * 1000) / 10)}`;
   }
 }
 
@@ -117,6 +122,7 @@ export function describeChange(unit: Unit, cur: number, prev: number): string {
       return prev > 0 && cur > 0 ? `${dir} ${Math.abs((cur / prev - 1) * 100).toFixed(1)}%` : `${dir} ${formatValue(unit, Math.abs(d))}`;
     case "pct":
     case "growth":
+    case "pts":
       return `${dir} ${Math.abs(d * 100).toFixed(1)} pts`;
     case "days":
       return `${dir} ${Math.abs(Math.round(d))} days`;
