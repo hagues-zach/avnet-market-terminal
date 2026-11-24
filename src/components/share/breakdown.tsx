@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { DataTable, type Column } from "@/components/ui/data-table";
+import { Sparkline } from "@/components/charts/sparkline";
+import { ChartDrawer } from "@/components/chart-view/chart-drawer";
+import { shareChartData } from "@/lib/chart-view/share";
+import { VIZ } from "@/lib/colors";
 import { Delta } from "@/components/ui/delta";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
@@ -13,6 +17,8 @@ export interface ShareRow {
   share: number;
   shareChange: number;
   confidence: string;
+  /** Avnet's share by quarter, oldest first, matching `periods`. */
+  history?: number[];
 }
 
 type View = "segment" | "supplier" | "region";
@@ -45,12 +51,36 @@ const VIEWS: Record<View, { label: string; title: string; subtitle: string; name
 };
 
 const pts = (v: number) => `${Math.abs(v * 100).toFixed(1)} pts`;
+const trendId = (view: View, name: string) => `share-trend-${view}-${name.replace(/[^\w-]+/g, "-")}`;
 
-/** The page's core table: one breakdown at a time, share drawn as a trackless Avnet bar. */
-export function ShareBreakdown({ rows, footerLink }: { rows: Record<View, ShareRow[]>; footerLink?: React.ReactNode }) {
+/**
+ * The page's core table: one breakdown at a time, share drawn as a trackless
+ * Avnet bar and its last eight quarters as a sparkline. Clicking a row or its
+ * sparkline opens the chart drawer; the drawer's up and down buttons follow the
+ * table's sorted order.
+ */
+export function ShareBreakdown({
+  rows,
+  periods = [],
+  footerLink,
+}: {
+  rows: Record<View, ShareRow[]>;
+  /** Quarter labels for each row's history. */
+  periods?: string[];
+  footerLink?: React.ReactNode;
+}) {
   const [view, setView] = useState<View>("segment");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [order, setOrder] = useState<string[]>([]);
   const v = VIEWS[view];
   const max = Math.max(...rows[view].map((r) => r.share));
+  const hasHistory = periods.length > 1 && rows[view].some((r) => (r.history?.length ?? 0) > 1);
+  const current = selected === null ? undefined : rows[view].find((r) => r.name === selected);
+  const at = selected === null ? -1 : order.indexOf(selected);
+  const close = useCallback(() => {
+    if (selected !== null) document.getElementById(trendId(view, selected))?.focus();
+    setSelected(null);
+  }, [selected, view]);
 
   const columns: Column<ShareRow>[] = [
     { key: "name", header: v.name, sortValue: (r) => r.name, className: "w-full" },
@@ -68,6 +98,31 @@ export function ShareBreakdown({ rows, footerLink }: { rows: Record<View, ShareR
         </span>
       ),
     },
+    ...(hasHistory
+      ? [
+          {
+            key: "trend",
+            header: "8-quarter trend",
+            render: (r: ShareRow) =>
+              r.history && r.history.length > 1 ? (
+                <button
+                  id={trendId(view, r.name)}
+                  type="button"
+                  aria-pressed={r.name === selected}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelected(r.name);
+                  }}
+                  title="Chart the last eight quarters"
+                  className="inline-flex cursor-pointer items-center px-1 py-0.5 hover:bg-surface"
+                >
+                  <Sparkline data={r.history} color={VIZ.avnet} width={96} height={22} />
+                  <span className="sr-only">Chart {r.name}, last eight quarters</span>
+                </button>
+              ) : null,
+          } satisfies Column<ShareRow>,
+        ]
+      : []),
     {
       key: "change",
       header: "Change YoY",
@@ -87,7 +142,10 @@ export function ShareBreakdown({ rows, footerLink }: { rows: Record<View, ShareR
         <Segmented
           label="Break share down by"
           value={view}
-          onChange={setView}
+          onChange={(next) => {
+            setView(next);
+            setSelected(null);
+          }}
           options={(Object.keys(VIEWS) as View[]).map((k) => ({ value: k, label: VIEWS[k].label }))}
         />
       }
@@ -100,6 +158,16 @@ export function ShareBreakdown({ rows, footerLink }: { rows: Record<View, ShareR
         rows={rows[view]}
         rowKey={(r) => r.name}
         defaultSort={{ key: "tam", dir: "desc" }}
+        selectedKey={selected}
+        onRowClick={hasHistory ? (r) => setSelected(r.name) : undefined}
+        onOrder={setOrder}
+      />
+      <ChartDrawer
+        data={current?.history ? shareChartData({ view: v.title, name: current.name, history: current.history, periods, source: v.source }) : null}
+        position={at >= 0 ? `${at + 1} of ${order.length}` : undefined}
+        onClose={close}
+        onPrev={at > 0 ? () => setSelected(order[at - 1]) : undefined}
+        onNext={at >= 0 && at < order.length - 1 ? () => setSelected(order[at + 1]) : undefined}
       />
     </Panel>
   );

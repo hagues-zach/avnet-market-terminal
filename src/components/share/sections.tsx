@@ -5,6 +5,7 @@ import { getCompanyEarnings } from "@/lib/data/live/earnings";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
 import { VIZ } from "@/lib/colors";
 import { getAvnet } from "@/lib/avnet";
+import { shareHistory } from "@/lib/avnet/derive";
 import { fullQuarter, growthAgainstMakers, latestGap, peerShare, shortQuarter } from "@/lib/share/peers";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -65,11 +66,15 @@ export async function ShareKpis() {
 
 export async function BreakdownCard() {
   const m = await getAvnet();
-  const segment = m.shareBySegment.map((s) => ({ name: s.segment, tam: s.tam, share: s.share, shareChange: s.shareChange, confidence: s.confidence }));
+  // Each row's last eight quarters for the sparklines and the drawer, pinned to its table figures.
+  const trend = m.shareTrend.map((r) => r["Avnet share of mapped TAM"]);
+  const withHistory = <R extends { share: number; shareChange: number }>(r: R) => ({ ...r, history: shareHistory(r.share, r.shareChange, trend) });
+  const segment = m.shareBySegment.map((s) => withHistory({ name: s.segment, tam: s.tam, share: s.share, shareChange: s.shareChange, confidence: s.confidence }));
   return (
     <div className="space-y-2">
       <ShareBreakdown
-        rows={{ segment, supplier: m.shareBySupplier, region: m.shareByRegion }}
+        rows={{ segment, supplier: m.shareBySupplier.map(withHistory), region: m.shareByRegion.map(withHistory) }}
+        periods={m.shareTrend.map((r) => r.label)}
         footerLink={
           <Link href="/tools/mapping" className="ml-auto text-ink underline-offset-2 hover:underline">
             How billings map to segments

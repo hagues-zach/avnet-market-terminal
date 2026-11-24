@@ -59,6 +59,29 @@ export function shareTrend(byQuarter: { quarter: string; billings: number }[], s
   });
 }
 
+/**
+ * One row's share by quarter (a segment, supplier or region), oldest first, to
+ * the same length as `trend` (the share of the whole mapped market by quarter).
+ * Two points are pinned so the history agrees with the table: the latest is
+ * the row's share, and four quarters back is its share less its change on a
+ * year ago. Between and beyond them it moves in a straight line, rippled by the
+ * whole market's quarter-to-quarter shape. Modelled, like every Avnet share
+ * figure, until billings by quarter are hooked up.
+ */
+export function shareHistory(share: number, shareChange: number, trend: number[]): number[] {
+  const n = trend.length;
+  if (n === 0) return [];
+  const last = trend[n - 1];
+  const yearBack = trend[n - 5] ?? last;
+  return trend.map((t, i) => {
+    const back = n - 1 - i;
+    // The whole market's trend against a straight line through the same two pinned quarters.
+    const line = last + ((yearBack - last) * back) / 4;
+    const ripple = line > 0 ? t / line : 1;
+    return (share - (shareChange * back) / 4) * ripple;
+  });
+}
+
 /** Avnet billings of each supplier's parts ÷ that supplier's reported revenue. "Market size" is the supplier's revenue, $B. */
 export function shareBySupplier(suppliers: SupplierRow[], revenueGrowth: number): ShareRow[] {
   return suppliers

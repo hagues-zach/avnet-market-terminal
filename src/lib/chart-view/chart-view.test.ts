@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { VIZ } from "@/lib/colors";
 import { COMPANIES, type CompanyEarnings, type Quarter } from "@/lib/data/live/earnings-model";
 import { EARNINGS_SECTIONS, earningsChartData } from "./earnings";
-import { describeChange, describeSeries, formatValue, seriesColor, tabHasData } from "./model";
+import { describeChange, describeSeries, formatAxis, formatValue, seriesColor, tabHasData } from "./model";
 
 // Colours: green only ever means Avnet, and Arrow's own measures skip Arrow's blue.
 assert.equal(seriesColor("company", "avnet"), VIZ.avnet);
@@ -22,6 +22,9 @@ assert.equal(formatValue("pct", 0.115), "11.5%");
 assert.equal(formatValue("days", 97.6), "98 days");
 assert.equal(formatValue("eps", -0.5), "−$0.50");
 assert.equal(formatValue("usd", null), "n/a");
+assert.equal(formatAxis("pct", 0.041), "4.1%");
+assert.equal(formatAxis("pct", 0.04), "4%");
+assert.equal(formatAxis("growth", -0.45), "-45%");
 assert.equal(describeChange("pct", 0.039, 0.042), "down 0.3 pts");
 assert.equal(describeChange("usd", 110, 100), "up 10.0%");
 assert.equal(describeChange("days", 98, 107), "down 9 days");
@@ -37,6 +40,9 @@ assert.equal(
 );
 assert.equal(describeSeries("Revenue", "usd", [null, null, 1e9, 2e9], ["a", "b", "c", "d"]), "Revenue was $2.00B in d.");
 assert.equal(describeSeries("Revenue", "usd", [1, 2, null], ["a", "b", "c"]), null);
+// A change that rounds to zero is "about level", with no run named.
+assert.equal(describeSeries("Share", "pct", [0.016, 0.015, 0.014, 0.013, 0.012], ["a", "b", "c", "d", "e"]), "Share was 1.2% in e, down 0.4 pts on a year ago. It has fallen four quarters running.");
+assert.equal(describeSeries("Share", "pct", [0.013, 0.01302, 0.01301, 0.0130, 0.01299], ["a", "b", "c", "d", "e"]), "Share was 1.3% in e, about level with a year ago.");
 // A flat quarter ends the run.
 assert.equal(describeSeries("X", "days", [1, 2, 3, 3, 4], P.slice(0, 5)), "X was 4 days in Q5, up 3 days on a year ago.");
 
