@@ -5,6 +5,8 @@ import { yearAgo } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState } from "@/components/ui/states";
+import { ChartableSection } from "@/components/chart-view/chartable-section";
+import { earningsChartData, type EarningsSection } from "@/lib/chart-view/earnings";
 import { TrendChart } from "./trend-chart";
 import { format, longDate, type Row } from "./format";
 
@@ -117,8 +119,9 @@ export function TrendPanel({ earnings }: { earnings: CompanyEarnings }) {
 
 /* ---------- Quarterly detail (folded) ---------- */
 
-const DETAIL: { group: string; rows: Row[] }[] = [
+const DETAIL: { id: EarningsSection; group: string; rows: Row[] }[] = [
   {
+    id: "income",
     group: "Income statement",
     rows: [
       { metric: "revenue", label: "Revenue", kind: "usd" },
@@ -134,6 +137,7 @@ const DETAIL: { group: string; rows: Row[] }[] = [
     ],
   },
   {
+    id: "working",
     group: "Working capital",
     rows: [
       { metric: "inventory", label: "Inventory", kind: "usd" },
@@ -144,6 +148,7 @@ const DETAIL: { group: string; rows: Row[] }[] = [
     ],
   },
   {
+    id: "cash",
     group: "Cash and capital",
     rows: [
       { metric: "operatingCashFlow", label: "Operating cash flow", kind: "usd" },
@@ -162,6 +167,8 @@ const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal
 export function QuarterlyDetail({ earnings }: { earnings: CompanyEarnings }) {
   const quarters = earnings.quarters.slice(-8);
   if (!quarters.length) return null;
+  // Every section's chart, so the modal can move between them without closing.
+  const charts = DETAIL.map((section) => ({ id: section.id, data: earningsChartData(earnings, section.id, quarters.length) }));
   return (
     <details className="group rounded-sm border border-hairline bg-surface">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
@@ -189,16 +196,7 @@ export function QuarterlyDetail({ earnings }: { earnings: CompanyEarnings }) {
             </tr>
           </thead>
           {DETAIL.map((section) => (
-            <tbody key={section.group}>
-              <tr className="border-b border-hairline">
-                <th
-                  scope="colgroup"
-                  colSpan={quarters.length + 1}
-                  className="px-3 pb-1 pt-3 text-left font-display text-card-title font-normal text-ink"
-                >
-                  {section.group}
-                </th>
-              </tr>
+            <ChartableSection key={section.id} title={section.group} sectionId={section.id} sections={charts} colSpan={quarters.length + 1}>
               {section.rows.map((row) => (
                 <tr key={row.metric} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
                   <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
@@ -217,7 +215,7 @@ export function QuarterlyDetail({ earnings }: { earnings: CompanyEarnings }) {
                   ))}
                 </tr>
               ))}
-            </tbody>
+            </ChartableSection>
           ))}
         </table>
       </div>
