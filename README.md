@@ -80,6 +80,10 @@ To turn it on:
 
 Scheduled workflows only run from `main`. Elsewhere, have any scheduler run `scripts/refresh-filings.sh` with `SITE_URL` and `CRON_SECRET` set. With several replicas the job reaches only one, since each keeps its own data cache, so replicas need a shared cache or a run per replica.
 
+### Article briefs ahead of time
+
+`/api/cron/news-briefs` writes Market News article briefs before anyone opens the story, for new stories rated high or medium relevance, at most 15 per run. `.github/workflows/news-briefs.yml` calls it every 30 minutes on weekday business hours (Eastern) and every two hours otherwise, with the same `SITE_URL` and `CRON_SECRET` as the filing refresh; other schedulers can run `scripts/news-briefs.sh`. Each run calls Claude, so it needs a funded `ANTHROPIC_API_KEY` on the site. The run fails when AI is off on the site.
+
 ### Morning brief corpus
 
 Paused: the brief was taken off Market News on 2026-11-19, so its workflow runs only by hand until it comes back (`.github/workflows/brief-corpus.yml` says how to restore the schedule). The morning brief reads one shared corpus a day instead of calling news sources per user (`docs/morning-brief-plan.md`, phase B1). `.github/workflows/brief-corpus.yml` runs `scripts/brief-corpus.sh`, which calls `/api/cron/brief-corpus`. The job reads every Market News source, tags each item (customers included), adds Claude's relevance through the same cached call Market News makes, stamps each item with when it was first seen, and saves the day under `brief-corpus-v1` in the store, keeping 14 days. It needs the same `CRON_SECRET` and `SITE_URL` as the filing refresh. To build one locally without the site, run `npx tsx scripts/build-corpus.ts`.

@@ -59,12 +59,17 @@ export async function BriefSections({ brief, article }: { brief: Promise<BriefRe
           ))}
         </ol>
       </Section>
-      <Section title="Why it matters to Avnet">
-        <p className="max-w-[68ch] text-body leading-relaxed text-ink">{b.whyItMatters}</p>
-      </Section>
-      <Section title="What to watch">
-        <p className="max-w-[68ch] text-body leading-relaxed text-ink">{b.watchFor}</p>
-      </Section>
+      {/* Either can be empty when every sentence in it was dropped for a figure the story doesn't contain. */}
+      {b.whyItMatters && (
+        <Section title="Why it matters to Avnet">
+          <p className="max-w-[68ch] text-body leading-relaxed text-ink">{b.whyItMatters}</p>
+        </Section>
+      )}
+      {b.watchFor && (
+        <Section title="What to watch">
+          <p className="max-w-[68ch] text-body leading-relaxed text-ink">{b.watchFor}</p>
+        </Section>
+      )}
       <p className="border-t border-hairline pt-4 text-caption text-ink-muted">
         {b.thin
           ? `Summary by Claude from ${article.outlet}'s headline and teaser only; the full story may say more. Check the original before quoting it.`
