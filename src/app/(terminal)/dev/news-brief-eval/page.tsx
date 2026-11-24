@@ -23,7 +23,9 @@ function BriefColumn({ label, brief, message }: { label: string; brief: ArticleB
     <div className="min-w-0 space-y-3">
       <h3 className="font-display text-card-title text-ink">Brief {label}</h3>
       {!brief ? (
-        <p className="text-body-sm text-negative">No brief: {message ?? "the call failed."}</p>
+        <p className="text-body-sm text-negative">
+          No brief: {message ?? "the call failed."} Rerun the comparison to try this story again, or vote on the brief that exists.
+        </p>
       ) : (
         <>
           <p className="text-body font-semibold leading-relaxed text-ink">{brief.takeaway}</p>
@@ -38,7 +40,7 @@ function BriefColumn({ label, brief, message }: { label: string; brief: ArticleB
           </div>
           <div>
             <p className="text-caption font-semibold uppercase tracking-wide text-ink-muted">What to watch</p>
-            <p className="mt-1 text-body-sm leading-relaxed text-ink">{brief.watchFor}</p>
+            <p className="mt-1 text-body-sm leading-relaxed text-ink">{brief.watchFor || "(nothing held up against the story)"}</p>
           </div>
         </>
       )}
@@ -63,7 +65,7 @@ export default async function BriefEvalPage() {
         {!run ? (
           <Panel>
             <p className="text-body text-ink">
-              No run yet. Take a sample, then run both models: <code>npx tsx --env-file=.env.local scripts/news-brief-eval.ts sample</code>, then <code>… run</code>.
+              No run yet. Take a sample, then run both models: <code translate="no" className="break-words">npx tsx --env-file=.env.local scripts/news-brief-eval.ts sample</code>, then <code translate="no">… run</code>.
             </p>
           </Panel>
         ) : (
@@ -83,7 +85,7 @@ export default async function BriefEvalPage() {
                 }
               >
                 <div className="space-y-4">
-                  <a href={row.url} target="_blank" rel="noreferrer" className="text-body-sm text-ink underline underline-offset-2">
+                  <a href={row.url} target="_blank" rel="noreferrer" className="text-body-sm text-ink underline underline-offset-2 hover:decoration-2">
                     Read the original<span className="sr-only"> (opens in a new tab)</span>
                   </a>
                   <div className="grid gap-6 md:grid-cols-2 md:divide-x md:divide-hairline">
