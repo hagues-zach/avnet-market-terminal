@@ -79,6 +79,7 @@ function Pane({
   last,
   syncId,
   showBox,
+  labelCol,
 }: {
   data: ChartData;
   tab: TabSpec;
@@ -86,13 +87,14 @@ function Pane({
   height: number;
   last: boolean;
   syncId: string;
+  labelCol: number;
   /** Only the hovered pane shows the hover box; the others show just the highlight. */
   showBox: boolean;
 }) {
   const rows = data.periods.map((label, i) => ({ label, ...Object.fromEntries(pane.series.map((s) => [s.key, valueAt(data, s, i)])) }));
   const hasBars = pane.series.some((s) => s.mark === "bar");
   const hasNegative = pane.series.some((s) => data.periods.some((_, i) => (valueAt(data, s, i) ?? 0) < 0));
-  const margin = { top: 10, right: 0, left: LABEL_COL - Y_WIDTH, bottom: 0 };
+  const margin = { top: 10, right: 0, left: Math.max(0, labelCol - Y_WIDTH), bottom: 0 };
 
   return (
     <div>
@@ -167,7 +169,20 @@ function Pane({
 }
 
 /** The panes of one tab, sharing one hover. `height` is the plotting height, shared by weight. */
-export function StackedPanes({ data, tab, height, syncId }: { data: ChartData; tab: TabSpec; height: number; syncId: string }) {
+export function StackedPanes({
+  data,
+  tab,
+  height,
+  syncId,
+  labelCol = LABEL_COL,
+}: {
+  data: ChartData;
+  tab: TabSpec;
+  height: number;
+  syncId: string;
+  /** Must match the values table's labelCol so the columns line up. */
+  labelCol?: number;
+}) {
   const [hovered, setHovered] = useState<number | null>(null);
   const total = tab.panes.reduce((n, p) => n + (p.weight ?? 1), 0);
   return (
@@ -177,7 +192,7 @@ export function StackedPanes({ data, tab, height, syncId }: { data: ChartData; t
         const h = Math.round((height * (pane.weight ?? 1)) / total) + (last ? AXIS_HEIGHT : 0);
         return (
           <div key={`${tab.id}-${i}`} onMouseEnter={() => setHovered(i)}>
-            <Pane data={data} tab={tab} pane={pane} height={h} last={last} syncId={syncId} showBox={hovered === i} />
+            <Pane data={data} tab={tab} pane={pane} height={h} last={last} syncId={syncId} showBox={hovered === i} labelCol={labelCol} />
           </div>
         );
       })}
@@ -186,16 +201,29 @@ export function StackedPanes({ data, tab, height, syncId }: { data: ChartData; t
 }
 
 /** The exact figures behind the tab: one row per series, one column per period, latest in bold. */
-export function ValuesTable({ data, tab }: { data: ChartData; tab: TabSpec }) {
+export function ValuesTable({
+  data,
+  tab,
+  labelCol = LABEL_COL,
+  compact = false,
+}: {
+  data: ChartData;
+  tab: TabSpec;
+  /** Must match the panes' labelCol so the columns line up. */
+  labelCol?: number;
+  /** Narrow containers: smaller type and short period labels ("Q3 '26"). */
+  compact?: boolean;
+}) {
   const last = data.periods.length - 1;
+  const short = (p: string) => p.replace(/^(?:FY|CY)(\d{2}) (Q\d)$/, "$2 '$1");
   return (
     <div className="overflow-x-auto">
-      <table className="w-full table-fixed border-collapse font-body text-table">
+      <table className={cn("w-full table-fixed border-collapse font-body", compact ? "text-caption" : "text-table")}>
         <caption className="sr-only">
           {data.title}, {tab.label}: the figures charted above
         </caption>
         <colgroup>
-          <col style={{ width: LABEL_COL }} />
+          <col style={{ width: labelCol }} />
           {data.periods.map((p) => (
             <col key={p} />
           ))}
@@ -203,11 +231,16 @@ export function ValuesTable({ data, tab }: { data: ChartData; tab: TabSpec }) {
         <thead>
           <tr className="border-b border-hairline">
             <th scope="col" className="h-control px-2 text-left font-display text-label font-normal uppercase text-ink-muted">
-              Line item
+              {compact ? <span className="sr-only">Line item</span> : "Line item"}
             </th>
             {data.periods.map((p, i) => (
-              <th key={p} scope="col" className={cn("h-control whitespace-nowrap px-1 text-center font-display text-label font-normal uppercase", i === last ? "text-ink" : "text-ink-muted")}>
-                {p}
+              <th
+                key={p}
+                scope="col"
+                title={compact ? p : undefined}
+                className={cn("h-control whitespace-nowrap px-1 text-center font-display text-label font-normal uppercase", i === last ? "text-ink" : "text-ink-muted")}
+              >
+                {compact ? short(p) : p}
               </th>
             ))}
           </tr>
@@ -223,7 +256,8 @@ export function ValuesTable({ data, tab }: { data: ChartData; tab: TabSpec }) {
               </th>
               {data.periods.map((p, i) => (
                 <td key={p} className={cn("whitespace-nowrap px-1 py-1 text-center tabular-nums text-ink", i === last && "font-semibold")}>
-                  {formatValue(pane.unit, data.series[series.key]?.[i])}
+                  {/* Compact cells drop the unit word ("98", not "98 days"); the pane title names it. */}
+                  {compact ? formatValue(pane.unit, data.series[series.key]?.[i]).replace(/ (days|pts)$/, "") : formatValue(pane.unit, data.series[series.key]?.[i])}
                 </td>
               ))}
             </tr>
