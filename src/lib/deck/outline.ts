@@ -431,8 +431,15 @@ export interface PanelRow {
   lines?: { values: (number | null)[]; color: string; width?: number }[];
 }
 
-/** A table cell: text, or a change with its arrow. */
-export type PanelCell = string | { change: string; tone?: PanelTone };
+/**
+ * A table cell: text; text in bold (the leader), grey (a year ago) or after a colour marker;
+ * a change with its arrow, in its tone; or a small bar chart (eight quarters of growth).
+ */
+export type PanelCell =
+  | string
+  | { text: string; bold?: boolean; muted?: boolean; marker?: string }
+  | { change: string; tone?: PanelTone; period?: string }
+  | { spark: (number | null)[]; color?: string };
 
 
 /** One column of a panels slide. */
@@ -469,8 +476,11 @@ export interface Panel {
   /** Rows down the panel; with rowRules, a hairline between them. */
   rows?: PanelRow[];
   rowRules?: boolean;
-  /** A compact table: column heads in small capitals, the first column left, the rest right. */
-  table?: { columns: string[]; rows: { label: string; cells: PanelCell[] }[] };
+  /**
+   * A table as the page draws its tables: column heads in small capitals on a grey band, a hairline
+   * under each row, the first column left and the rest right. A row's label can carry a colour marker.
+   */
+  table?: { columns: string[]; rows: { label: string; marker?: string; cells: PanelCell[] }[] };
   /** Small columns over periods, each labelled under and its value over it: the hyperscalers' capex by quarter. */
   bars?: { labels: string[]; values: (number | null)[]; valueLabels?: string[]; color: string };
   /** Names and values in a grid of three: each hyperscaler's capex growth. */

@@ -1,7 +1,7 @@
 // The slide each card makes. Run with: npx tsx src/lib/deck/slides.test.ts
 import assert from "node:assert/strict";
 import { panelChange, planSlide } from "./layout";
-import { comparisonSlide, figuresSlide, formatFigure, linesSlide, panelsSlide, seriesSlide, tableSlide } from "./slides";
+import { changeCell, comparisonSlide, figuresSlide, formatFigure, linesSlide, panelsSlide, seriesSlide, tableSlide } from "./slides";
 import { PreviewSchema } from "./tray";
 
 const valid = (p: unknown, what: string) => {
@@ -97,8 +97,24 @@ const big = tableSlide({
   source: "SEC filings",
 });
 assert.equal(big.preview.facts?.length, 16);
-assert.equal(planSlide(big.preview).kind, "table");
+assert.equal(planSlide(big.preview).kind, "panels", "drawn as the page draws its tables");
+assert.equal(big.preview.panels?.[0].table?.rows.length, 16);
 valid(big.preview, "a table slide");
+// Cells as the page shows them: the leader in bold, a change with its tone, eight quarters as bars; the facts keep the text.
+const styled = tableSlide({
+  key: "cycle:group-scorecard",
+  title: "Group scorecard",
+  columns: ["Group", "Growth", "Last 8 quarters", "Margin change"],
+  rows: [{ label: "Distributors", marker: "#4273B8", values: [{ text: "+41.4%", bold: true }, { spark: [0.1, NaN, -0.2] }, { change: "+0.4 pts", tone: "good", period: "YoY" }] }],
+  source: "SEC filings",
+});
+const cells = styled.preview.panels![0].table!.rows[0].cells;
+assert.deepEqual(cells[1], { spark: [0.1, null, -0.2] }, "a spark's gaps kept as gaps");
+assert.deepEqual(styled.preview.facts?.[0].values, ["+41.4%", "", "+0.4 pts YoY"], "the facts as text");
+valid(styled.preview, "a styled table slide");
+// Wider than the page's tables: the template's own table.
+const wide = tableSlide({ key: "k", title: "t", columns: ["A", ...Array.from({ length: 9 }, (_, i) => `C${i}`)], rows: [{ label: "r", values: Array(9).fill("1") }], source: "s" });
+assert.equal(planSlide(wide.preview).kind, "table");
 
 // Tiles and points.
 const tiles = figuresSlide({ key: "tam:opportunity", title: "The opportunity in 2025", figures: [{ label: "TAM", value: "$772.2B" }, { label: "SAM", value: "$139.0B" }, { label: "SOM", value: "$16.4B" }], source: "WSTS" });
@@ -151,6 +167,8 @@ assert.ok(rowsSlide.preview.panels![0].rows![0].text!.length <= 300, "long sente
 assert.equal(rowsSlide.preview.panels![0].rows![0].bar?.share, 1, "row bar capped");
 assert.deepEqual(rowsSlide.preview.panels![0].rows![0].lines?.[0].values, [1, null, 3], "gaps in a line kept as gaps");
 valid(rowsSlide.preview, "a rows panels slide");
+assert.deepEqual(changeCell(-0.3, (v) => `${Math.round(v)} days`, true), { change: "0 days", tone: "neutral" }, "a change that rounds to nothing is flat");
+assert.deepEqual(changeCell(-7, (v) => `${Math.round(v)} days`, true), { change: "\u22127 days", tone: "good" }, "fewer days is good");
 assert.equal(panelChange("+1.2 pts"), "\u2191 +1.2 pts");
 assert.equal(panelChange("\u221216d"), "\u2193 \u221216d");
 assert.equal(panelChange("0d"), "\u2192 0d");

@@ -202,7 +202,7 @@ export type PanelItem =
   /** A straight stroke from one point to another, for small line charts. Width in points. */
   | { kind: "seg"; x1: number; y1: number; x2: number; y2: number; color: string; width: number };
 
-const PANEL_INK = { muted: "#6B7075", line: "#E3E5E8", good: "#138036", bad: "#D7263D" } as const;
+const PANEL_INK = { muted: "#6B7075", line: "#E3E5E8", band: "#F4F5F6", good: "#138036", bad: "#D7263D" } as const;
 const PANEL_TONE = { good: PANEL_INK.good, bad: PANEL_INK.bad, neutral: PANEL_INK.muted, plain: "#000000" } as const;
 
 /** A change as runs: its arrow and value in its tone, then the period in grey. */
@@ -421,26 +421,70 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
     }
     if (p.table?.rows.length) {
       const cols = p.table.columns;
-      const first = cols.length > 1 ? w * 0.46 : w;
-      const cw = cols.length > 1 ? (w - first) / (cols.length - 1) : 0;
+      const n = cols.length;
+      // The label column takes what the others leave: wide beside two or three numbers, narrower beside six.
+      const first = n > 1 ? w * (n <= 3 ? 0.46 : n <= 5 ? 0.34 : 0.26) : w;
+      const cw = n > 1 ? (w - first) / (n - 1) : 0;
+      const pad = z(0.06);
       const colX = (c: number) => (c === 0 ? x : x + first + (c - 1) * cw);
-      const rowH = z(0.21);
+      const size = z(9);
+      const rowH = z(0.25);
+      const headH = Math.max(z(0.26), tall(cols.slice(1).reduce((a, c) => (c.length > a.length ? c : a), ""), label, cw - pad) + z(0.08));
       y += z(0.04);
-      cols.forEach((c, k) => text(colX(k), y, k ? cw : first, z(0.16), [{ text: c.toUpperCase(), size: label, bold: true, color: PANEL_INK.muted }], { spaced: true, align: k ? "right" : "left", valign: "bottom" }));
-      y += z(0.18);
+      // The page's header band: grey, a hairline under it, the heads in small capitals.
+      items.push({ kind: "rect", x, y, w, h: headH, color: PANEL_INK.band });
+      cols.forEach((c, k) =>
+        text(colX(k) + (k ? 0 : pad), y, (k ? cw : first) - pad, headH, [{ text: c.toUpperCase(), size: label, bold: true, color: PANEL_INK.muted }], {
+          spaced: true,
+          align: k ? "right" : "left",
+          valign: "middle",
+        }),
+      );
+      y += headH;
       rule(x, y);
       for (const row of p.table.rows) {
-        text(colX(0), y + z(0.03), first - 0.05, rowH - z(0.03), [{ text: row.label, size: z(8.5) }], { valign: "middle" });
-        row.cells.forEach((c, k) =>
-          text(colX(k + 1), y + z(0.03), cw, rowH - z(0.03), typeof c === "string" ? [{ text: c, size: z(8.5) }] : changeRuns(c.change, c.tone, undefined, z(8.5)), {
-            align: "right",
-            valign: "middle",
-          }),
-        );
+        const at = row.marker ? z(0.15) : 0;
+        if (row.marker) items.push({ kind: "rect", x: x + pad, y: y + rowH / 2 - z(0.045), w: z(0.09), h: z(0.09), color: row.marker });
+        text(x + pad + at, y, first - pad - at - 0.04, rowH, [{ text: row.label, size }], { valign: "middle" });
+        row.cells.forEach((c, k) => {
+          const cx = colX(k + 1);
+          if (typeof c !== "string" && "spark" in c) {
+            // Eight quarters as small bars around a zero line, the latest solid, as the page's Spark.
+            const vals = c.spark;
+            const known = vals.filter((v): v is number => v !== null);
+            if (known.length) {
+              const max = Math.max(0, ...known);
+              const span = max - Math.min(0, ...known) || 1;
+              const sw = Math.min(cw - pad, z(0.9));
+              const sx = cx + cw - pad - sw;
+              const sh = rowH - z(0.08);
+              const zero = y + z(0.04) + (max / span) * sh;
+              const bw = (sw - 0.01 * (vals.length - 1)) / vals.length;
+              const last = vals.reduce<number>((l, v, j) => (v === null ? l : j), -1);
+              vals.forEach((v, j) => {
+                if (v === null) return;
+                const h = Math.max(0.005, (Math.abs(v) / span) * sh);
+                items.push({ kind: "rect", x: sx + j * (bw + 0.01), y: v >= 0 ? zero - h : zero, w: bw, h, color: c.color ?? VIZ.arrow, opacity: j === last ? 1 : 0.45 });
+              });
+            }
+            return;
+          }
+          const runs: PanelRun[] =
+            typeof c === "string"
+              ? [{ text: c, size }]
+              : "change" in c
+                ? changeRuns(c.change, c.tone, c.period, size)
+                : [{ text: c.text, size, bold: c.bold, color: c.muted ? PANEL_INK.muted : undefined }];
+          if (typeof c !== "string" && "marker" in c && c.marker) {
+            const tw2 = (c.text.length * size * 0.6) / 72;
+            items.push({ kind: "rect", x: cx + cw - pad - tw2 - z(0.14), y: y + rowH / 2 - z(0.045), w: z(0.09), h: z(0.09), color: c.marker });
+          }
+          text(cx, y, cw - pad, rowH, runs, { align: "right", valign: "middle" });
+        });
         y += rowH;
         rule(x, y, 0.5);
       }
-      y += z(0.08);
+      y += z(0.1);
     }
     if (p.bars && p.bars.values.some((v) => v !== null)) {
       const vals = p.bars.values;
@@ -512,7 +556,7 @@ export function layoutPanels(panels: Panel[], box: { x: number; y: number; w: nu
   }
   // A short list of rows, bars or paragraphs grows to use the slide, up to half as large again. Text
   // rewraps as it grows, so the largest scale that still fits is found by halving the interval.
-  if (k === 1 && panels.every((p) => p.rows?.length || p.paragraphs?.length) && r.over < -0.3) {
+  if (k === 1 && panels.every((p) => p.rows?.length || p.paragraphs?.length || p.table?.rows.length) && r.over < -0.3) {
     let lo = 1;
     let hi = 1.5;
     for (let i = 0; i < 7; i++) {

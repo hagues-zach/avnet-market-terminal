@@ -7,7 +7,7 @@ import { seasonQuarter } from "@/lib/earnings/season";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { Delta } from "@/components/ui/delta";
 import { NA, format } from "./format";
-import { tableSlide } from "@/lib/deck/slides";
+import { changeCell, tableSlide } from "@/lib/deck/slides";
 
 const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
 const days = (v: number) => {
@@ -37,12 +37,13 @@ export async function SeasonByGroup() {
         columns: ["Group", "Filed", `Median growth, ${quarter}`, prior, "Growing", "Inventory days, YoY"],
         rows: groups.map((g) => ({
           label: COHORT_LABELS[g.cohort],
+          // The quarter before in grey and the inventory change in its colour (fewer days is good), as the card shows them.
           values: [
             `${g.filed} of ${g.total}`,
-            g.filed ? format("growth", g.medianGrowth) : "none filed",
-            format("growth", g.priorMedianGrowth),
+            g.filed ? format("growth", g.medianGrowth) : { text: "none filed", muted: true },
+            { text: format("growth", g.priorMedianGrowth), muted: true },
             g.shareGrowing === undefined ? NA : `${Math.round(g.shareGrowing * 100)}%`,
-            g.inventoryDaysChange === undefined ? NA : `${g.inventoryDaysChange >= 0 ? "+" : "−"}${days(g.inventoryDaysChange)}`,
+            changeCell(g.inventoryDaysChange, days, true),
           ],
         })),
         source: "SEC filings, GAAP as reported",

@@ -8,7 +8,7 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { CapexBars, GrowthBars, InventoryLines } from "./charts";
 import { Spark } from "./spark";
-import { comparisonSlide, formatFigure, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { changeCell, comparisonSlide, formatFigure, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
 import type { PanelTone } from "@/lib/deck/outline";
 import { VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
@@ -508,12 +508,22 @@ function Scorecard({
         key: "cycle:group-scorecard",
         title: "Group scorecard",
         text: `All ${supplyGroups.length + demandGroups.length} groups, ${latest}: growth, margin and inventory.`,
-        columns: ["Group", "Growth YoY", "Prior qtr", "Growing", "Op margin", "Inv days"],
+        // The card's columns: growth with its eight quarters, the quarter before in grey, margin and inventory with their changes.
+        columns: ["Group", "Growth YoY", "Last 8 quarters", "Prior qtr", "Op margin", "Margin YoY", "Inv days", "Inv days YoY"],
         rows: [...supplyGroups, ...demandGroups].map((g) => {
           const now = at(g.points, latest);
+          const lastYear = at(g.points, yearAgo);
           return {
             label: COHORT_LABELS[g.cohort],
-            values: [growthText(now?.growth), growthText(at(g.points, prior)?.growth), now?.growing === undefined ? NA : `${Math.round(now.growing * 100)}%`, format("pct", now?.operatingMargin), format("days", now?.inventoryDays)],
+            values: [
+              growthText(now?.growth),
+              { spark: g.points.map((p) => p.growth ?? null), color: VIZ.arrow },
+              { text: growthText(at(g.points, prior)?.growth), muted: true },
+              format("pct", now?.operatingMargin),
+              changeCell(ptChange(now?.operatingMargin, lastYear?.operatingMargin), pts),
+              format("days", now?.inventoryDays),
+              changeCell(dayChange(now?.inventoryDays, lastYear?.inventoryDays), days, true),
+            ],
           };
         }),
         source: "SEC filings",

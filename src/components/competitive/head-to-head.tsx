@@ -106,9 +106,16 @@ export async function Overview() {
           trayTitle: "Avnet vs Arrow: Scorecard",
           text: verdict(rows, latest),
           columns: ["Measure", "Avnet", "Arrow", "Gap", "Leads", "Gap a year ago"],
+          // The card's table: the leader's value in bold, who leads with their marker, the gap a year ago in grey.
           rows: rows.map((r) => ({
             label: r.label,
-            values: [format(r.kind, r.avnet), format(r.kind, r.arrow), r.caveat ? NA : gapText(r, r.gap), r.leads ?? NA, r.caveat ? NA : gapText(r, r.gapYearAgo)],
+            values: [
+              { text: format(r.kind, r.avnet), bold: r.leads === "Avnet" },
+              { text: format(r.kind, r.arrow), bold: r.leads === "Arrow" },
+              r.caveat ? NA : gapText(r, r.gap),
+              r.leads ? { text: r.leads, marker: r.leads === "Avnet" ? VIZ.avnet : VIZ.arrow } : { text: NA, muted: true },
+              { text: r.caveat ? NA : gapText(r, r.gapYearAgo), muted: true },
+            ],
           })),
           source: "SEC filings, GAAP as reported",
           period: latest,
@@ -492,12 +499,13 @@ export async function MoreMeasures() {
                     const y = at(region(sb.regions, r), rl);
                     return {
                       label: r,
+                      // Shares in grey, as the card shows them.
                       values: [
                         format("usd", x?.revenue),
-                        share(x?.revenue !== undefined && totals.avnet ? x.revenue / totals.avnet : undefined),
+                        { text: share(x?.revenue !== undefined && totals.avnet ? x.revenue / totals.avnet : undefined), muted: true },
                         x?.yoy === undefined ? NA : format("growth", x.yoy),
                         format("usd", y?.revenue),
-                        share(y?.revenue !== undefined && totals.arrow ? y.revenue / totals.arrow : undefined),
+                        { text: share(y?.revenue !== undefined && totals.arrow ? y.revenue / totals.arrow : undefined), muted: true },
                         y?.yoy === undefined ? NA : format("growth", y.yoy),
                       ],
                     };

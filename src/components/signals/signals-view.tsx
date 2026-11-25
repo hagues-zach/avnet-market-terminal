@@ -303,7 +303,19 @@ export async function SignalsView() {
           title: "Economic indicators",
           text: lead || "Latest value and change on a month and a year ago.",
           columns: ["Indicator", "Latest", "On a month", "On a year"],
-          rows: groups.flatMap((g) => g.rows).map((r) => ({ label: r.label, values: [r.latest, r.month?.text ?? "n/a", r.year?.text ?? "n/a"] })),
+          // Each change in its colour with its arrow, as the card's table shows it.
+          rows: groups
+            .flatMap((g) => g.rows)
+            .map((r) => ({
+              label: r.label,
+              values: [
+                r.latest,
+                ...[r.month, r.year].map((c) =>
+                  // A flat change reads without its sign, so it takes the page's sideways arrow.
+                  c ? { change: c.sign === 0 ? c.text.replace(/^[+\u2212-]/, "") : c.text, tone: c.sign === 0 ? ("neutral" as const) : c.tone === "neutral" ? ("plain" as const) : c.tone } : { text: "n/a", muted: true },
+                ),
+              ],
+            })),
           source: "Federal Reserve, BLS, IMF, US Treasury, New York Fed, ECB",
           hookups: ["macro"],
         })}

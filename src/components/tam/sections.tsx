@@ -228,7 +228,7 @@ export function CategoryCard({ t, vintage }: { t: TamSummary; vintage: string })
             .sort((x, y) => y.market - x.market)
             .map((r) => ({
               label: PRODUCT_LABEL[r.product],
-              values: [formatUsdMillions(r.market), formatGrowth(r.growth), pct(r.shareOfTam), formatUsdMillions(r.served), formatUsdMillions(r.som), pct(r.shareOfServed)],
+              values: [formatUsdMillions(r.market), { change: formatGrowth(r.growth), tone: toneOf(r.growth) }, pct(r.shareOfTam), formatUsdMillions(r.served), formatUsdMillions(r.som), pct(r.shareOfServed)],
             })),
           source: `${vintage} by product category; served and Avnet columns from billings and the code map (mock)`,
           hookups: ["billings", "code-map"],

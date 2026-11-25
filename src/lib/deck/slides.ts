@@ -7,7 +7,11 @@
 
 import { AVNET, VIZ } from "@/lib/colors";
 import { formatPctSigned, formatUsdMillions } from "@/lib/format";
-import type { Chart, Panel, Preview, SeriesWho } from "./outline";
+import type { Chart, Panel, PanelCell, Preview, SeriesWho } from "./outline";
+
+/** A table cell as plain text, for a slide's facts and its notes. */
+const cellText = (c: PanelCell): string =>
+  typeof c === "string" ? c : "text" in c ? c.text : "change" in c ? `${c.change}${c.period ? ` ${c.period}` : ""}` : "";
 
 /** The slide a card makes: its tray id, the title the tray shows, and the slide. */
 export interface CardSlide {
@@ -217,14 +221,39 @@ export function comparisonSlide(
 /* ---------- A table ---------- */
 
 /** Rows and columns as written on the card (up to 16 rows and 11 value columns). */
-export function tableSlide(b: SlideBase & { columns: string[]; rows: { label: string; values: string[] }[]; lines?: string[] }): CardSlide {
+/** A cell kept within the tray's limits: text cut, spark values finite or gaps. */
+function cleanCell(c: PanelCell): PanelCell {
+  if (typeof c === "string") return cut(c, 40)!;
+  if ("spark" in c) return { ...c, spark: c.spark.slice(-16).map((v) => (v !== null && Number.isFinite(v) ? v : null)) };
+  if ("text" in c) return { ...c, text: cut(c.text, 40)! };
+  return { ...c, change: cut(c.change, 40)! };
+}
+
+/**
+ * A table, drawn as the page draws its tables (see Panel.table). A cell is text, or what the page
+ * shows in it: the leader in bold, a year ago in grey, a change with its arrow, eight quarters as bars.
+ * Up to seven value columns; a wider table keeps the template's own table.
+ */
+export function tableSlide(b: SlideBase & { columns: string[]; rows: { label: string; marker?: string; values: PanelCell[] }[]; lines?: string[] }): CardSlide {
   const width = Math.min(11, Math.max(0, ...b.rows.map((r) => r.values.length)));
   const preview: Preview = {
     ...base(b),
     columns: b.columns.slice(0, width + 1).map((c) => cut(c, 40)!),
-    facts: b.rows.slice(0, 16).map((r) => ({ label: cut(r.label, 80)!, values: Array.from({ length: width }, (_, i) => cut(r.values[i] ?? "", 40)!) })),
+    // The figures as text too, for the notes, the sources and Claude.
+    facts: b.rows.slice(0, 16).map((r) => ({ label: cut(r.label, 80)!, values: Array.from({ length: width }, (_, i) => cut(r.values[i] === undefined ? "" : cellText(r.values[i]), 40)!) })),
     ...linesOf(b.lines),
   };
+  if (width >= 1 && width <= 7 && b.rows.length)
+    preview.panels = [
+      {
+        table: {
+          columns: b.columns.slice(0, width + 1).map((c) => cut(c, 40)!),
+          rows: b.rows.slice(0, 16).map((r) =>
+            defined({ label: cut(r.label, 80)!, marker: r.marker, cells: Array.from({ length: width }, (_, i) => cleanCell(r.values[i] ?? "")) }),
+          ),
+        },
+      },
+    ];
   return card(b, preview);
 }
 
@@ -253,6 +282,15 @@ export function linesSlide(b: SlideBase & { lines: string[] }): CardSlide {
 export const toneOf = (v: number | null | undefined, plain = false): "good" | "bad" | "neutral" | "plain" =>
   v === null || v === undefined || v === 0 ? "neutral" : plain ? "plain" : v > 0 ? "good" : "bad";
 
+/** A table cell for a change, as the page's Delta shows it: its sign, the value shown, its colour. `invert` when down is good. */
+export function changeCell(v: number | null | undefined, show: (v: number) => string, invert = false): PanelCell {
+  if (v === null || v === undefined || !Number.isFinite(v)) return { text: "n/a", muted: true };
+  const shown = show(Math.abs(v));
+  // A change that rounds to nothing ("0 days", "0.0 pts") is flat: no sign, no colour.
+  if (v === 0 || !/[1-9]/.test(shown)) return { change: shown, tone: "neutral" };
+  return { change: `${v > 0 ? "+" : "\u2212"}${shown}`, tone: v > 0 !== invert ? "good" : "bad" };
+}
+
 const clamp01 = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0);
 
 /** Side-by-side panels, drawn as the page draws them (up to six). */
@@ -280,7 +318,10 @@ export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
           lines: r.lines?.map((l) => ({ ...l, values: l.values.slice(-16).map((v) => (v !== null && Number.isFinite(v) ? v : null)) })),
         }),
       ),
-      table: x.table && { columns: x.table.columns.slice(0, 5), rows: x.table.rows.slice(0, 12).map((r) => ({ ...r, cells: r.cells.slice(0, 4) })) },
+      table: x.table && {
+        columns: x.table.columns.slice(0, 8).map((c) => cut(c, 40)!),
+        rows: x.table.rows.slice(0, 16).map((r) => ({ ...r, label: cut(r.label, 80)!, cells: r.cells.slice(0, 7).map(cleanCell) })),
+      },
       bars: x.bars && { ...x.bars, labels: x.bars.labels.slice(-12), values: x.bars.values.slice(-12).map((v) => (v !== null && Number.isFinite(v) ? v : null)), valueLabels: x.bars.valueLabels?.slice(-12) },
       pairs: x.pairs?.slice(0, 12),
     }),

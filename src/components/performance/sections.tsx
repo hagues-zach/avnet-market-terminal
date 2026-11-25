@@ -136,7 +136,7 @@ export async function RegionCard() {
           columns: ["Region", "Billings", "Share", "Growth YoY", "Book-to-bill", "Backlog"],
           rows: rows.map((r) => ({
             label: r.region,
-            values: [fmtM(r.billings), `${Math.round(r.share * 100)}%`, formatGrowth(r.growth), r.bookToBill.toFixed(2), fmtM(r.backlog)],
+            values: [fmtM(r.billings), `${Math.round(r.share * 100)}%`, { change: formatGrowth(r.growth), tone: toneOf(r.growth) }, r.bookToBill.toFixed(2), fmtM(r.backlog)],
           })),
           source: m.status === "mock" ? "Mock model of Avnet" : "Avnet billings, bookings and backlog by region",
           period: quarter,

@@ -56,7 +56,12 @@ const PanelRowSchema = z.object({
   text: text(300).optional(),
   lines: z.array(z.object({ values: z.array(z.number().nullable()).max(16), color: Hex, width: z.number().min(0.25).max(4).optional() })).max(3).optional(),
 });
-const PanelCellSchema = z.union([text(40), z.object({ change: text(40), tone: Tone.optional() })]);
+const PanelCellSchema = z.union([
+  text(40),
+  z.object({ text: text(40), bold: z.boolean().optional(), muted: z.boolean().optional(), marker: Hex.optional() }),
+  z.object({ change: text(40), tone: Tone.optional(), period: text(20).optional() }),
+  z.object({ spark: z.array(z.number().nullable()).max(16), color: Hex.optional() }),
+]);
 
 export const PreviewSchema = z.object({
   headline: text(240),
@@ -89,7 +94,10 @@ export const PreviewSchema = z.object({
         rows: z.array(PanelRowSchema).max(10).optional(),
         rowRules: z.boolean().optional(),
         table: z
-          .object({ columns: z.array(text(40)).max(5), rows: z.array(z.object({ label: text(80), cells: z.array(PanelCellSchema).max(4) })).max(12) })
+          .object({
+            columns: z.array(text(40)).max(8),
+            rows: z.array(z.object({ label: text(80), marker: Hex.optional(), cells: z.array(PanelCellSchema).max(7) })).max(16),
+          })
           .optional(),
         bars: z.object({ labels: z.array(text(20)).max(12), values: z.array(z.number().nullable()).max(12), valueLabels: z.array(text(20)).max(12).optional(), color: Hex }).optional(),
         pairs: z.array(z.object({ label: text(40), value: text(30) })).max(12).optional(),
