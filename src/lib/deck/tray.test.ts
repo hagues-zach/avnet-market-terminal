@@ -167,7 +167,9 @@ assert.equal(p.hookups, undefined);
 assert.ok(PreviewSchema.safeParse(p).success, "the adapter's output passes the tray's schema");
 
 const e = chartViewToPreview(earnings, "eps");
-assert.equal(e.chart, undefined, "EPS can't be drawn on a slide chart; the figures carry it");
+assert.equal(e.chart?.kind, "column", "EPS is charted, as columns");
+assert.equal(e.chart?.format, "eps", "in dollars and cents");
+assert.equal(e.chart?.title, "Diluted EPS", "titled by its pane");
 assert.equal(e.text, undefined, "no takeaway, no sentence");
 assert.equal(e.facts?.[0].values.at(-1), "$0.66");
 

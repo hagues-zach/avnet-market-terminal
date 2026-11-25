@@ -25,6 +25,8 @@ const MUTED = "#6B7075";
 const LINE = "#E3E5E8";
 const PANEL = "#F4F5F6";
 const COLOR = { avnet: VIZ.avnet, arrow: VIZ.arrow, company: AVNET.grayDark, market: VIZ.benchmark } as const;
+/** A series' colour: its own from the view it came from, else by whose it is. */
+const fill = (s: Chart["series"][number]) => s.color ?? COLOR[s.who];
 
 /** Pixels per point at the frame's current width (a 10 inch slide at 96 dpi is 960 px). */
 const ScaleContext = createContext(1);
@@ -36,8 +38,19 @@ const usePx = () => {
 /** A value as the chart writes it. `decimals` sets a percentage's places, for axis ticks on a narrow range. */
 function fmt(format: Chart["format"], v: number, decimals = 1): string {
   if (format === "pct") return `${v < 0 ? "−" : ""}${Math.abs(v * 100).toFixed(decimals)}%`;
+  // Days: whole numbers (the chart's title says days). EPS: dollars and cents.
+  if (format === "days") return `${v < 0 ? "−" : ""}${Math.round(Math.abs(v))}`;
+  if (format === "eps") return `${v < 0 ? "−" : ""}$${Math.abs(v).toFixed(2)}`;
   const a = Math.abs(v);
   const s = a >= 1e9 ? `$${(a / 1e9).toFixed(2)}B` : `$${Math.round(a / 1e6)}M`;
+  return v < 0 ? `−${s}` : s;
+}
+
+/** An axis tick: short, so it fits beside the plot. Dollars drop trailing zeros ($12B, $1.5B, $850M). */
+function tickFmt(format: Chart["format"], v: number, decimals: number): string {
+  if (format !== "usd") return fmt(format, v, decimals);
+  const a = Math.abs(v);
+  const s = a >= 1e9 ? `$${Number((a / 1e9).toFixed(2))}B` : `$${Number((a / 1e6).toFixed(0))}M`;
   return v < 0 ? `−${s}` : s;
 }
 
@@ -53,7 +66,7 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
   const described = c.series.map((s) => `${s.name}: ${s.points.map((p) => `${p.label} ${label(p.value)}`).join(", ")}`).join("; ");
 
   if (c.kind === "bar") {
-    const rows = c.series.map((s) => ({ name: s.name, value: s.points[0]?.value ?? 0, who: s.who }));
+    const rows = c.series.map((s) => ({ name: s.name, value: s.points[0]?.value ?? 0, color: fill(s) }));
     return (
       <div className="flex h-full flex-col" role="img" aria-label={described}>
         <ResponsiveContainer width="100%" height="100%">
@@ -62,7 +75,7 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
             <YAxis type="category" dataKey="name" width={px(64)} tick={{ ...tick, fontSize: px(11), fill: INK }} axisLine={false} tickLine={false} />
             <Bar dataKey="value" maxBarSize={px(40)} isAnimationActive={false}>
               {rows.map((r) => (
-                <Cell key={r.name} fill={COLOR[r.who]} />
+                <Cell key={r.name} fill={r.color} />
               ))}
               <LabelList dataKey="value" position="right" formatter={label} style={{ ...valueStyle, fontSize: px(12), fontWeight: 700 }} />
             </Bar>
@@ -87,14 +100,14 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
     (k: number) =>
     ({ x, y, value, index }: { x?: number | string; y?: number | string; value?: number | string; index?: number }) =>
       index === last && value !== undefined ? (
-        <text x={Number(x) + px(5)} y={Number(y)} dy={px(3)} fontSize={px(9)} fontWeight={700} fill={COLOR[c.series[k].who]} fontFamily={ARIAL}>
+        <text x={Number(x) + px(5)} y={Number(y)} dy={px(3)} fontSize={px(9)} fontWeight={700} fill={fill(c.series[k])} fontFamily={ARIAL}>
           {label(value)}
         </text>
       ) : null;
   const yAxis = labels ? (
     <YAxis hide domain={domain} />
   ) : (
-    <YAxis domain={domain} tick={tick} tickFormatter={(v) => fmt(c.format, Number(v), tickDecimals)} axisLine={false} tickLine={false} width={px(34)} tickCount={5} />
+    <YAxis domain={domain} tick={tick} tickFormatter={(v) => tickFmt(c.format, Number(v), tickDecimals)} axisLine={false} tickLine={false} width={px(40)} tickCount={5} />
   );
   const grid = !labels && <CartesianGrid vertical={false} stroke={LINE} strokeWidth={0.75} />;
   const legend = many && <Legend iconSize={px(8)} wrapperStyle={{ fontSize: px(9), fontFamily: ARIAL, color: INK }} />;
@@ -110,7 +123,7 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
             {xAxis}
             {yAxis}
             {c.series.map((s, k) => (
-              <Line key={s.name} dataKey={`s${k}`} name={s.name} stroke={COLOR[s.who]} strokeWidth={px(2)} dot={{ r: px(2.5), strokeWidth: 0, fill: COLOR[s.who] }} isAnimationActive={false}>
+              <Line key={s.name} dataKey={`s${k}`} name={s.name} stroke={fill(s)} strokeWidth={px(2)} dot={{ r: px(2.5), strokeWidth: 0, fill: fill(s) }} isAnimationActive={false}>
                 {labels ? (
                   <LabelList dataKey={`s${k}`} position={k ? "bottom" : "top"} offset={px(6)} formatter={label} style={valueStyle} />
                 ) : (
@@ -126,7 +139,7 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
             {xAxis}
             {yAxis}
             {c.series.map((s, k) => (
-              <Bar key={s.name} dataKey={`s${k}`} name={s.name} fill={COLOR[s.who]} isAnimationActive={false}>
+              <Bar key={s.name} dataKey={`s${k}`} name={s.name} fill={fill(s)} isAnimationActive={false}>
                 {labels && <LabelList dataKey={`s${k}`} position="top" offset={px(4)} formatter={label} style={valueStyle} />}
               </Bar>
             ))}
@@ -141,6 +154,8 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
 /* ---------- The pieces of a slide ---------- */
 
 function KeyFigures({ items }: { items: Callout[] }) {
+  // Four figures fit the panel at a denser size.
+  const dense = items.length > 3;
   return (
     <div>
       <p style={{ fontSize: pt(8), letterSpacing: "0.06em", color: MUTED, fontWeight: 700 }} className="uppercase">
@@ -148,11 +163,11 @@ function KeyFigures({ items }: { items: Callout[] }) {
       </p>
       <dl>
         {items.map((c, i) => (
-          <div key={c.label} style={{ paddingTop: inch(0.11), paddingBottom: inch(0.11), borderTop: i ? `1px solid ${LINE}` : undefined }}>
-            <dd style={{ fontSize: pt(22), lineHeight: 1.05, fontWeight: 700 }} className="tabular-nums">
+          <div key={c.label} style={{ paddingTop: inch(dense ? 0.06 : 0.11), paddingBottom: inch(dense ? 0.06 : 0.11), borderTop: i ? `1px solid ${LINE}` : undefined }}>
+            <dd style={{ fontSize: pt(dense ? 17 : 22), lineHeight: 1.05, fontWeight: 700 }} className="tabular-nums">
               {c.value}
             </dd>
-            <dt style={{ fontSize: pt(9.5), marginTop: inch(0.03) }}>{c.label}</dt>
+            <dt style={{ fontSize: pt(dense ? 9 : 9.5), marginTop: inch(0.02) }}>{c.label}</dt>
             {c.note && <dd style={{ fontSize: pt(8), color: MUTED }}>{c.note}</dd>}
           </div>
         ))}
@@ -299,7 +314,11 @@ export function SlideFrame({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const measure = () => setScale(el.clientWidth / (SLIDE.w * 96));
+    // A slide not laid out yet reads 0 wide; keep the last size rather than shrink the chart's lines and labels to nothing.
+    const measure = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w > 0) setScale(w / (SLIDE.w * 96));
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -379,9 +398,9 @@ export function SlideThumb({ p, className }: { p: Preview; className?: string })
   const s = c?.series[0];
   const vals = s?.points.map((x) => x.value) ?? [];
   const max = Math.max(...vals.map(Math.abs), 0);
-  const color = s ? COLOR[s.who] : AVNET.grayDark;
+  const color = s ? fill(s) : AVNET.grayDark;
   // A comparison: each series' value as a horizontal bar, in its own colour.
-  const bars = c?.kind === "bar" ? c.series.map((x) => ({ v: Math.abs(x.points[0]?.value ?? 0), fill: COLOR[x.who] })) : [];
+  const bars = c?.kind === "bar" ? c.series.map((x) => ({ v: Math.abs(x.points[0]?.value ?? 0), fill: fill(x) })) : [];
   const barMax = Math.max(...bars.map((b) => b.v), 0);
   // Lines are scaled to their own range, so a small move still shows.
   const all = c?.kind === "line" ? c.series.flatMap((x) => x.points.map((pt) => pt.value)) : [];
@@ -402,7 +421,7 @@ export function SlideThumb({ p, className }: { p: Preview; className?: string })
           <polyline
             key={x.name}
             fill="none"
-            stroke={COLOR[x.who]}
+            stroke={fill(x)}
             strokeWidth={1.5}
             points={x.points.map((pt, i) => `${6 + (i * 52) / Math.max(x.points.length - 1, 1)},${y(pt.value)}`).join(" ")}
           />

@@ -55,6 +55,8 @@ type Box = { x: number; y: number; w: number; h: number };
 
 function numberFormat(c: Chart): string {
   if (c.format === "pct") return "0.0%";
+  if (c.format === "days") return "0";
+  if (c.format === "eps") return "$0.00";
   const max = Math.max(...c.series.flatMap((s) => s.points.map((p) => Math.abs(p.value))));
   return max >= 1e9 ? '$#,##0.00,,,"B"' : '$#,##0,,"M"';
 }
@@ -69,7 +71,7 @@ function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: Box, p
     barDir: c.kind === "bar" ? "bar" : "col",
     // A comparison of two or three bars reads better slim.
     barGapWidthPct: c.kind === "bar" ? 140 : 55,
-    chartColors: c.series.map((s) => COLOR[s.who]),
+    chartColors: c.series.map((s) => (s.color ? hex(s.color) : COLOR[s.who])),
     lineSize: 2,
     lineDataSymbol: "circle",
     lineDataSymbolSize: 6,
@@ -133,13 +135,16 @@ function addSide(slide: PptxGenJS.Slide, p: Preview, plan: SlidePlan, box: Box) 
   if (plan.callouts.length) {
     slide.addText("KEY FIGURES", { x, y, w, h: 0.18, fontFace: BODY, fontSize: 8, bold: true, color: MUTED, charSpacing: 1, margin: 0 });
     y += 0.24;
+    // Four figures fit the panel at a denser size.
+    const dense = plan.callouts.length > 3;
+    const valueH = dense ? 0.28 : 0.36;
     plan.callouts.forEach((c: Callout, i) => {
       if (i) slide.addShape("line", { x, y, w, h: 0, line: { color: LINE, width: 0.75 } });
-      const top = y + 0.08;
-      slide.addText(t(c.value), { x, y: top, w, h: 0.36, fontFace: BODY, fontSize: 22, bold: true, color: INK, margin: 0, valign: "top" });
-      slide.addText(t(c.label), { x, y: top + 0.38, w, h: 0.18, fontFace: BODY, fontSize: 9.5, color: INK, margin: 0 });
-      if (c.note) slide.addText(t(c.note), { x, y: top + 0.56, w, h: 0.16, fontFace: BODY, fontSize: 8, color: MUTED, margin: 0 });
-      y = top + (c.note ? 0.78 : 0.62);
+      const top = y + (dense ? 0.05 : 0.08);
+      slide.addText(t(c.value), { x, y: top, w, h: valueH, fontFace: BODY, fontSize: dense ? 17 : 22, bold: true, color: INK, margin: 0, valign: "top" });
+      slide.addText(t(c.label), { x, y: top + valueH + 0.02, w, h: 0.17, fontFace: BODY, fontSize: dense ? 9 : 9.5, color: INK, margin: 0 });
+      if (c.note) slide.addText(t(c.note), { x, y: top + valueH + 0.19, w, h: 0.15, fontFace: BODY, fontSize: 8, color: MUTED, margin: 0 });
+      y = top + valueH + (c.note ? 0.4 : 0.24) + (dense ? 0.02 : 0.04);
     });
     y += 0.06;
   }

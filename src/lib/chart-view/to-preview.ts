@@ -5,7 +5,7 @@
 // sentence. Pure.
 
 import type { Chart, Preview, SeriesWho } from "@/lib/deck/outline";
-import { formatValue, type ChartData, type PaneSpec, type SeriesSpec, type TabSpec } from "./model";
+import { formatValue, seriesColor, type ChartData, type PaneSpec, type SeriesSpec, type TabSpec } from "./model";
 
 /** Quarters on the slide's chart and in its figures. */
 const CHART_PERIODS = 8;
@@ -32,10 +32,9 @@ function paneTitle(pane: PaneSpec): string {
   return unit ? `${pane.title}, ${unit}` : pane.title;
 }
 
-/** The slide's chart from one pane, or undefined when its unit can't be drawn on a slide (days, EPS). */
+/** The slide's chart from one pane: dollars, percentages, days or EPS. */
 function paneChart(data: ChartData, pane: PaneSpec): Chart | undefined {
-  const format = pane.unit === "usd" ? "usd" : pane.unit === "pct" || pane.unit === "growth" || pane.unit === "pts" ? "pct" : undefined;
-  if (!format) return undefined;
+  const format: Chart["format"] = pane.unit === "pct" || pane.unit === "growth" || pane.unit === "pts" ? "pct" : pane.unit;
   const series = pane.series.filter((s) => hasData(data, s));
   if (!series.length) return undefined;
   // Only quarters every series reports, so the chart's categories line up.
@@ -44,12 +43,14 @@ function paneChart(data: ChartData, pane: PaneSpec): Chart | undefined {
   if (!shown.length) return undefined;
   const bars = series.some((s) => s.mark === "bar");
   return {
-    kind: shown.length === 1 ? "bar" : bars && format === "usd" ? "column" : "line",
+    kind: shown.length === 1 ? "bar" : bars && (format === "usd" || format === "eps") ? "column" : "line",
     format,
     title: paneTitle(pane),
     series: series.map((s) => ({
       name: s.name,
       who: whoOf(s, data.company),
+      // The colour the chart view gives it, so the slide matches the chart it came from.
+      color: seriesColor(s.color, data.company, s.mark),
       points: shown.map((i) => ({ label: data.periods[i], value: valueOf(data, s, i)! })),
     })),
   };

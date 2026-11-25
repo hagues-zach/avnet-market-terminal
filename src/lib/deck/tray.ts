@@ -24,13 +24,14 @@ const text = (max: number) => z.string().max(max);
 
 const ChartSchema = z.object({
   kind: z.enum(["bar", "column", "line"]),
-  format: z.enum(["usd", "pct"]),
+  format: z.enum(["usd", "pct", "days", "eps"]),
   title: text(120).optional(),
   series: z
     .array(
       z.object({
         name: text(80),
         who: z.enum(["avnet", "arrow", "company", "market"]),
+        color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
         points: z.array(z.object({ label: text(40), value: z.number() })).max(16),
       }),
     )
