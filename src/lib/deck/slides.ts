@@ -31,6 +31,8 @@ export interface SlideBase {
   hookups?: string[];
   /** The tray's name for the card, when the headline isn't it. */
   trayTitle?: string;
+  /** Says Claude wrote the text, as the page does: "Written by Claude from each company's latest earnings release". */
+  claude?: string;
 }
 
 export type SlideUnit = Chart["format"];
@@ -45,13 +47,14 @@ const slug = (s: string) =>
 const cut = (s: string | undefined, n: number) => (s && s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const defined = <T>(o: T): T => Object.fromEntries(Object.entries(o as object).filter(([, v]) => v !== undefined)) as T;
 
-function base(b: SlideBase): Pick<Preview, "headline" | "text" | "source" | "period" | "hookups"> {
+function base(b: SlideBase): Pick<Preview, "headline" | "text" | "source" | "period" | "hookups" | "claude"> {
   return defined({
     headline: cut(b.title, 240)!,
     text: cut(b.text, 1200),
     source: cut(b.source, 300)!,
     period: cut(b.period, 60),
     hookups: b.hookups?.length ? b.hookups.slice(0, 12) : undefined,
+    claude: b.claude ? { label: cut(b.claude, 120)! } : undefined,
   });
 }
 

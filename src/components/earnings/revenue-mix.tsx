@@ -4,6 +4,7 @@ import { Panel } from "@/components/ui/panel";
 import { LoadingBlock } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
 import { NA, format, longDate } from "./format";
+import { comparisonSlide } from "@/lib/deck/slides";
 
 const TITLE = "Revenue mix";
 const LABEL = "mb-1.5 font-display text-label uppercase text-ink-muted";
@@ -73,6 +74,29 @@ export async function RevenueMix({ company }: { company: string }) {
           ? mix.company.name
           : `${mix.company.name}, ${period}. The bar is revenue, then its share of total revenue and the change on the same period a year earlier.`
       }
+      deck={
+        empty || !mix.breakdowns[0]
+          ? null
+          : comparisonSlide({
+              key: `profile:${mix.company.slug}:revenue-mix`,
+              title: `${mix.company.name}: revenue ${mix.breakdowns[0].title.toLowerCase()}`,
+              trayTitle: `${mix.company.name}: Revenue mix`,
+              text: period ? `${period}, from the company's own tags in its latest ${mix.form}.` : undefined,
+              unit: "usd",
+              measure: "Revenue",
+              items: mix.breakdowns[0].items.map((i) => ({
+                name: i.label,
+                value: i.value,
+                extra: [i.share === undefined ? NA : `${Math.round(i.share * 100)}%`, i.yoy === undefined ? NA : format("growth", i.yoy)],
+              })),
+              extraColumns: ["Share", "Growth YoY"],
+              lines: [
+                ...mix.breakdowns.slice(1).map((b) => `${b.title}: ${b.items.slice(0, 4).map((i) => `${i.label} ${format("usd", i.value)}`).join(", ")}`),
+                ...(mix.customers.length ? [`Largest customers: ${mix.customers.map((c) => `${c.label} ${(c.share * 100).toFixed(0)}%`).join(", ")}`] : []),
+              ],
+              source: `${mix.company.name}'s latest ${mix.form}`,
+            })
+      }
       actions={
         mix.url && (
           <a
@@ -134,7 +158,7 @@ export async function RevenueMix({ company }: { company: string }) {
 
 export function RevenueMixFallback() {
   return (
-    <Panel title={TITLE} subtitle="Reading the latest filing document from SEC EDGAR.">
+    <Panel title={TITLE} subtitle="Reading the latest filing document from SEC EDGAR." deck={null}>
       <LoadingBlock label="Loading the revenue mix…" lines={5} />
     </Panel>
   );

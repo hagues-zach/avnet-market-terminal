@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import { format } from "./format";
 import { GroupTable } from "./group-table";
 import { GrowthMarginChart, RankChart } from "./leaderboard-charts";
-import { peerRows } from "./peer-section";
+import { peerRows, peersSlide } from "./peer-section";
+import { comparisonSlide, linesSlide, tableSlide } from "@/lib/deck/slides";
 
 const UNIT: Record<(typeof MEASURES)[Measure]["kind"], Unit> = { growth: "growth", pct: "pct", days: "days", usd: "usd" };
 const href = (measure: Measure, group: Cohort | "all") =>
@@ -64,7 +65,7 @@ export async function LeaderboardView({ measure, group }: { measure: Measure; gr
       </div>
 
       {ranked.length === 0 ? (
-        <Panel>
+        <Panel deck={null}>
           <EmptyState title={`No company in ${scope} has reported ${m.label.toLowerCase()} yet`} />
         </Panel>
       ) : (
@@ -73,6 +74,16 @@ export async function LeaderboardView({ measure, group }: { measure: Measure; gr
             className="min-w-0 xl:col-span-8"
             title={`${m.label}, ranked`}
             subtitle={`${scope}, each on its latest filed quarter. ${m.higherIsBetter ? "Highest" : "Lowest"} first; a bar opens the company's profile`}
+            deck={comparisonSlide({
+              key: `earnings:ranked-${measure}-${group}`,
+              title: `${m.label}, ranked: ${scope}`,
+              text: `${scope}, each on its latest filed quarter, ${m.higherIsBetter ? "highest" : "lowest"} first. The median is ${format(m.kind, median)}.`,
+              unit: m.kind === "growth" ? "pct" : m.kind,
+              measure: m.label,
+              keepOrder: true,
+              items: ranked.slice(0, 16).map((r) => ({ name: r.company.slug === "avnet" ? "Avnet" : r.company.slug === "arrow" ? "Arrow" : r.company.name, value: r.value })),
+              source: "SEC filings, GAAP as reported",
+            })}
             footer={
               <SourceLine source="SEC filings, GAAP as reported">
                 <span className="ml-auto inline-flex items-center gap-3">
@@ -96,10 +107,35 @@ export async function LeaderboardView({ measure, group }: { measure: Measure; gr
           </Panel>
 
           <div className="min-w-0 space-y-4 xl:col-span-4">
-            <Panel title="Growth against margin" subtitle="Revenue growth on a year ago, against operating margin. Dashed lines are the medians">
+            <Panel
+              title="Growth against margin"
+              subtitle="Revenue growth on a year ago, against operating margin. Dashed lines are the medians"
+              deck={tableSlide({
+                key: `earnings:growth-against-margin-${group}`,
+                title: `Growth against margin: ${scope}`,
+                text: `Revenue growth on a year ago against operating margin. Medians: growth ${format("growth", medianOf(growthRank))}, margin ${format("pct", marginMedian)}.`,
+                columns: ["Company", "Growth YoY", "Op margin"],
+                rows: growthRank.map((r) => ({ label: r.company.name, values: [format("growth", r.growth), format("pct", r.margin)] })),
+                source: "SEC filings, GAAP as reported",
+              })}
+            >
               <GrowthMarginChart points={growthRank.map((r) => ({ slug: r.company.slug, name: r.company.name, value: r.value, growth: r.growth, margin: r.margin }))} medianGrowth={medianOf(growthRank)} medianMargin={marginMedian} />
             </Panel>
-            <Panel title="Movers since the quarter before" subtitle={`Biggest changes in ${m.label.toLowerCase()}, each company against its own previous quarter`}>
+            <Panel
+              title="Movers since the quarter before"
+              subtitle={`Biggest changes in ${m.label.toLowerCase()}, each company against its own previous quarter`}
+              deck={
+                moved.length
+                  ? linesSlide({
+                      key: `earnings:movers-${measure}-${group}`,
+                      title: `Movers in ${m.label.toLowerCase()}: ${scope}`,
+                      text: "The biggest changes since the quarter before, each company against its own previous quarter.",
+                      lines: moved.map((r) => `${r.company.name}: ${format(m.kind, r.previous)} to ${format(m.kind, r.value)}`),
+                      source: "SEC filings, GAAP as reported",
+                    })
+                  : null
+              }
+            >
               {moved.length === 0 ? (
                 <EmptyState title="No changes to compare yet" />
               ) : (
@@ -137,6 +173,7 @@ export async function LeaderboardView({ measure, group }: { measure: Measure; gr
         subtitle="Every measure side by side. Select a column to sort, a company to open its profile"
         bodyClassName="p-0"
         footer={<SourceLine source="SEC filings, GAAP as reported" />}
+        deck={peersSlide(`earnings:latest-quarter-${group}`, `${scope}, latest quarter`, rows, tableMedian)}
       >
         <GroupTable rows={rows} current="avnet" showGroup={group === "all"} median={tableMedian} />
       </Panel>

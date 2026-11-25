@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState, type KeyboardEvent } from "react";
 import { BarChart3, Info } from "lucide-react";
 import type { ChartData } from "@/lib/chart-view/model";
-import type { ScoreRow, Side } from "@/lib/competitive/compare";
+import { gapText, type ScoreRow, type Side } from "@/lib/competitive/compare";
 import { NA, format } from "@/components/earnings/format";
 import { ChartDrawer } from "@/components/chart-view/chart-drawer";
 import { cn } from "@/lib/utils";
@@ -16,13 +16,6 @@ const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal
 
 function Marker({ side }: { side: Side }) {
   return <span className={cn("inline-block h-2.5 w-2.5 shrink-0", side === "Avnet" ? "bg-viz-avnet" : "bg-viz-arrow")} aria-hidden />;
-}
-
-function gapText(row: Pick<ScoreRow, "kind">, gap: number | undefined): string {
-  if (gap === undefined) return NA;
-  if (row.kind === "usd") return `${gap.toFixed(2)}×`;
-  const sign = gap >= 0 ? "+" : "−";
-  return row.kind === "days" ? `${sign}${Math.round(Math.abs(gap))}` : `${sign}${(Math.abs(gap) * 100).toFixed(1)} pts`;
 }
 
 export function ScorecardTable({ rows, latest, charts }: { rows: ScoreRow[]; latest: string; charts: Record<string, ChartData> }) {

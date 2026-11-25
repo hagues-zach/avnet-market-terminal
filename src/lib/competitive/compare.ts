@@ -154,3 +154,11 @@ export function strengths(rows: ScoreRow[], side: Side): ScoreRow[] {
   const edge = (r: ScoreRow) => Math.abs(r.gap ?? 0) / Math.max(Math.abs(r.avnet ?? 0), Math.abs(r.arrow ?? 0), 1e-9);
   return rows.filter((r) => r.leads === side).sort((a, b) => edge(b) - edge(a));
 }
+
+/** The gap as the scorecard writes it: a ratio for dollars, days, or points between two percentages. */
+export function gapText(row: Pick<ScoreRow, "kind">, gap: number | undefined): string {
+  if (gap === undefined) return "n/a";
+  if (row.kind === "usd") return `${gap.toFixed(2)}×`;
+  const sign = gap >= 0 ? "+" : "−";
+  return row.kind === "days" ? `${sign}${Math.round(Math.abs(gap))}` : `${sign}${(Math.abs(gap) * 100).toFixed(1)} pts`;
+}

@@ -7,6 +7,7 @@ import { isUsFiler } from "@/lib/data/live/earnings-model";
 import { justReported, season } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel } from "@/components/ui/panel";
+import { linesSlide } from "@/lib/deck/slides";
 import { EmptyState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
 import { NA, format } from "./format";
@@ -79,6 +80,17 @@ export async function SeasonOverview() {
         title="Earnings calendar"
         subtitle="All companies. Dates are estimated from each company's release for the same quarter last year"
         bodyClassName="p-0"
+        deck={linesSlide({
+          key: "earnings:calendar",
+          title: `The ${s.quarter} earnings season`,
+          text: `${s.reported.length} of ${s.total} companies have filed the quarter${s.medianGrowth !== undefined ? `, with median revenue growth of ${format("growth", s.medianGrowth)}` : ""}.`,
+          lines: [
+            ...soon.slice(0, 8).map((e) => `Reporting ${e.status === "due" ? "(overdue)" : shortDate(e.date)}${e.status === "estimated" ? " (estimated)" : ""}: ${e.company.name}`),
+            ...recent.slice(0, 4).map((r) => `Reported ${shortDate(r.event.date)}: ${r.event.company.name}`),
+          ],
+          source: "SEC EDGAR filing index; dates estimated from each company's release a year earlier",
+          period: s.quarter,
+        })}
         footer={failed.length > 0 ? <span>Could not read: {failed.join(", ")}</span> : undefined}
       >
         <div className="grid xl:grid-cols-2 xl:divide-x xl:divide-hairline">
@@ -190,6 +202,7 @@ export function SeasonFallback() {
       <Panel
         title="Earnings calendar"
         subtitle="Reading every company's filing index from SEC EDGAR. The first load after a refresh can take a minute."
+        deck={null}
       >
         <LoadingBlock label="Loading the earnings calendar…" lines={6} />
       </Panel>

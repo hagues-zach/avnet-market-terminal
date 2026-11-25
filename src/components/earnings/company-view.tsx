@@ -1,4 +1,5 @@
 import { ChevronRight, ExternalLink } from "lucide-react";
+import { seriesSlide } from "@/lib/deck/slides";
 import { comparability, comparableValue, sourceOf, type CompanyEarnings, type Metric, type Quarter } from "@/lib/data/live/earnings-model";
 import { CaveatMark } from "@/components/ui/caveat-mark";
 import { yearAgo } from "@/lib/earnings/season";
@@ -29,7 +30,7 @@ export function CompanyResults({ earnings }: { earnings: CompanyEarnings }) {
   const latest = quarters[quarters.length - 1];
   if (!latest) {
     return (
-      <Panel>
+      <Panel deck={null}>
         <ErrorState title={`${company.name}'s figures could not be loaded right now`} source={sourceOf(company).short} detail={earnings.error} />
       </Panel>
     );
@@ -111,6 +112,28 @@ export function TrendPanel({ earnings }: { earnings: CompanyEarnings }) {
       title="Trend"
       subtitle={`${earnings.company.name}, last ${quarters.length} fiscal quarters`}
       footer={<SourceLine source="SEC filings, GAAP as reported" asOf={quarters.at(-1)?.fiscalLabel} />}
+      deck={
+        quarters.length
+          ? seriesSlide({
+              key: `profile:${earnings.company.slug}:trend`,
+              title: `${earnings.company.name}: revenue, last ${quarters.length} quarters`,
+              trayTitle: `${earnings.company.name}: Trend`,
+              text: (() => {
+                const v = quarters.at(-1)!.values;
+                const g = v.revenueYoY;
+                return v.revenue === undefined
+                  ? undefined
+                  : `Revenue was ${format("usd", v.revenue)} in ${quarters.at(-1)!.fiscalLabel}${g === undefined ? "" : `, ${format("growth", g)} on a year ago`}${v.operatingMargin === undefined ? "" : `, with a ${format("pct", v.operatingMargin)} operating margin`}.`;
+              })(),
+              unit: "usd",
+              periods: quarters.map((q) => q.fiscalLabel),
+              series: [{ name: `${earnings.company.slug === "avnet" ? "Avnet" : earnings.company.name} revenue`, values: quarters.map((q) => q.values.revenue) }],
+              chartTitle: "Revenue, $",
+              source: "SEC filings, GAAP as reported",
+              period: quarters.at(-1)?.fiscalLabel,
+            })
+          : null
+      }
     >
       <TrendChart quarters={quarters} isAvnet={earnings.company.slug === "avnet"} />
     </Panel>
