@@ -6,20 +6,22 @@ import { CATALOG } from "./assemble";
 // 26 pt line at 8.45 inches (about 44 characters) or two. Layouts from the
 // copied masters and the slash pattern layouts are never chosen.
 
-export type SlideKind = "cover" | "subhead" | "basic" | "two-column" | "closing";
+export type SlideKind = "cover" | "subhead" | "title" | "basic" | "two-column" | "closing";
 
 const PREFERRED: Record<SlideKind, Record<"1-line" | "2-line", string>> = {
   // The full-image cover carries the template's A-frame photo and has no picture to fill.
   cover: { "1-line": "Cover - Full Image - 1 Line", "2-line": "Cover - Full Image - 2 Line" },
   // A headline and one supporting sentence; charts and tables are drawn below it.
   subhead: { "1-line": "Title and Subhead - 1 Line", "2-line": "Title and Subhead - 2 Line" },
+  // A headline alone, the body left for a chart or figures drawn across it.
+  title: { "1-line": "1 Line - Title", "2-line": "2-Line Title" },
   basic: { "1-line": "Basic - 1 Line", "2-line": "Basic - 2 line" },
   "two-column": { "1-line": "2 Column - 1 Line", "2-line": "2 Column - 2 Line" },
   closing: { "1-line": "Closing", "2-line": "Closing" },
 };
 
 /** Characters that fit on one title line: the body width at 26 pt for content, narrower on the cover. */
-const ONE_LINE: Record<SlideKind, number> = { cover: 40, subhead: 44, basic: 44, "two-column": 44, closing: Infinity };
+const ONE_LINE: Record<SlideKind, number> = { cover: 40, subhead: 44, title: 44, basic: 44, "two-column": 44, closing: Infinity };
 
 const usable = () => CATALOG.layouts.filter((l) => !l.excluded);
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();

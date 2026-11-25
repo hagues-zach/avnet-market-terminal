@@ -77,6 +77,9 @@ const slides: DeckSlide[] = [
   },
 ];
 
+const texts0 = (xml: string) => [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join(" ");
+const slideParts0 = (list: string[]) => list.filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p)).sort((a, b) => Number(a.match(/\d+/)![0]) - Number(b.match(/\d+/)![0]));
+
 const dir = mkdtempSync(path.join(tmpdir(), "deck-test-"));
 try {
   (async () => {
@@ -99,9 +102,12 @@ try {
     };
     assert.deepEqual(
       slides.map((_, i) => layoutName(i + 1)),
-      ["Cover - Full Image - 1 Line", "Title and Subhead - 1 Line", "Title and Subhead - 2 Line", "Title and Subhead - 1 Line", "2 Column - 1 Line", "Basic - 1 Line"],
+      ["Cover - Full Image - 1 Line", "Title and Subhead - 1 Line", "2-Line Title", "Title and Subhead - 1 Line", "2 Column - 1 Line", "Basic - 1 Line"],
     );
     assert.equal(layoutName(slides.length + 1), "Closing");
+    // A chart with key figures beside it: the side panel's figures are written, and its title is the comparison's.
+    assert.match(texts0(read(slideParts0(list)[1])), /KEY FIGURES[\s\S]*\$1\.48B/, "the key figures beside the chart");
+    assert.match(texts0(read(slideParts0(list)[2])), /Revenue growth on a year ago/, "a comparison chart is titled by what it measures");
     assert.match(read("ppt/slides/slide2.xml"), /<p:ph type="title"\/>[\s\S]*?Microchip grew 38\.0%/, "headlines fill the title placeholder");
     assert.ok(!list.some((p) => /slideLayout(9|42|65|102)\.xml$/.test(p)), "no slash pattern layouts");
 

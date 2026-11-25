@@ -411,6 +411,8 @@ export interface Chart {
   /** bar: horizontal bars (a comparison); column: bars over time; line: a rate over time. */
   kind: "bar" | "column" | "line";
   format: "usd" | "pct";
+  /** What it measures, with the unit where the name doesn't carry it: "Gross margin, % of revenue". */
+  title?: string;
   series: { name: string; who: SeriesWho; points: { label: string; value: number }[] }[];
 }
 

@@ -64,7 +64,7 @@ const CT = {
 };
 
 function runXml(r: Run): string {
-  const attrs = [`lang="en-US"`, r.size ? `sz="${Math.round(r.size * 100)}"` : "", r.bold ? `b="1"` : "", r.italic ? `i="1"` : "", `dirty="0"`].filter(Boolean).join(" ");
+  const attrs = [`lang="en-US"`, r.size ? `sz="${Math.round(r.size * 100)}"` : "", r.bold ? `b="1"` : r.bold === false ? `b="0"` : "", r.italic ? `i="1"` : "", `dirty="0"`].filter(Boolean).join(" ");
   const fill = r.color ? `<a:solidFill><a:srgbClr val="${r.color}"/></a:solidFill>` : "";
   return `<a:r><a:rPr ${attrs}>${fill}</a:rPr><a:t>${esc(plainDashes(r.text))}</a:t></a:r>`;
 }

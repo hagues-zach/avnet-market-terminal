@@ -1,76 +1,136 @@
 "use client";
 
-import { Bar, BarChart, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import { Wordmark } from "@/components/brand/wordmark";
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { AREA, chartTitle, planSlide, SIDE, SLIDE, type Callout, type SlidePlan } from "@/lib/deck/layout";
 import type { Chart, Preview } from "@/lib/deck/outline";
 import { AVNET, VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 
-// A slide as the exported deck draws it: the Avnet wordmark, the headline, the
-// sentence, the chart and figures, and the source line. Shared by the Pitch Deck
-// Builder, the deck tray's review page and the tray's printed PDF, so the three
-// agree with each other and with the PowerPoint file.
+// A slide as the exported deck draws it, at any size: a scaled copy of the
+// Avnet FY27 template's 10 by 5.625 inch slide (the logo tab, Arial, the title
+// with its thin green rule), laid out by planSlide (src/lib/deck/layout.ts), the
+// same plan the PowerPoint file follows. Shared by the Pitch Deck Builder, the
+// deck tray's review page and the tray's printed PDF.
+//
+// Sizes are in inches and points of the real slide. The frame is a size
+// container, so 1 inch is 10cqw; the charts, drawn in pixels, scale by the
+// frame's measured width.
 
+const inch = (n: number) => `${n * 10}cqw`;
+const pt = (n: number) => `${(n * 10) / 72}cqw`;
+const ARIAL = "Arial, Helvetica, sans-serif";
+const INK = "#000000";
+const MUTED = "#6B7075";
+const LINE = "#E3E5E8";
+const PANEL = "#F4F5F6";
 const COLOR = { avnet: VIZ.avnet, arrow: VIZ.arrow, company: AVNET.grayDark, market: VIZ.benchmark } as const;
 
-function fmt(format: Chart["format"], v: number): string {
-  if (format === "pct") return `${v < 0 ? "−" : ""}${Math.abs(v * 100).toFixed(1)}%`;
-  return Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : `$${Math.round(v / 1e6)}M`;
+/** Pixels per point at the frame's current width (a 10 inch slide at 96 dpi is 960 px). */
+const ScaleContext = createContext(1);
+const usePx = () => {
+  const scale = useContext(ScaleContext);
+  return (points: number) => points * (96 / 72) * scale;
+};
+
+/** A value as the chart writes it. `decimals` sets a percentage's places, for axis ticks on a narrow range. */
+function fmt(format: Chart["format"], v: number, decimals = 1): string {
+  if (format === "pct") return `${v < 0 ? "−" : ""}${Math.abs(v * 100).toFixed(decimals)}%`;
+  const a = Math.abs(v);
+  const s = a >= 1e9 ? `$${(a / 1e9).toFixed(2)}B` : `$${Math.round(a / 1e6)}M`;
+  return v < 0 ? `−${s}` : s;
 }
 
-/** The slide's chart as the exported file draws it: bars for a comparison, columns or lines over time. */
-export function PreviewChart({ c }: { c: Chart }) {
+/* ---------- The chart ---------- */
+
+/** The slide's chart, filling its box: labelled values, or a light value axis when lines would collide. */
+export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "labels" | "range"> }) {
+  const px = usePx();
+  const labels = plan?.labels ?? true;
   const label = (v: unknown) => fmt(c.format, Number(v));
-  const tick = { fontSize: 10, fill: "#6B7075" };
+  const tick = { fontSize: px(9), fill: MUTED, fontFamily: ARIAL };
+  const valueStyle = { fontSize: px(9), fill: INK, fontFamily: ARIAL };
+  const described = c.series.map((s) => `${s.name}: ${s.points.map((p) => `${p.label} ${label(p.value)}`).join(", ")}`).join("; ");
+
   if (c.kind === "bar") {
     const rows = c.series.map((s) => ({ name: s.name, value: s.points[0]?.value ?? 0, who: s.who }));
     return (
-      <div className="h-24" role="img" aria-label={rows.map((r) => `${r.name} ${label(r.value)}`).join(", ")}>
-        <p className="text-micro text-ink-muted">{c.series[0]?.points[0]?.label}</p>
-        <ResponsiveContainer width="100%" height="85%">
-          <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 48, bottom: 0, left: 0 }}>
+      <div className="flex h-full flex-col" role="img" aria-label={described}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={rows} layout="vertical" margin={{ top: 0, right: px(44), bottom: 0, left: 0 }} barCategoryGap="30%">
             <XAxis type="number" hide domain={[0, "dataMax"]} />
-            <YAxis type="category" dataKey="name" width={44} tick={tick} axisLine={false} tickLine={false} />
-            <Bar dataKey="value" barSize={12} isAnimationActive={false}>
+            <YAxis type="category" dataKey="name" width={px(64)} tick={{ ...tick, fontSize: px(11), fill: INK }} axisLine={false} tickLine={false} />
+            <Bar dataKey="value" maxBarSize={px(40)} isAnimationActive={false}>
               {rows.map((r) => (
                 <Cell key={r.name} fill={COLOR[r.who]} />
               ))}
-              <LabelList dataKey="value" position="right" formatter={label} style={{ fontSize: 10, fill: "#000" }} />
+              <LabelList dataKey="value" position="right" formatter={label} style={{ ...valueStyle, fontSize: px(12), fontWeight: 700 }} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
     );
   }
-  // One row per period, one key per series, so several series share the axis.
+
+  // One row per period, one key per series, so the series share the axis.
   const rows = (c.series[0]?.points ?? []).map((p, i) => ({
     name: p.label,
     ...Object.fromEntries(c.series.map((s, k) => [`s${k}`, s.points[i]?.value])),
   }));
+  const last = rows.length - 1;
   const many = c.series.length > 1;
-  const described = c.series.map((s) => `${s.name}: ${s.points.map((p) => `${p.label} ${label(p.value)}`).join(", ")}`).join("; ");
+  const domain: [number | string, number | string] = plan?.range ? [plan.range.min, plan.range.max] : [0, "auto"];
+  // Whole percents on a wide axis; one place when the axis spans under 20 points, so ticks never repeat.
+  const tickDecimals = plan?.range && plan.range.max - plan.range.min < 0.2 ? 1 : 0;
+  // Without labels on every point, each line's latest value is written at its end.
+  const endLabel =
+    (k: number) =>
+    ({ x, y, value, index }: { x?: number | string; y?: number | string; value?: number | string; index?: number }) =>
+      index === last && value !== undefined ? (
+        <text x={Number(x) + px(5)} y={Number(y)} dy={px(3)} fontSize={px(9)} fontWeight={700} fill={COLOR[c.series[k].who]} fontFamily={ARIAL}>
+          {label(value)}
+        </text>
+      ) : null;
+  const yAxis = labels ? (
+    <YAxis hide domain={domain} />
+  ) : (
+    <YAxis domain={domain} tick={tick} tickFormatter={(v) => fmt(c.format, Number(v), tickDecimals)} axisLine={false} tickLine={false} width={px(34)} tickCount={5} />
+  );
+  const grid = !labels && <CartesianGrid vertical={false} stroke={LINE} strokeWidth={0.75} />;
+  const legend = many && <Legend iconSize={px(8)} wrapperStyle={{ fontSize: px(9), fontFamily: ARIAL, color: INK }} />;
+  const margin = { top: px(14), right: labels ? px(10) : px(42), bottom: 0, left: labels ? px(10) : 0 };
+  const xAxis = <XAxis dataKey="name" tick={tick} axisLine={{ stroke: LINE }} tickLine={false} interval={0} tickMargin={px(4)} />;
+
   return (
-    <div className={many ? "h-36" : "h-32"} role="img" aria-label={described}>
+    <div className="h-full" role="img" aria-label={described}>
       <ResponsiveContainer width="100%" height="100%">
         {c.kind === "line" ? (
-          <LineChart data={rows} margin={{ top: 16, right: 16, bottom: 0, left: 16 }}>
-            <XAxis dataKey="name" tick={tick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+          <LineChart data={rows} margin={margin}>
+            {grid}
+            {xAxis}
+            {yAxis}
             {c.series.map((s, k) => (
-              <Line key={s.name} dataKey={`s${k}`} name={s.name} stroke={COLOR[s.who]} strokeWidth={2} dot={{ r: 2.5 }} isAnimationActive={false}>
-                {!many && <LabelList dataKey={`s${k}`} position="top" formatter={label} style={{ fontSize: 9, fill: "#000" }} />}
+              <Line key={s.name} dataKey={`s${k}`} name={s.name} stroke={COLOR[s.who]} strokeWidth={px(2)} dot={{ r: px(2.5), strokeWidth: 0, fill: COLOR[s.who] }} isAnimationActive={false}>
+                {labels ? (
+                  <LabelList dataKey={`s${k}`} position={k ? "bottom" : "top"} offset={px(6)} formatter={label} style={valueStyle} />
+                ) : (
+                  <LabelList dataKey={`s${k}`} content={endLabel(k)} />
+                )}
               </Line>
             ))}
-            {many && <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />}
+            {legend}
           </LineChart>
         ) : (
-          <BarChart data={rows} margin={{ top: 16, right: 0, bottom: 0, left: 0 }}>
-            <XAxis dataKey="name" tick={tick} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+          <BarChart data={rows} margin={margin} barCategoryGap="22%">
+            {grid}
+            {xAxis}
+            {yAxis}
             {c.series.map((s, k) => (
               <Bar key={s.name} dataKey={`s${k}`} name={s.name} fill={COLOR[s.who]} isAnimationActive={false}>
-                {!many && <LabelList dataKey={`s${k}`} position="top" formatter={label} style={{ fontSize: 9, fill: "#000" }} />}
+                {labels && <LabelList dataKey={`s${k}`} position="top" offset={px(4)} formatter={label} style={valueStyle} />}
               </Bar>
             ))}
-            {many && <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />}
+            {legend}
           </BarChart>
         )}
       </ResponsiveContainer>
@@ -78,89 +138,152 @@ export function PreviewChart({ c }: { c: Chart }) {
   );
 }
 
-export function SlideBody({ p }: { p: Preview }) {
-  // Column headers either name every column or only the value columns; line them up either way.
-  const width = (p.facts?.[0]?.values.length ?? 0) + 1;
-  const headers = p.columns ? (p.columns.length === width ? p.columns : ["", ...p.columns]) : undefined;
+/* ---------- The pieces of a slide ---------- */
+
+function KeyFigures({ items }: { items: Callout[] }) {
   return (
-    <div className="mt-2 space-y-3">
-      <p className="text-pretty font-display text-section-title leading-tight text-ink xl:text-[22px]">{p.headline}</p>
-      {p.claude && (
-        <p className="text-micro text-ink-muted">
-          {p.claude.label}
-          {p.claude.date ? `, ${p.claude.date}` : ""}
-        </p>
-      )}
-      {p.text && <p className="max-w-[62ch] text-pretty text-body-sm text-ink">{p.text}</p>}
-      {p.error && <p className="text-caption text-ink-muted">Some figures couldn&apos;t be loaded; they read n/a.</p>}
-      <div className={cn(p.chart && p.facts?.length ? "grid grid-cols-[3fr_2fr] items-start gap-4" : "space-y-3")}>
-        {p.chart && <PreviewChart c={p.chart} />}
-        {p.facts && p.facts.length > 0 && (
-          <table className="w-full max-w-md border-collapse text-caption">
-            <caption className="sr-only">The figures on this slide{p.period ? `, ${p.period}` : ""}.</caption>
-            {headers && (
-              <thead>
-                <tr className="border-b border-hairline">
-                  {headers.map((c, i) => (
-                    <th
-                      key={`${c}-${i}`}
-                      scope="col"
-                      className={cn("py-1 font-display text-label font-normal uppercase text-ink-muted", i ? "text-right" : "text-left")}
-                    >
-                      {c}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-            )}
-            <tbody className="divide-y divide-hairline">
-              {p.facts.map((f) => (
-                <tr key={f.label}>
-                  <th scope="row" className="py-1 text-left font-normal text-ink-muted">
-                    {f.label}
-                  </th>
-                  {f.values.map((v, i) => (
-                    <td key={i} className="py-1 pl-3 text-right tabular-nums text-ink">
-                      {v}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-      {p.groups && p.groups.length > 0 && (
-        <div className="grid grid-cols-2 gap-4">
-          {p.groups.map((g) => (
-            <div key={g.title}>
-              <p className="font-display text-label uppercase text-ink-muted">{g.title}</p>
-              <ol className="mt-1 list-decimal space-y-1 pl-4 text-micro text-ink">
-                {g.lines.map((l) => (
-                  <li key={l}>{l}</li>
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
-      )}
-      {p.lines && p.lines.length > 0 && (
-        <ul className="space-y-0.5 text-caption text-ink">
-          {p.lines.map((l) => (
-            <li key={l}>{l}</li>
-          ))}
-        </ul>
-      )}
+    <div>
+      <p style={{ fontSize: pt(8), letterSpacing: "0.06em", color: MUTED, fontWeight: 700 }} className="uppercase">
+        Key figures
+      </p>
+      <dl>
+        {items.map((c, i) => (
+          <div key={c.label} style={{ paddingTop: inch(0.11), paddingBottom: inch(0.11), borderTop: i ? `1px solid ${LINE}` : undefined }}>
+            <dd style={{ fontSize: pt(22), lineHeight: 1.05, fontWeight: 700 }} className="tabular-nums">
+              {c.value}
+            </dd>
+            <dt style={{ fontSize: pt(9.5), marginTop: inch(0.03) }}>{c.label}</dt>
+            {c.note && <dd style={{ fontSize: pt(8), color: MUTED }}>{c.note}</dd>}
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
 
-/** The 16:9 slide: wordmark, body, then the source line with the mock tag and slide number. */
+function FactTable({ table, size }: { table: NonNullable<SlidePlan["table"]>; size: number }) {
+  return (
+    <table className="w-full border-collapse" style={{ fontSize: pt(size) }}>
+      {table.headers && (
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${INK}` }}>
+            {table.headers.map((h, i) => (
+              <th key={`${h}-${i}`} scope="col" style={{ fontSize: pt(size - 1.5), color: MUTED, padding: `${inch(0.03)} 0`, textAlign: i ? "right" : "left", fontWeight: 700 }}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+      )}
+      <tbody>
+        {table.rows.map((r) => (
+          <tr key={r.label} style={{ borderBottom: `1px solid ${LINE}` }}>
+            <th scope="row" style={{ textAlign: "left", fontWeight: 400, padding: `${inch(0.07)} ${inch(0.08)} ${inch(0.07)} 0` }}>
+              {r.label}
+            </th>
+            {r.values.map((v, i) => (
+              <td key={i} className="tabular-nums" style={{ textAlign: "right", paddingLeft: inch(0.08), color: v === "n/a" ? MUTED : INK }}>
+                {v}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+const Bullets = ({ lines, size }: { lines: string[]; size: number }) => (
+  <ul style={{ fontSize: pt(size) }} className="space-y-[0.6cqw]">
+    {lines.map((l) => (
+      <li key={l} className="flex gap-[1cqw]">
+        <span aria-hidden style={{ marginTop: pt(size * 0.42), width: pt(5), height: pt(5), background: AVNET.green }} className="shrink-0" />
+        <span>{l}</span>
+      </li>
+    ))}
+  </ul>
+);
+
+/** The slide's body, below the title and takeaway, laid out by planSlide. */
+function Body({ p, plan }: { p: Preview; plan: SlidePlan }) {
+  if (plan.kind === "groups")
+    return (
+      <div className="grid h-full grid-cols-2" style={{ gap: inch(0.4) }}>
+        {p.groups!.map((g) => (
+          <div key={g.title}>
+            <p style={{ fontSize: pt(14), fontWeight: 700, color: INK, marginBottom: inch(0.08) }}>{g.title}</p>
+            <ol className="list-decimal" style={{ fontSize: pt(11), paddingLeft: inch(0.2) }}>
+              {g.lines.map((l) => (
+                <li key={l} style={{ marginBottom: inch(0.06) }}>
+                  {l}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    );
+
+  if (plan.kind === "chart" && p.chart) {
+    return (
+      <div className="grid h-full" style={{ gridTemplateColumns: plan.side ? `minmax(0,1fr) ${inch(plan.sideW)}` : "minmax(0,1fr)", gap: inch(SIDE.gap) }}>
+        <div className="flex min-h-0 flex-col">
+          {chartTitle(p.chart) && <p style={{ fontSize: pt(10), fontWeight: 700, marginBottom: inch(0.06) }}>{chartTitle(p.chart)}</p>}
+          <div className="min-h-0 flex-1">
+            <PreviewChart c={p.chart} plan={plan} />
+          </div>
+        </div>
+        {plan.side && (
+          <div className="min-h-0 space-y-[1.4cqw] overflow-hidden" style={{ background: PANEL, padding: `${inch(0.12)} ${inch(0.16)}` }}>
+            {plan.callouts.length > 0 && <KeyFigures items={plan.callouts} />}
+            {plan.table && <FactTable table={plan.table} size={9.5} />}
+            {p.lines?.length ? <Bullets lines={p.lines} size={9.5} /> : null}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (plan.kind === "figures")
+    return (
+      <div className="flex h-full flex-col" style={{ gap: inch(0.3) }}>
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${plan.callouts.length}, minmax(0,1fr))`, gap: inch(0.3), marginTop: inch(0.1) }}>
+          {plan.callouts.map((c) => (
+            <div key={c.label} style={{ borderTop: `${pt(2)} solid ${INK}`, paddingTop: inch(0.12) }}>
+              <p style={{ fontSize: pt(36), fontWeight: 700, lineHeight: 1.05 }} className="tabular-nums">
+                {c.value}
+              </p>
+              <p style={{ fontSize: pt(13), marginTop: inch(0.06) }}>{c.label}</p>
+            </div>
+          ))}
+        </div>
+        {p.lines?.length ? <Bullets lines={p.lines} size={15} /> : null}
+      </div>
+    );
+
+  if (plan.kind === "table")
+    return (
+      <div className="space-y-[2cqw]">
+        <FactTable table={plan.table!} size={13} />
+        {p.lines?.length ? <Bullets lines={p.lines} size={11} /> : null}
+      </div>
+    );
+
+  return p.lines?.length ? <Bullets lines={p.lines} size={13} /> : null;
+}
+
+/* ---------- The frame ---------- */
+
+/**
+ * The 16:9 slide. `variant="cover"` is the title slide: the headline large, the
+ * sentence under it, no source line.
+ */
 export function SlideFrame({
   p,
   fallbackSource,
   mock = false,
   number,
+  variant = "content",
   className,
 }: {
   p?: Preview;
@@ -168,23 +291,81 @@ export function SlideFrame({
   fallbackSource?: string;
   mock?: boolean;
   number?: number;
+  variant?: "content" | "cover";
   className?: string;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.6);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setScale(el.clientWidth / (SLIDE.w * 96));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const plan = p ? planSlide(p) : undefined;
+  // The text-only slide sets its one sentence large, as the slide's statement.
+  const takeaway: CSSProperties = plan?.kind === "text" && !p?.lines?.length ? { fontSize: pt(20) } : { fontSize: pt(13) };
+  const frame: CSSProperties = { containerType: "inline-size", fontFamily: ARIAL, color: INK };
+
   return (
-    <div className={cn("flex aspect-video flex-col border border-hairline bg-surface px-[5%] py-[4%]", className)}>
-      <div className="flex justify-end">
-        <Wordmark className="h-5" />
+    <ScaleContext.Provider value={scale}>
+      <div ref={ref} className={cn("relative aspect-video overflow-hidden border border-hairline bg-white", className)} style={frame}>
+        {/* The template's logo tab, top right. */}
+        <img src="/brand/avnet-tab.svg" alt="Avnet" style={{ position: "absolute", top: inch(0.08), right: 0, width: inch(1.79), height: inch(0.65) }} />
+
+        {variant === "cover" ? (
+          <div className="absolute flex flex-col justify-center" style={{ left: inch(0.7), right: inch(2.2), top: inch(1.2), bottom: inch(1.2) }}>
+            <span aria-hidden style={{ width: inch(0.9), height: pt(3), background: AVNET.green, marginBottom: inch(0.25) }} />
+            <p style={{ fontSize: pt(36), lineHeight: 1.08 }} className="text-balance">
+              {p?.headline}
+            </p>
+            {p?.text && <p style={{ fontSize: pt(14), color: MUTED, marginTop: inch(0.2) }}>{p.text}</p>}
+          </div>
+        ) : (
+          <div className="absolute flex flex-col" style={{ left: inch(AREA.left), right: inch(SLIDE.w - AREA.right), top: inch(0.32), bottom: inch(SLIDE.h - AREA.bottom) }}>
+            <p
+              className="text-balance"
+              style={{ fontSize: pt(24), lineHeight: 1.05, marginRight: inch(1.3), paddingBottom: inch(0.07), borderBottom: `0.5pt solid ${AVNET.green}` }}
+            >
+              {p?.headline ?? fallbackSource}
+            </p>
+            {p?.claude && (
+              <p style={{ fontSize: pt(8), color: MUTED, marginTop: inch(0.05) }}>
+                {p.claude.label}
+                {p.claude.date ? `, ${p.claude.date}` : ""}. Check before quoting.
+              </p>
+            )}
+            {p?.text && (
+              <p className="max-w-[80cqw] text-pretty" style={{ ...takeaway, lineHeight: 1.3, marginTop: inch(0.14) }}>
+                {p.text}
+              </p>
+            )}
+            {p?.error && <p style={{ fontSize: pt(9), color: MUTED, marginTop: inch(0.06) }}>Some figures couldn&apos;t be loaded; they read n/a.</p>}
+            <div className="min-h-0 flex-1" style={{ marginTop: inch(0.2) }}>
+              {p && plan ? <Body p={p} plan={plan} /> : <p style={{ fontSize: pt(12), color: MUTED }}>No preview for this slide.</p>}
+            </div>
+          </div>
+        )}
+
+        {/* The footer: the slide number where the template puts it, the source beside it. */}
+        {variant === "content" && (
+          <div className="absolute flex items-center" style={{ left: inch(0.154), right: inch(SLIDE.w - AREA.right), top: inch(AREA.footer), fontSize: pt(8), color: MUTED }}>
+            <span className="tabular-nums" style={{ width: inch(0.346) }}>
+              {number || ""}
+            </span>
+            <span className="min-w-0 flex-1 truncate">
+              Source: {p?.source ?? fallbackSource}
+              {p?.period ? `, ${p.period}` : ""}
+            </span>
+            {mock && <span style={{ background: AVNET.yellow, color: INK, fontWeight: 700, padding: `0 ${inch(0.08)}` }}>Mock data</span>}
+          </div>
+        )}
       </div>
-      {p ? <SlideBody p={p} /> : <p className="mt-4 text-body-sm text-ink-muted">No preview for this slide.</p>}
-      <div className="mt-auto flex items-baseline justify-between gap-3 border-t border-hairline pt-2 text-caption text-ink-muted">
-        <span>
-          Source: {p?.source ?? fallbackSource}
-          {p?.period ? `, ${p.period}` : ""}
-          {mock && <span className="ml-1.5 bg-warning px-1 font-semibold text-ink">Mock data</span>}
-        </span>
-        <span className="tabular-nums">{number || ""}</span>
-      </div>
-    </div>
+    </ScaleContext.Provider>
   );
 }
 

@@ -25,6 +25,13 @@ const valueOf = (data: ChartData, s: SeriesSpec, i: number) => {
   return v === null || v === undefined ? null : s.negate ? -v : v;
 };
 
+/** The chart's label: the pane's title, with its unit when the title doesn't give one. */
+function paneTitle(pane: PaneSpec): string {
+  if (/%|\$|points|days|,/.test(pane.title)) return pane.title;
+  const unit = pane.unit === "usd" ? "$" : pane.unit === "pts" ? "points" : pane.unit === "growth" ? "% change" : pane.unit === "pct" ? "%" : "";
+  return unit ? `${pane.title}, ${unit}` : pane.title;
+}
+
 /** The slide's chart from one pane, or undefined when its unit can't be drawn on a slide (days, EPS). */
 function paneChart(data: ChartData, pane: PaneSpec): Chart | undefined {
   const format = pane.unit === "usd" ? "usd" : pane.unit === "pct" || pane.unit === "growth" || pane.unit === "pts" ? "pct" : undefined;
@@ -39,6 +46,7 @@ function paneChart(data: ChartData, pane: PaneSpec): Chart | undefined {
   return {
     kind: shown.length === 1 ? "bar" : bars && format === "usd" ? "column" : "line",
     format,
+    title: paneTitle(pane),
     series: series.map((s) => ({
       name: s.name,
       who: whoOf(s, data.company),

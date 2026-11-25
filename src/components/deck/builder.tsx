@@ -373,7 +373,7 @@ function PreviewPane({
         <span className="text-caption text-ink-muted">{s.title}</span>
       </div>
       <figure className="mt-3" aria-label={`Slide preview: ${p?.headline ?? s.title}`}>
-        <SlideFrame p={p} fallbackSource={s.from} mock={mock} number={n} />
+        <SlideFrame p={p} fallbackSource={s.from} mock={mock} number={n} variant={id === "cover" ? "cover" : "content"} />
       </figure>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-body-sm">
         {href ? (

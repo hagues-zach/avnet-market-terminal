@@ -300,7 +300,7 @@ function PrintDeck({ items, title, audience, onDone }: { items: TrayItem[]; titl
     <div data-print="deck" aria-hidden className="fixed left-[-10000px] top-0 w-[960px]">
       {deck.map((d, i) => (
         <section key={i}>
-          <SlideFrame p={d.preview} mock={d.mock} number={d.kind ? undefined : i} className="h-[540px] w-[960px] overflow-hidden" />
+          <SlideFrame p={d.preview} mock={d.mock} number={d.kind ? undefined : i} variant={d.kind === "cover" ? "cover" : "content"} className="h-[540px] w-[960px]" />
         </section>
       ))}
     </div>
