@@ -37,9 +37,7 @@ export function longDate(d: string, thisYear = new Date().getUTCFullYear()): str
   return x.toLocaleDateString("en-US", { month: "short", day: "numeric", ...year, timeZone: "UTC" });
 }
 
-/** `/earnings` link that keeps whichever of company/group isn't being changed. */
-export function earningsHref(company: string, group: string): string {
-  const p = new URLSearchParams({ company });
-  if (group !== "all") p.set("group", group);
-  return `/earnings?${p.toString()}`;
+/** The Earnings leaderboard, filtered to one group (or all companies). One company's earnings are on its profile, `/network/[slug]`. */
+export function leaderboardHref(group: string): string {
+  return group === "all" ? "/earnings?view=leaderboard" : `/earnings?view=leaderboard&group=${encodeURIComponent(group)}`;
 }

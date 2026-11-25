@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCycle, type CompanySeries, type GroupPoint, type GroupSeries, type StageSeries } from "@/lib/data/live/cycle";
 import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
-import { NA, earningsHref, format } from "@/components/earnings/format";
+import { NA, format, leaderboardHref } from "@/components/earnings/format";
 import { Delta } from "@/components/ui/delta";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -280,7 +280,7 @@ function EndDemand({
         {rows.map(({ g, growth }) => (
           <li key={g.cohort}>
             <div className="flex items-baseline justify-between gap-3 text-body-sm">
-              <Link href={earningsHref("avnet", g.cohort)} className="text-ink underline-offset-2 hover:underline">
+              <Link href={leaderboardHref(g.cohort)} className="text-ink underline-offset-2 hover:underline">
                 {COHORT_LABELS[g.cohort]}
               </Link>
               <span className="tabular-nums text-ink">{growthText(growth)}</span>
@@ -328,7 +328,7 @@ function ScoreRows({ groups, latest, prior, yearAgo }: { groups: GroupSeries[]; 
         return (
           <tr key={g.cohort} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
             <th scope="row" className="px-3 py-1.5 text-left font-normal">
-              <Link href={earningsHref("avnet", g.cohort)} className="text-ink underline-offset-2 hover:underline">
+              <Link href={leaderboardHref(g.cohort)} className="text-ink underline-offset-2 hover:underline">
                 {COHORT_LABELS[g.cohort]}
               </Link>
             </th>
