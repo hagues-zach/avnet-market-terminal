@@ -3,7 +3,7 @@ import { plainDashes } from "@/lib/ai/dashes";
 import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
 import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
-import { AREA, chartTitle, planSlide, SIDE, type Callout, type SlidePlan } from "./layout";
+import { AREA, chartTitle, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
 import type { Chart, Preview, SeriesWho } from "./outline";
 
 // The deck's PowerPoint export (the Pitch Deck Builder and Add to deck): the
@@ -254,7 +254,8 @@ function textSlide(d: DeckSlide): TemplateSlide {
 }
 
 function content(d: DeckSlide): TemplateSlide {
-  const p = d.preview;
+  // A chart from the figures when the slide was saved without one, as on screen.
+  const p = withChart(d.preview);
   const plan = planSlide(p);
   if (plan.kind === "groups") return talking(d);
   if (plan.kind === "text") return textSlide(d);

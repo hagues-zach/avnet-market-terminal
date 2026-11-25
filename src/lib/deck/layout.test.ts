@@ -1,6 +1,6 @@
 // How a slide uses its space. Run with: npx tsx src/lib/deck/layout.test.ts
 import assert from "node:assert/strict";
-import { niceRange, planSlide } from "./layout";
+import { chartFromFacts, niceRange, planSlide, readFigure, withChart } from "./layout";
 import type { Preview } from "./outline";
 
 const quarters = ["CY24 Q4", "CY25 Q1", "CY25 Q2", "CY25 Q3", "CY25 Q4", "CY26 Q1", "CY26 Q2", "CY26 Q3"];
@@ -85,5 +85,58 @@ assert.deepEqual(niceRange([0.4, 0.6]), { min: 0.35, max: 0.65 });
 assert.equal(niceRange([5, 10])!.min, 4);
 assert.equal(niceRange([0.01, 0.02])!.min >= 0, true, "positive data never gets a negative axis");
 assert.equal(niceRange([]), undefined);
+
+/* ---------- A chart from the figures ---------- */
+
+assert.deepEqual(readFigure("85 days"), { format: "days", value: 85 });
+assert.deepEqual(readFigure("−7.8%"), { format: "pct", value: -0.078 });
+assert.deepEqual(readFigure("$1.19B"), { format: "usd", value: 1.19e9 });
+assert.deepEqual(readFigure("$971M"), { format: "usd", value: 971e6 });
+assert.deepEqual(readFigure("$0.66"), { format: "eps", value: 0.66 });
+assert.equal(readFigure("n/a"), undefined);
+assert.equal(readFigure("+0.5 pts"), undefined, "points stay figures, not chart values");
+
+// The working capital slide as saved before days could be charted.
+const capital: Preview = {
+  headline: "Avnet: Working capital, days",
+  text: "Inventory days was 77 days in FY27 Q1, down 16 days on a year ago.",
+  columns: ["FY26 Q2", "FY26 Q3", "FY26 Q4", "FY27 Q1"],
+  facts: [
+    { label: "Inventory", values: ["85 days", "78 days", "74 days", "77 days"] },
+    { label: "Receivable", values: ["76 days", "70 days", "76 days", "66 days"] },
+    { label: "Payable", values: ["70 days", "66 days", "74 days", "74 days"] },
+    { label: "Cash cycle", values: ["91 days", "82 days", "76 days", "69 days"] },
+  ],
+  source: "Avnet's SEC filings",
+};
+const made = chartFromFacts(capital)!;
+assert.equal(made.kind, "line");
+assert.equal(made.format, "days");
+assert.deepEqual(
+  made.series.map((s) => s.name),
+  ["Inventory", "Receivable", "Payable", "Cash cycle"],
+);
+assert.equal(new Set(made.series.map((s) => s.color)).size, 4, "each line its own colour");
+assert.deepEqual(made.series[0].points.map((x) => x.value), [85, 78, 74, 77]);
+const drawn = withChart(capital);
+assert.equal(planSlide(drawn).kind, "chart", "the saved table is drawn as a chart");
+assert.equal(planSlide(drawn).table, undefined);
+assert.equal(planSlide(drawn).callouts.length, 4, "with the key figures beside it");
+assert.equal(withChart(sga), sga, "a slide with its own chart is left alone");
+
+// Mixed units: the gap in points stays out of the chart; Avnet and Arrow keep their colours.
+const pair = chartFromFacts({ ...sga, chart: undefined })!;
+assert.deepEqual(
+  pair.series.map((s) => [s.name, s.who]),
+  [
+    ["Avnet", "avnet"],
+    ["Arrow", "arrow"],
+  ],
+);
+
+// Not quarters, or one quarter: no chart.
+assert.equal(chartFromFacts(arrow), undefined, "a comparison across companies stays a table");
+assert.equal(chartFromFacts({ ...capital, columns: ["FY27 Q1"], facts: [{ label: "Inventory", values: ["77 days"] }] }), undefined);
+assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ label: "r", values: ["1", "2"] }], source: "s" }), undefined);
 
 console.log("layout.test.ts: ok");

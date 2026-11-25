@@ -17,7 +17,8 @@
 // - No chart: the figures are large-number tiles across the body, or a full-width
 //   table when there are too many or they compare things.
 
-import type { Chart, Preview } from "./outline";
+import { VIZ } from "@/lib/colors";
+import type { Chart, Preview, SeriesWho } from "./outline";
 
 /** The slide in inches: the FY27 template's 10 by 5.625. */
 export const SLIDE = { w: 10, h: 5.625 } as const;
@@ -107,6 +108,70 @@ function seriesCallouts(p: Preview): Callout[] {
 const singleCallouts = (p: Preview): Callout[] => (p.facts ?? []).map((f) => ({ label: f.label, value: f.values[0] ?? "n/a", note: p.period }));
 
 const tableOf = (p: Preview): SlidePlan["table"] => (p.facts?.length ? { headers: allHeaders(p), rows: p.facts } : undefined);
+
+/* ---------- A chart from the figures ---------- */
+
+/** A quarter as the app writes one: "FY27 Q1", "CY26 Q3" or "Q3 2026". */
+const PERIOD = /^(?:(?:FY|CY)\d{2} Q[1-4]|Q[1-4] \d{4})$/;
+
+/** A figure read back from how the app writes it, with its unit; undefined for anything else ("n/a", text, points). */
+export function readFigure(s: string): { format: Chart["format"]; value: number } | undefined {
+  const t = s.trim().replace(/−/g, "-");
+  let m = t.match(/^([+-]?)(\d[\d,]*(?:\.\d+)?)%$/);
+  if (m) return { format: "pct", value: (m[1] === "-" ? -1 : 1) * Number(m[2].replace(/,/g, "")) / 100 };
+  m = t.match(/^([+-]?)(\d[\d,]*) days?$/);
+  if (m) return { format: "days", value: (m[1] === "-" ? -1 : 1) * Number(m[2].replace(/,/g, "")) };
+  m = t.match(/^([+-]?)\$(\d[\d,]*(?:\.\d+)?)([BM])$/);
+  if (m) return { format: "usd", value: (m[1] === "-" ? -1 : 1) * Number(m[2].replace(/,/g, "")) * (m[3] === "B" ? 1e9 : 1e6) };
+  m = t.match(/^([+-]?)\$(\d+\.\d{2})$/);
+  if (m) return { format: "eps", value: (m[1] === "-" ? -1 : 1) * Number(m[2]) };
+  return undefined;
+}
+
+/** Colours for series that aren't Avnet or Arrow, in the app's chart order (src/lib/chart-view/model.ts). */
+const OTHERS = [VIZ.arrow, VIZ.orange, VIZ.blueLight, VIZ.yellow];
+
+/**
+ * The chart a slide's figures make when the slide has none: quarters across
+ * the columns, one series per row in the figures' most common unit (rows in
+ * another unit, such as a gap in points, stay in the key figures). Slides saved
+ * before a unit could be charted, or any table of quarters, become charts this
+ * way. Undefined when the figures aren't quarters of one unit.
+ */
+export function chartFromFacts(p: Preview): Chart | undefined {
+  const heads = valueHeaders(p);
+  if (!heads || heads.length < 2 || !heads.every((h) => PERIOD.test(h.trim()))) return undefined;
+  const rows = (p.facts ?? []).map((f) => ({ label: f.label, read: f.values.map(readFigure) }));
+  const counts = new Map<Chart["format"], number>();
+  for (const r of rows) {
+    const f = r.read.find(Boolean)?.format;
+    if (f && r.read.every((x) => !x || x.format === f)) counts.set(f, (counts.get(f) ?? 0) + 1);
+  }
+  const format = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!format) return undefined;
+  const kept = rows.filter((r) => r.read.some(Boolean) && r.read.every((x) => !x || x.format === format)).slice(0, 6);
+  // Only quarters every kept row reports, so the categories line up.
+  const cols = heads.map((_, i) => i).filter((i) => kept.every((r) => r.read[i]));
+  if (cols.length < 2) return undefined;
+  const arrow = kept.some((r) => /^arrow\b/i.test(r.label));
+  let other = arrow ? 1 : 0;
+  return {
+    kind: kept.length === 1 && (format === "usd" || format === "eps") ? "column" : "line",
+    format,
+    series: kept.map((r) => {
+      const who: SeriesWho = /^avnet\b/i.test(r.label) ? "avnet" : /^arrow\b/i.test(r.label) ? "arrow" : "market";
+      return {
+        name: r.label,
+        who,
+        ...(who === "market" ? { color: OTHERS[other++ % OTHERS.length] } : {}),
+        points: cols.map((i) => ({ label: heads[i], value: r.read[i]!.value })),
+      };
+    }),
+  };
+}
+
+/** The slide as it is drawn: its own chart, or one made from its figures. */
+export const withChart = (p: Preview): Preview => (p.chart ? p : ((c) => (c ? { ...p, chart: c } : p))(chartFromFacts(p)));
 
 export function planSlide(p: Preview): SlidePlan {
   if (p.groups?.length) return { kind: "groups", side: false, sideW: 0, callouts: [], labels: true };

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
-import { AREA, chartTitle, planSlide, SIDE, SLIDE, type Callout, type SlidePlan } from "@/lib/deck/layout";
+import { AREA, chartTitle, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
 import type { Chart, Preview } from "@/lib/deck/outline";
 import { AVNET, VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
@@ -294,7 +294,7 @@ function Body({ p, plan }: { p: Preview; plan: SlidePlan }) {
  * sentence under it, no source line.
  */
 export function SlideFrame({
-  p,
+  p: given,
   fallbackSource,
   mock = false,
   number,
@@ -325,6 +325,8 @@ export function SlideFrame({
     return () => ro.disconnect();
   }, []);
 
+  // A slide whose figures are quarters of one unit is drawn as a chart even when it was saved without one.
+  const p = given && withChart(given);
   const plan = p ? planSlide(p) : undefined;
   // The text-only slide sets its one sentence large, as the slide's statement.
   const takeaway: CSSProperties = plan?.kind === "text" && !p?.lines?.length ? { fontSize: pt(20) } : { fontSize: pt(13) };
