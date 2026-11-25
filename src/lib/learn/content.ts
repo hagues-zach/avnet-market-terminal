@@ -38,7 +38,7 @@ export const PATHS: Record<Role, Step[]> = {
     { page: "Code Mapping", href: "/tools/mapping", why: "How product codes map to market categories, and what needs review." },
     { page: "Supply Chain", href: "/supply-chain", why: "Lead times, prices and what suppliers say about allocation." },
     { page: "Line Cards", href: "/line-cards", why: "Coverage, overlap and white space across distributors." },
-    { page: "Quarterly Earnings", href: "/earnings", why: "Each supplier's quarter, and its group's median for comparison." },
+    { page: "Earnings", href: "/earnings", why: "Who reports this week, how each group is doing, and every company ranked on one measure. Each supplier's own quarter is on its company profile." },
   ],
   leader: [
     { page: "Market Overview", href: "/overview", why: "The market this week, in the numbers that matter." },

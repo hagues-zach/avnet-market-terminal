@@ -245,6 +245,25 @@ export async function ProfileOverview({ company }: { company: Company }) {
   );
 }
 
+/**
+ * The "In brief" facts on their own, for profiles that show the earnings tiles
+ * and trend instead of the overview's. Nothing when there's nothing to say.
+ */
+export async function ProfileInBrief({ company }: { company: Company }) {
+  const [earnings, mix] = await Promise.all([getCompanyEarnings(company.slug), getRevenueMix(company.slug)]);
+  const lines = earnings.quarters.length ? glance(earnings, mix) : [];
+  if (!lines.length) return null;
+  return (
+    <Panel title="In brief" subtitle="Plain facts from the filings, for opening a conversation">
+      <ul className="list-disc space-y-1 pl-5 text-body text-ink marker:text-ink-muted">
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    </Panel>
+  );
+}
+
 /* ---------- Commentary ---------- */
 
 const TOPICS: { key: keyof Omit<Digest, "headline" | "takeaways">; label: string }[] = [

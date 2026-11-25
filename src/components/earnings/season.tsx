@@ -1,72 +1,35 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { getEarningsCalendar, type ReleaseEvent, type Timing } from "@/lib/data/live/earnings-calendar";
+import { cachedCommentary } from "@/lib/ai/commentary";
+import { getEarningsCalendar, type ReleaseEvent } from "@/lib/data/live/earnings-calendar";
 import { getPeerRows } from "@/lib/data/live/earnings";
-import { COHORT_LABELS, isUsFiler, type Cohort } from "@/lib/data/live/earnings-model";
+import { isUsFiler } from "@/lib/data/live/earnings-model";
 import { justReported, season } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel } from "@/components/ui/panel";
 import { EmptyState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
-import { NA, earningsHref, format } from "./format";
+import { NA, format } from "./format";
+import { SoonRows, type Watch } from "./soon-rows";
 
 const utc = (d: string) => new Date(`${d}T00:00:00Z`);
-const dayLabel = (d: string) => utc(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 const shortDate = (d: string) => utc(d).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 const pct = (v: number | undefined) => (v === undefined ? NA : `${(v * 100).toFixed(1)}%`);
-const SHORT_TIMING: Record<Timing, string> = { before: "Before open", during: "Market hours", after: "After close" };
 const TH = "h-control whitespace-nowrap px-2 font-display text-label font-normal uppercase text-ink-muted";
 
-function CompanyLink({ event, group, current }: { event: ReleaseEvent; group: Cohort | "all"; current: string }) {
+function CompanyLink({ event }: { event: ReleaseEvent }) {
   const c = event.company;
   return (
-    <Link
-      href={earningsHref(c.slug, group)}
-      scroll={false}
-      aria-current={c.slug === current ? "true" : undefined}
-      className={cn("inline-flex items-center gap-1.5 text-ink underline-offset-2 hover:underline", c.slug === current && "font-semibold")}
-    >
+    <Link href={`/network/${c.slug}`} className="inline-flex items-center gap-1.5 text-ink underline-offset-2 hover:underline">
       {c.slug === "avnet" && <span className="h-2.5 w-2.5 shrink-0 bg-viz-avnet" aria-hidden />}
       {c.name}
     </Link>
   );
 }
 
-function SoonRows({ title, events, group, current }: { title: string; events: ReleaseEvent[]; group: Cohort | "all"; current: string }) {
-  if (!events.length) return null;
-  return (
-    <tbody>
-      <tr className="border-b border-hairline">
-        <th scope="colgroup" colSpan={5} className="px-2 pb-1 pt-3 text-left font-display text-card-title font-normal text-ink">
-          {title} <span className="text-ink-muted">{events.length}</span>
-        </th>
-      </tr>
-      {events.map((e) => (
-        <tr
-          key={`${e.company.slug}-${e.date}`}
-          className={cn("border-b border-hairline last:border-b-0", e.company.slug === current && "bg-surface-sunken")}
-        >
-          <td className="whitespace-nowrap px-2 py-1.5 tabular-nums text-ink">
-            <time dateTime={e.date}>{dayLabel(e.date)}</time>
-          </td>
-          <th scope="row" className="px-2 py-1.5 text-left font-normal">
-            <CompanyLink event={e} group={group} current={current} />
-          </th>
-          <td className="px-2 py-1.5 text-ink-muted">
-            {COHORT_LABELS[e.company.cohort]}
-          </td>
-          <td className="whitespace-nowrap px-2 py-1.5 text-ink-muted">{e.timing ? SHORT_TIMING[e.timing] : ""}</td>
-          <td className="whitespace-nowrap px-2 py-1.5 text-right text-ink-muted" title={e.basis ? `Based on ${e.basis}` : undefined}>
-            {e.status === "due" ? "due, not filed" : "estimated"}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  );
-}
 
 /** Server component: every company's filing index and latest quarter. */
-export async function SeasonOverview({ company, group }: { company: string; group: Cohort | "all" }) {
+export async function SeasonOverview() {
   const [calendar, peers] = await Promise.all([getEarningsCalendar(), getPeerRows()]);
   // US filers only for the MVP (docs/mvp-plan.md).
   const { failed, today } = calendar;
@@ -74,6 +37,17 @@ export async function SeasonOverview({ company, group }: { company: string; grou
   const rows = peers.filter((r) => isUsFiler(r.company));
   const s = season(rows, events, today);
   const recent = justReported(events, rows, s.quarter);
+  // What to watch for each company about to report: its last filed quarter, and the guidance from its cached release summary.
+  const soon = [...s.due, ...s.thisWeek, ...s.nextWeek];
+  const latest = new Map(rows.map((r) => [r.company.slug, r.latest]));
+  const watch: Record<string, Watch> = Object.fromEntries(
+    await Promise.all(
+      soon.map(async (e) => {
+        const c = await cachedCommentary(e.company).catch(() => null);
+        return [e.company.slug, { latest: latest.get(e.company.slug) ?? null, guidance: c?.digest.guidance || undefined, filed: c?.filed }] as const;
+      }),
+    ),
+  );
   const next = (label: string, e: ReleaseEvent | undefined) =>
     e ? `${label} ${shortDate(e.date)}${e.status === "estimated" ? " (estimated)" : e.status === "due" ? " (due)" : ""}` : `${label} not found`;
 
@@ -116,9 +90,9 @@ export async function SeasonOverview({ company, group }: { company: string; grou
             ) : (
               <table className="w-full border-collapse font-body text-table">
                 <caption className="sr-only">Earnings releases expected this week and next</caption>
-                <SoonRows title="Expected by now" events={s.due} group={group} current={company} />
-                <SoonRows title="This week" events={s.thisWeek} group={group} current={company} />
-                <SoonRows title="Next week" events={s.nextWeek} group={group} current={company} />
+                <SoonRows title="Expected by now" events={s.due} watch={watch} />
+                <SoonRows title="This week" events={s.thisWeek} watch={watch} />
+                <SoonRows title="Next week" events={s.nextWeek} watch={watch} />
               </table>
             )}
           </div>
@@ -155,15 +129,12 @@ export async function SeasonOverview({ company, group }: { company: string; grou
                 </thead>
                 <tbody>
                   {recent.map(({ event: e, quarter }) => (
-                    <tr
-                      key={e.company.slug}
-                      className={cn("border-b border-hairline last:border-b-0", e.company.slug === company && "bg-surface-sunken")}
-                    >
+                    <tr key={e.company.slug} className="border-b border-hairline last:border-b-0">
                       <td className="whitespace-nowrap px-2 py-1.5 tabular-nums text-ink-muted">
                         <time dateTime={e.date}>{shortDate(e.date)}</time>
                       </td>
                       <th scope="row" className="px-2 py-1.5 text-left font-normal">
-                        <CompanyLink event={e} group={group} current={company} />
+                        <CompanyLink event={e} />
                       </th>
                       {quarter ? (
                         <>

@@ -5,7 +5,7 @@ import type { Quarter } from "@/lib/data/live/earnings-model";
 import { CaveatMark } from "@/components/ui/caveat-mark";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
-import { earningsHref, format, longDate } from "./format";
+import { format, longDate } from "./format";
 
 export interface GroupRow {
   slug: string;
@@ -28,13 +28,14 @@ const sortNum = (m: keyof Values) => (r: GroupRow) => val(r, m) ?? -Infinity;
 export function GroupTable({
   rows,
   current,
-  groupParam,
+  showGroup = false,
   median,
 }: {
   rows: GroupRow[];
+  /** The company to mark (in bold); empty for none. */
   current: string;
-  /** The group in the URL, kept when a row opens another company. */
-  groupParam: string;
+  /** Add a Group column, for tables that mix groups. */
+  showGroup?: boolean;
   median: Partial<Record<keyof Values, number>>;
 }) {
   const num = (m: keyof Values, kind: Parameters<typeof format>[0], header: string): Column<GroupRow> => ({
@@ -56,8 +57,7 @@ export function GroupTable({
       sortValue: (r) => r.name,
       render: (r) => (
         <Link
-          href={earningsHref(r.slug, groupParam)}
-          scroll={false}
+          href={`/network/${r.slug}`}
           aria-current={r.slug === current ? "true" : undefined}
           className={cn("inline-flex items-center gap-1.5 text-ink underline-offset-2 hover:underline", r.slug === current && "font-semibold")}
         >
@@ -66,7 +66,7 @@ export function GroupTable({
         </Link>
       ),
     },
-    ...(groupParam === "all"
+    ...(showGroup
       ? [
           {
             key: "group",
@@ -105,6 +105,7 @@ export function GroupTable({
         rowKey={(r) => r.slug}
         caption="Each company on its latest reported quarter"
         defaultSort={{ key: "revenueYoY", dir: "desc" }}
+        selectedKey={current || null}
       />
       <dl className="flex flex-wrap gap-x-6 gap-y-1 border-t border-hairline bg-surface-sunken px-3 py-2 text-caption text-ink">
         <dt className="font-semibold">Group median</dt>

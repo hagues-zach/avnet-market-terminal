@@ -164,13 +164,14 @@ const DETAIL: { id: EarningsSection; group: string; rows: Row[] }[] = [
 
 const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
 
-export function QuarterlyDetail({ earnings }: { earnings: CompanyEarnings }) {
+/** `open` starts the table unfolded (the profile's Financials section). */
+export function QuarterlyDetail({ earnings, open = false }: { earnings: CompanyEarnings; open?: boolean }) {
   const quarters = earnings.quarters.slice(-8);
   if (!quarters.length) return null;
   // Every section's chart, so the modal can move between them without closing.
   const charts = DETAIL.map((section) => ({ id: section.id, data: earningsChartData(earnings, section.id, quarters.length) }));
   return (
-    <details className="group rounded-sm border border-hairline bg-surface">
+    <details open={open} className="group rounded-sm border border-hairline bg-surface">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
         <ChevronRight className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-90" strokeWidth={1.5} aria-hidden />
         <span className="font-display text-card-title text-ink">Quarterly detail, last {quarters.length} quarters</span>

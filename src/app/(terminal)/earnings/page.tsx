@@ -1,119 +1,99 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { getCompanyEarnings, getPeerRows } from "@/lib/data/live/earnings";
-import {
-  COHORTS,
-  COHORT_LABELS,
-  DEFAULT_COMPANY,
-  US_FILERS,
-  comparability,
-  comparableValue,
-  isUsFiler,
-  type Cohort,
-  type Metric,
-  type Quarter,
-} from "@/lib/data/live/earnings-model";
-import { groupMedian, groupOf } from "@/lib/earnings/season";
+import { redirect } from "next/navigation";
+import { COHORTS, US_FILERS, type Cohort } from "@/lib/data/live/earnings-model";
+import { isMeasure } from "@/lib/earnings/leaderboard";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
 import { DataChip } from "@/components/ui/chip";
-import { Panel, SourceLine } from "@/components/ui/panel";
+import { Panel } from "@/components/ui/panel";
 import { LoadingBlock } from "@/components/ui/states";
-import { CompanyPicker } from "@/components/earnings/company-picker";
-import { CompanyResults, QuarterlyDetail, TrendPanel } from "@/components/earnings/company-view";
-import { GroupTable } from "@/components/earnings/group-table";
 import { SeasonFallback, SeasonOverview } from "@/components/earnings/season";
+import { SeasonByGroup } from "@/components/earnings/season-groups";
+import { LeaderboardView } from "@/components/earnings/leaderboard";
+import { cn } from "@/lib/utils";
 
-/** Server component: every company's latest quarter, filtered to the group. */
-async function GroupSection({ company, group }: { company: string; group: Cohort | "all" }) {
-  // US filers only for the MVP; the foreign reporters return with Europe and Asia on the roadmap.
-  const all = (await getPeerRows()).filter((r) => isUsFiler(r.company));
-  const rows = groupOf(all, group);
-  const median = Object.fromEntries(
-    (["revenueYoY", "grossMargin", "operatingMargin", "inventoryDays", "fcfMargin"] as const).map((m) => [m, groupMedian(rows, m)]),
-  );
+// Earnings is about all companies at once: the season (who reports when, who
+// just did, how each group is doing) and the leaderboard (every company ranked
+// on one measure). Everything about one company lives on its profile.
+
+type View = "season" | "leaderboard";
+
+const VIEWS: { value: View; label: string; href: string }[] = [
+  { value: "season", label: "Season", href: "/earnings" },
+  { value: "leaderboard", label: "Leaderboard", href: "/earnings?view=leaderboard" },
+];
+
+function Fallback({ title }: { title: string }) {
   return (
-    <Panel
-      title={group === "all" ? `All ${US_FILERS.length} companies, latest quarter` : `${COHORT_LABELS[group]}, latest quarter`}
-      subtitle="Each company on its most recent filed quarter. Select a column to sort, a company to open it"
-      bodyClassName="p-0"
-      footer={<SourceLine source="SEC filings, GAAP as reported" />}
-    >
-      <GroupTable
-        rows={rows.map((r) => ({
-          slug: r.company.slug,
-          name: r.company.name,
-          group: COHORT_LABELS[r.company.cohort],
-          latest: r.latest && {
-            ...r.latest,
-            values: Object.fromEntries(
-              Object.entries(r.latest.values).map(([m, v]) => [m, comparableValue(r.company, m as Metric, v)]),
-            ) as Quarter["values"],
-          },
-          caveats: Object.fromEntries(
-            (["revenue", "revenueYoY", "grossMargin", "operatingMargin", "inventoryDays", "fcfMargin"] as const).flatMap((m) => {
-              const c = comparability(r.company, m);
-              return c?.level === "caveat" ? [[m, c.reason]] : [];
-            }),
-          ),
-        }))}
-        current={company}
-        groupParam={group}
-        median={median}
-      />
+    <Panel title={title}>
+      <LoadingBlock label="Reading every company's filings…" lines={6} />
     </Panel>
   );
 }
 
-export default async function EarningsPage({ searchParams }: { searchParams: Promise<{ company?: string; group?: string }> }) {
+export default async function EarningsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; group?: string; measure?: string; company?: string }>;
+}) {
   const params = await searchParams;
-  const company = US_FILERS.some((c) => c.slug === params.company) ? params.company! : DEFAULT_COMPANY;
-  const own = US_FILERS.find((c) => c.slug === company)!.cohort;
-  // The group compared with: the URL's, or the company's own. "all" shows every company.
-  const group: Cohort | "all" = params.group === "all" ? "all" : COHORTS.includes(params.group as Cohort) ? (params.group as Cohort) : own;
-  const earnings = await getCompanyEarnings(company);
+  // One company's earnings moved to its profile; old links land there.
+  if (params.company && US_FILERS.some((c) => c.slug === params.company)) redirect(`/network/${params.company}#overview`);
+
+  const view: View = params.view === "leaderboard" ? "leaderboard" : "season";
+  const group: Cohort | "all" = COHORTS.includes(params.group as Cohort) ? (params.group as Cohort) : "all";
+  const measure = isMeasure(params.measure) ? params.measure : "revenueYoY";
 
   return (
     <PageBody>
       <PageTitle
-        title="Quarterly Earnings"
-        subtitle={`One reporting framework across ${US_FILERS.length} US-listed companies, from SEC filings`}
+        title="Earnings"
+        subtitle={`The season and the leaderboard across ${US_FILERS.length} US-listed companies, from SEC filings. Each company's own results are on its profile`}
         actions={<DataChip status="live" label="SEC filings" />}
       />
 
-      <Suspense fallback={<SeasonFallback />}>
-        <SeasonOverview company={company} group={group} />
-      </Suspense>
+      <nav aria-label="Earnings views" className="border-b border-hairline">
+        <ul className="flex gap-6">
+          {VIEWS.map((v) => (
+            <li key={v.value}>
+              <Link
+                href={v.href}
+                aria-current={v.value === view ? "page" : undefined}
+                className={cn(
+                  "-mb-px inline-flex h-tab items-center border-b-2 font-body text-body-sm transition-colors",
+                  v.value === view ? "border-primary font-semibold text-ink" : "border-transparent text-ink-muted hover:text-ink",
+                )}
+              >
+                {v.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-      <section aria-label="One company" className="space-y-4 pt-2">
-        <CompanyPicker company={company} group={group} />
-        <CompanyResults earnings={earnings} />
-        <TrendPanel earnings={earnings} />
-        <p className="text-body-sm text-ink-muted">
-          What {earnings.company.name}&apos;s management said and its revenue mix are on{" "}
-          <Link href={`/network/${company}`} className="text-ink underline underline-offset-2 hover:text-ink-muted">
-            its company profile
-          </Link>
-          .
-        </p>
-        <Suspense
-          fallback={
-            <Panel title="Latest quarter in the group">
-              <LoadingBlock label="Loading the group…" lines={6} />
-            </Panel>
-          }
-        >
-          <GroupSection company={company} group={group} />
+      {view === "season" ? (
+        <>
+          <Suspense fallback={<SeasonFallback />}>
+            <SeasonOverview />
+          </Suspense>
+          <Suspense fallback={<Fallback title="Season by group" />}>
+            <SeasonByGroup />
+          </Suspense>
+        </>
+      ) : (
+        <Suspense fallback={<Fallback title="Leaderboard" />}>
+          <LeaderboardView measure={measure} group={group} />
         </Suspense>
-        <QuarterlyDetail earnings={earnings} />
-      </section>
+      )}
 
       <p className="text-caption text-ink-muted">
         From SEC EDGAR structured data in each company&apos;s 10-Q and 10-K filings, as reported (GAAP, not adjusted). Fiscal quarters follow each
         company&apos;s calendar; the calendar quarter is the one the period mostly falls in, and the season is the last calendar quarter to have
         ended. Release dates are estimated from each company&apos;s release a year earlier. Fourth quarters and cash-flow items are filed as
-        year-to-date totals, so the quarter is the difference between totals; EPS derived that way is marked. Days measures use the quarter-end
-        balance against 91 days of revenue or cost. Checked for new filings about every 6 hours.
+        year-to-date totals, so the quarter is the difference between totals. Days measures use the quarter-end balance against 91 days of revenue
+        or cost. &quot;What to watch&quot; guidance comes from the release summary on each company&apos;s profile, once it has been read. Checked for
+        new filings about every 6 hours.
       </p>
     </PageBody>
   );
