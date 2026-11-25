@@ -15,6 +15,10 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { SignalLines, type Format, type Row } from "@/components/signals/charts";
 import { StoryList, type StoryRow } from "./story-list";
+import { linesSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+
+/** A segment's read in words, for the slide. */
+const VERDICT_WORDS: Record<SegmentVerdict, string> = { longer: "Getting longer", easing: "Easing", mixed: "Mixed", thin: "Too few stories", quiet: "Quiet" };
 
 // Lead Times & Signals: the read in words, lead-time direction by segment from
 // the news, three public supply-pressure series, the stories themselves, and
@@ -139,6 +143,22 @@ function IndicatorPanel({ ind }: { ind: LeadIndicator }) {
       title={ind.label}
       subtitle={ind.detail}
       className="min-w-0"
+      deck={
+        rows.length > 1
+          ? seriesSlide({
+              key: `lead-times:${ind.key}`,
+              title: ind.label,
+              text: `${ind.reading}${year ? ` Latest ${latestText(ind)}, ${year}.` : ""}`,
+              unit: ind.unit === "usd-millions" ? "usd" : "number",
+              kind: "line",
+              periods: rows.map((r) => String(r.label)),
+              series: [{ name: ind.label, color: VIZ.arrow, values: ind.points.map((p) => (ind.unit === "usd-millions" ? p.value * 1e6 : p.value)) }],
+              chartTitle: ind.detail,
+              source: ind.source,
+              period: last ? monthYear(last.date) : undefined,
+            })
+          : null
+      }
       footer={
         <SourceLine source={ind.source} asOf={last ? monthYear(last.date) : undefined}>
           <a href={ind.sourceUrl} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex items-center gap-1 text-ink underline-offset-2 hover:underline">
@@ -190,7 +210,7 @@ export async function LeadTimesView() {
 
   if (!sources.some((s) => s.ok)) {
     return (
-      <Panel title="Lead times">
+      <Panel title="Lead times" deck={null}>
         <ErrorState
           title="None of the public sources could be reached"
           source="Trade-press feeds, GDELT, New York Fed, Philadelphia Fed, US Census Bureau, Sourceability"
@@ -228,6 +248,18 @@ export async function LeadTimesView() {
         subtitle="Read from lead-time stories in the last 30 days. A segment needs two stories pointing one way, outnumbering the other way two to one."
         bodyClassName="p-0"
         footer={<SourceLine source={storySources.length ? storySources.join(", ") : "News feeds not responding"} asOf={dayMonth(data.fetchedAt)} />}
+        deck={tableSlide({
+          key: "lead-times:direction-by-segment",
+          title: "Lead-time direction by segment",
+          text: leadSentence(segments, indicators),
+          columns: ["Segment", "Reading", "Stories", "Longer", "Easing", "Weeks quoted"],
+          rows: segments.map((r) => ({
+            label: r.segment,
+            values: [VERDICT_WORDS[r.verdict], String(r.stories), String(r.longer), String(r.easing), r.quoted?.weeks.text ?? "n/a"],
+          })),
+          source: storySources.length ? storySources.join(", ") : "News feeds",
+          period: dayMonth(data.fetchedAt),
+        })}
       >
         <SegmentTable rows={segments} />
       </Panel>
@@ -246,13 +278,39 @@ export async function LeadTimesView() {
       )}
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Panel title="Lead-time stories" subtitle="Newest first. Direction and weeks are read from the headline and summary." bodyClassName="p-0">
+        <Panel
+          title="Lead-time stories"
+          subtitle="Newest first. Direction and weeks are read from the headline and summary."
+          bodyClassName="p-0"
+          deck={
+            storyRows.length
+              ? linesSlide({
+                  key: "lead-times:stories",
+                  title: "Lead-time stories",
+                  text: "The latest stories on component lead times, newest first.",
+                  lines: storyRows.slice(0, 10).map((r) => `${r.title} (${r.outlet}, ${r.date}${r.weeks ? `, ${r.weeks}` : ""})`),
+                  source: storySources.join(", ") || "News feeds",
+                })
+              : null
+          }
+        >
           <StoryList stories={storyRows} segments={segments.map((s) => s.segment)} />
         </Panel>
         <Panel
           title="Published lead-time reports"
           subtitle="Full figures live with each publisher, whose terms don't allow copying them here."
           bodyClassName="p-0"
+          deck={
+            reports.length
+              ? linesSlide({
+                  key: "lead-times:published-reports",
+                  title: "Published lead-time reports",
+                  text: "Full figures live with each publisher.",
+                  lines: reports.slice(0, 10).map((r) => `${r.publisher}: ${r.title}${r.date ? `, ${fullDate(r.date)}` : ""}`),
+                  source: "Each publisher",
+                })
+              : null
+          }
         >
           <Reports reports={reports} />
         </Panel>
@@ -286,12 +344,12 @@ export async function LeadTimesView() {
 export function LeadTimesFallback() {
   return (
     <>
-      <Panel title="Lead-time direction by segment">
+      <Panel title="Lead-time direction by segment" deck={null}>
         <LoadingBlock label="Reading lead-time stories…" lines={8} />
       </Panel>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {["Global supply chain pressure", "Delivery times", "Unfilled orders"].map((t) => (
-          <Panel key={t} title={t}>
+          <Panel key={t} title={t} deck={null}>
             <LoadingBlock label={`Loading ${t.toLowerCase()}…`} lines={4} />
           </Panel>
         ))}

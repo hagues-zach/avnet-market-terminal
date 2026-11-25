@@ -9,6 +9,7 @@ import { VIZ } from "@/lib/colors";
 import { Delta } from "@/components/ui/delta";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
+import { tableSlide } from "@/lib/deck/slides";
 
 export interface ShareRow {
   name: string;
@@ -153,6 +154,20 @@ export function ShareBreakdown({
         />
       }
       footer={<SourceLine source={v.source}>{footerLink}</SourceLine>}
+      deck={tableSlide({
+        key: `share:${view}`,
+        title: v.title,
+        text: v.subtitle,
+        columns: [v.name, v.size, "Avnet share", "Change YoY", "Mapping confidence"],
+        rows: [...rows[view]]
+          .sort((a, b) => b.tam - a.tam)
+          .map((r) => ({
+            label: r.name,
+            values: [`$${r.tam.toFixed(r.tam < 10 ? 1 : 0)}B`, `${(r.share * 100).toFixed(1)}%`, `${r.shareChange >= 0 ? "+" : "−"}${pts(r.shareChange)}`, r.confidence],
+          })),
+        source: v.source,
+        hookups: v.hookups,
+      })}
     >
       <DataTable
         key={view}
