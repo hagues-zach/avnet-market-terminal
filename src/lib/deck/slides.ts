@@ -249,6 +249,8 @@ export function linesSlide(b: SlideBase & { lines: string[] }): CardSlide {
 
 /* ---------- Panels ---------- */
 
+const clamp01 = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0);
+
 /** Side-by-side panels, drawn as the page draws them (up to six). */
 export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
   const panels = b.panels.slice(0, 6).map((x) =>
@@ -261,7 +263,19 @@ export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
       metrics: x.metrics?.slice(0, 5),
       notes: x.notes?.slice(0, 3).map((n) => defined({ ...n, text: cut(n.text, 160) })),
       spark: x.spark && { ...x.spark, values: x.spark.values.filter(Number.isFinite).slice(-16) },
-      bar: x.bar && { ...x.bar, share: Math.max(0, Math.min(1, x.bar.share)) },
+      bar: x.bar && { ...x.bar, share: clamp01(x.bar.share) },
+      rows: x.rows?.slice(0, 10).map((r) =>
+        defined({
+          ...r,
+          title: cut(r.title, 120)!,
+          text: cut(r.text, 300),
+          bar: r.bar && { ...r.bar, share: clamp01(r.bar.share) },
+          lines: r.lines?.map((l) => ({ ...l, values: l.values.slice(-16).map((v) => (v !== null && Number.isFinite(v) ? v : null)) })),
+        }),
+      ),
+      table: x.table && { columns: x.table.columns.slice(0, 5), rows: x.table.rows.slice(0, 12).map((r) => ({ ...r, cells: r.cells.slice(0, 4) })) },
+      bars: x.bars && { ...x.bars, labels: x.bars.labels.slice(-12), values: x.bars.values.slice(-12).map((v) => (v !== null && Number.isFinite(v) ? v : null)), valueLabels: x.bars.valueLabels?.slice(-12) },
+      pairs: x.pairs?.slice(0, 12),
     }),
   );
   return card(b, { ...base(b), panels });

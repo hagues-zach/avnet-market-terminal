@@ -170,6 +170,19 @@ function addSide(slide: PptxGenJS.Slide, p: Preview, plan: SlidePlan, box: Box) 
 /** Side-by-side panels: the shared layout's pieces as native shapes and text. */
 function addPanels(slide: PptxGenJS.Slide, panels: Panel[], box: Box) {
   for (const it of layoutPanels(panels, box)) {
+    if (it.kind === "seg") {
+      // A line shape runs top left to bottom right; flipped, bottom left to top right.
+      const rising = it.x2 > it.x1 !== it.y2 > it.y1;
+      slide.addShape("line", {
+        x: Math.min(it.x1, it.x2),
+        y: Math.min(it.y1, it.y2),
+        w: Math.max(0.001, Math.abs(it.x2 - it.x1)),
+        h: Math.abs(it.y2 - it.y1),
+        flipV: rising && it.y1 !== it.y2,
+        line: { color: hex(it.color), width: it.width },
+      });
+      continue;
+    }
     const at = { x: it.x, y: it.y, w: it.w, h: it.h };
     if (it.kind === "line") slide.addShape("line", { ...at, line: { color: hex(it.color), width: it.width } });
     else if (it.kind === "rect")

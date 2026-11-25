@@ -15,7 +15,8 @@ import { PairLines, type PairRow, type Unit } from "./charts";
 import { PairSpark } from "./pair-spark";
 import { ScorecardTable } from "./scorecard-table";
 import { scorecardChartData } from "@/lib/chart-view/scorecard";
-import { linesSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { linesSlide, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 import { AddCardToDeck } from "@/components/deck/add-card-to-deck";
 import { cn } from "@/lib/utils";
 
@@ -134,11 +135,32 @@ function Strengths({ side, rows, pair }: { side: Side; rows: ScoreRow[]; pair: P
       subtitle="Biggest edge first, with a sentence to use in a conversation"
       deck={
         list.length
-          ? linesSlide({
+          ? panelsSlide({
               key: `competitive:${side.toLowerCase()}-stronger`,
               title: `Where ${side} is stronger`,
               text: "Biggest edge first, with a sentence to use in a conversation.",
-              lines: list.map((r) => `${r.label} (Avnet ${format(r.kind, r.avnet)}, Arrow ${format(r.kind, r.arrow)}): ${talkingPoint(r)}`),
+              // The card's rows: the measure, both companies' values, the sentence, and both over eight quarters.
+              panels: [
+                {
+                  rowRules: true,
+                  rows: list.slice(0, 6).map((r) => {
+                    const s = series(pair, r.metric);
+                    return {
+                      title: r.label,
+                      strong: true,
+                      markers: [
+                        { text: `Avnet ${format(r.kind, r.avnet)}`, color: VIZ.avnet, strong: side === "Avnet" },
+                        { text: `Arrow ${format(r.kind, r.arrow)}`, color: VIZ.arrow, strong: side === "Arrow" },
+                      ],
+                      text: talkingPoint(r),
+                      lines: [
+                        { values: s.map((p) => p.arrow ?? null), color: VIZ.arrow, width: 1.5 },
+                        { values: s.map((p) => p.avnet ?? null), color: VIZ.avnet, width: 2 },
+                      ],
+                    };
+                  }),
+                },
+              ],
               source: "SEC filings, GAAP as reported",
             })
           : null

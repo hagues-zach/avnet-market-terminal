@@ -198,10 +198,12 @@ export type PanelItem =
   /** A hairline: horizontal when h is 0, vertical when w is 0. Width in points. */
   | { kind: "line"; x: number; y: number; w: number; h: number; color: string; width: number }
   /** A chip: a rounded outline, dashed on Mock. */
-  | { kind: "pill"; x: number; y: number; w: number; h: number; color: string; dashed: boolean };
+  | { kind: "pill"; x: number; y: number; w: number; h: number; color: string; dashed: boolean }
+  /** A straight stroke from one point to another, for small line charts. Width in points. */
+  | { kind: "seg"; x1: number; y1: number; x2: number; y2: number; color: string; width: number };
 
 const PANEL_INK = { muted: "#6B7075", line: "#E3E5E8", good: "#138036", bad: "#D7263D" } as const;
-const PANEL_TONE = { good: PANEL_INK.good, bad: PANEL_INK.bad, neutral: PANEL_INK.muted } as const;
+const PANEL_TONE = { good: PANEL_INK.good, bad: PANEL_INK.bad, neutral: PANEL_INK.muted, plain: "#000000" } as const;
 
 /** A change as runs: its arrow and value in its tone, then the period in grey. */
 const changeRuns = (change: string | undefined, tone: PanelTone | undefined, period: string | undefined, size: number): PanelRun[] =>
@@ -315,6 +317,120 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
           y += h + z(0.04);
         }
       });
+    }
+    if (p.rows?.length) {
+      const linesW = p.rows.some((r) => r.lines?.length) ? z(1.15) : 0;
+      const tw = w - (linesW ? linesW + z(0.2) : 0);
+      p.rows.forEach((r, j) => {
+        if (j && p.rowRules) {
+          rule(x, y);
+          y += z(0.14);
+        }
+        const top = y;
+        const size = r.strong ? z(12) : z(9.5);
+        const value = r.value ? [{ text: r.value, size: z(9.5) }, ...(r.change ? [{ text: "  ", size: z(8) }, ...changeRuns(r.change, r.tone, undefined, z(8.5))] : [])] : [];
+        const valueW = value.length ? Math.min(tw * 0.6, (value.reduce((n, v) => n + v.text.length * v.size, 0) * 0.55) / 72 + 0.05) : 0;
+        // The label wraps beside its value, as the page's does, and the row grows with it.
+        const h = tall(r.title, r.strong ? size * 1.1 : size, tw - valueW - 0.05);
+        text(x, y, tw - valueW - 0.05, h, [{ text: r.title, size, bold: Boolean(r.strong) }]);
+        if (value.length) text(x + tw - valueW, y + (size - z(9.5)) / 72, valueW, (z(9.5) * 1.25) / 72, value, { align: "right" });
+        y += h + z(0.03);
+        if (r.markers?.length) {
+          let mx = x;
+          for (const m of r.markers) {
+            items.push({ kind: "rect", x: mx, y: y + z(0.045), w: z(0.09), h: z(0.09), color: m.color });
+            const mw = (m.text.length * z(9.5) * (m.strong ? 0.62 : 0.56)) / 72 + 0.1;
+            text(mx + z(0.14), y + z(0.01), mw, z(0.19), [{ text: m.text, size: z(9.5), bold: Boolean(m.strong), color: m.strong ? undefined : PANEL_INK.muted }]);
+            mx += z(0.14) + mw + z(0.2);
+          }
+          y += z(0.25);
+        }
+        if (r.text) {
+          const th = tall(r.text, z(10), tw);
+          text(x, y, tw, th, [{ text: r.text, size: z(10) }]);
+          y += th + z(0.03);
+        }
+        if (r.bar) {
+          items.push({ kind: "rect", x, y: y + z(0.01), w: Math.max(0.02, tw * r.bar.share), h: z(0.09), color: r.bar.color });
+          y += z(0.14);
+        }
+        if (linesW && r.lines?.length) {
+          // The page's pair spark: both lines on one scale, the last drawn on top.
+          const all = r.lines.flatMap((l) => l.values.filter((v): v is number => v !== null));
+          if (all.length > 1) {
+            const lo = Math.min(...all);
+            const span = Math.max(...all) - lo || 1;
+            const n = Math.max(...r.lines.map((l) => l.values.length));
+            const sx = x + w - linesW;
+            const sh = z(0.5);
+            const sy = top + z(0.04);
+            for (const l of r.lines) {
+              const pts = l.values.map((v, k) => (v === null ? null : { x: sx + (k / (n - 1 || 1)) * linesW, y: sy + sh - ((v - lo) / span) * sh }));
+              for (let k = 1; k < pts.length; k++) {
+                const a = pts[k - 1];
+                const b = pts[k];
+                if (a && b) items.push({ kind: "seg", x1: a.x, y1: a.y, x2: b.x, y2: b.y, color: l.color, width: l.width ?? 1.5 });
+              }
+            }
+          }
+          y = Math.max(y, top + z(0.6));
+        }
+        y += p.rowRules ? z(0.06) : z(0.1);
+      });
+    }
+    if (p.table?.rows.length) {
+      const cols = p.table.columns;
+      const first = cols.length > 1 ? w * 0.46 : w;
+      const cw = cols.length > 1 ? (w - first) / (cols.length - 1) : 0;
+      const colX = (c: number) => (c === 0 ? x : x + first + (c - 1) * cw);
+      const rowH = z(0.21);
+      y += z(0.04);
+      cols.forEach((c, k) => text(colX(k), y, k ? cw : first, z(0.16), [{ text: c.toUpperCase(), size: label, bold: true, color: PANEL_INK.muted }], { spaced: true, align: k ? "right" : "left", valign: "bottom" }));
+      y += z(0.18);
+      rule(x, y);
+      for (const row of p.table.rows) {
+        text(colX(0), y + z(0.03), first - 0.05, rowH - z(0.03), [{ text: row.label, size: z(8.5) }], { valign: "middle" });
+        row.cells.forEach((c, k) =>
+          text(colX(k + 1), y + z(0.03), cw, rowH - z(0.03), typeof c === "string" ? [{ text: c, size: z(8.5) }] : changeRuns(c.change, c.tone, undefined, z(8.5)), {
+            align: "right",
+            valign: "middle",
+          }),
+        );
+        y += rowH;
+        rule(x, y, 0.5);
+      }
+      y += z(0.08);
+    }
+    if (p.bars && p.bars.values.some((v) => v !== null)) {
+      const vals = p.bars.values;
+      const max = Math.max(...vals.map((v) => v ?? 0)) || 1;
+      const gapB = z(0.06);
+      const bw = (w - gapB * (vals.length - 1)) / vals.length;
+      const chartH = z(0.7);
+      const base = y + z(0.16) + chartH;
+      vals.forEach((v, k) => {
+        const bx = x + k * (bw + gapB);
+        if (v !== null) {
+          const bh = Math.max(0.01, (v / max) * chartH);
+          items.push({ kind: "rect", x: bx, y: base - bh, w: bw, h: bh, color: p.bars!.color });
+          const vl = p.bars!.valueLabels?.[k];
+          if (vl) text(bx - 0.1, base - bh - z(0.15), bw + 0.2, z(0.14), [{ text: vl, size: z(6.5), color: PANEL_INK.muted }], { align: "center", valign: "bottom" });
+        }
+        text(bx - 0.1, base + z(0.03), bw + 0.2, z(0.14), [{ text: p.bars!.labels[k] ?? "", size: z(6.5), color: PANEL_INK.muted }], { align: "center" });
+      });
+      rule(x, base, 0.5);
+      y = base + z(0.22);
+    }
+    if (p.pairs?.length) {
+      const per = 3;
+      const cw = (w - z(0.2) * (per - 1)) / per;
+      p.pairs.forEach((pr, k) => {
+        const cx = x + (k % per) * (cw + z(0.2));
+        const cy = y + Math.floor(k / per) * z(0.18);
+        text(cx, cy, cw * 0.62, z(0.17), [{ text: pr.label, size: z(8) }]);
+        text(cx + cw * 0.5, cy, cw * 0.5, z(0.17), [{ text: pr.value, size: z(8), color: PANEL_INK.muted }], { align: "right" });
+      });
+      y += Math.ceil(p.pairs.length / per) * z(0.18) + z(0.04);
     }
     if (sparkH && p.spark && p.spark.values.length > 1) {
       // Along the foot, as on the page: bars around a zero line, negatives below it, the latest solid.

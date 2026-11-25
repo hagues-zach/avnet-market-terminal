@@ -161,11 +161,12 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   const box = { x: 0.5, y: 1.6, w: 9, h: 3.2 };
   const roomy = layoutPanels([column(false), column(false)], box);
   const tight = layoutPanels([column(false), column(true), column(false), column(false), column(false)], box);
-  for (const items of [roomy, tight]) for (const it of items) assert.ok(it.y + it.h <= box.y + box.h + 0.01, `${it.kind} inside the body`);
+  const bottom = (it: (typeof roomy)[number]) => (it.kind === "seg" ? Math.max(it.y1, it.y2) : it.y + it.h);
+  for (const items of [roomy, tight]) for (const it of items) assert.ok(bottom(it) <= box.y + box.h + 0.01, `${it.kind} inside the body`);
   const size = (items: typeof roomy, s: string) => items.flatMap((it) => (it.kind === "text" ? it.runs : [])).find((r) => r.text === s)?.size ?? 0;
   assert.equal(size(roomy, "+18.1%"), 19, "full size when it fits");
   assert.ok(size(tight, "+18.1%") < 19 && size(tight, "+18.1%") >= 19 * 0.7, "smaller, within limits, when a column runs long");
-  const sparkTops = tight.filter((it) => it.kind === "text" && it.runs[0].text === "GROWTH, LAST 8 QUARTERS").map((it) => it.y.toFixed(3));
+  const sparkTops = tight.filter((it) => it.kind === "text" && it.runs[0].text === "GROWTH, LAST 8 QUARTERS").map((it) => (it.kind === "text" ? it.y.toFixed(3) : ""));
   assert.equal(new Set(sparkTops).size, 1, "the sparks level along the foot");
 }
 

@@ -9,7 +9,8 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { Chip, DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
-import { comparisonSlide, formatGrowth, seriesSlide } from "@/lib/deck/slides";
+import { comparisonSlide, formatGrowth, panelsSlide, seriesSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { MarketByYear } from "./market-chart";
 
@@ -162,14 +163,40 @@ export async function WhatCarried({ tam, marketPrior, vintage }: { tam: TamSumma
       title="What carried the growth"
       subtitle={`${tam.latestYear} sales and growth on ${tam.latestYear - 1}: the devices AI spending lands on, against the rest of the market`}
       actions={<DataChip status={status} />}
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "overview:what-carried-the-growth",
         title: "What carried the growth",
         text: `The devices AI spending lands on sold ${bn(s.ai.usdM, 1)} in ${tam.latestYear}, ${Math.round(s.ai.share * 100)}% of the market, ${formatGrowth(s.ai.growth)} on ${tam.latestYear - 1}; everything else grew ${formatGrowth(s.rest.growth)}.`,
-        unit: "usd",
-        measure: `${tam.latestYear} sales`,
-        items: aiDevices.map((d) => ({ name: d.device, value: d.usdM * 1e6, extra: [formatGrowth(d.yoy)] })),
-        extraColumns: ["Growth"],
+        // The card as it reads: the two bars and the AI devices, then the market by WSTS category.
+        panels: [
+          {
+            rows: [
+              { label: "DRAM, Flash, MPUs, GPUs and AI accelerators", part: s.ai, color: VIZ.arrow },
+              { label: "Everything else", part: s.rest, color: VIZ.other },
+            ].map(({ label, part, color }) => ({
+              title: label,
+              value: `${bn(part.usdM, 1)}, ${Math.round(part.share * 100)}% of the market`,
+              change: formatGrowth(part.growth),
+              tone: "plain" as const,
+              bar: { share: part.share, color },
+            })),
+            table: {
+              columns: ["Device", `${tam.latestYear} sales`, "Growth"],
+              rows: aiDevices.map((d) => ({ label: d.device, cells: [bn(d.usdM, 1), { change: formatGrowth(d.yoy), tone: "plain" as const }] })),
+            },
+          },
+          {
+            title: "By WSTS category",
+            tag: vintage,
+            table: {
+              columns: ["Category", `${tam.latestYear} sales`, "Growth", "Share"],
+              rows: tam.byProduct.map((p) => ({
+                label: PRODUCT_LABEL[p.product],
+                cells: [bn(p.usdM, 1), { change: formatGrowth(p.yoy), tone: "plain" as const }, `${Math.round((p.usdM / tam.tamUsdM) * 100)}%`],
+              })),
+            },
+          },
+        ],
         source: `${vintage}; the device split is mock until WSTS detail and Gartner are hooked up`,
         hookups: ["gartner-forecast"],
       })}

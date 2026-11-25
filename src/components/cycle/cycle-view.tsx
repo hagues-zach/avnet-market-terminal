@@ -366,19 +366,30 @@ function EndDemand({
       subtitle={`What the customers are doing: revenue growth on a year ago, ${latest}`}
       footer={<SourceLine source="SEC filings" asOf={latest} />}
       bodyClassName="space-y-4"
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "cycle:end-demand",
         title: "End demand",
         text: `What the customers are doing: revenue growth on a year ago, ${latest}.`,
-        unit: "pct",
-        measure: "Revenue growth YoY",
-        items: rows.map(({ g, growth }) => ({ name: COHORT_LABELS[g.cohort], value: growth })),
-        lines: [
-          ...(() => {
-            const last = [...capex].reverse().find((c) => c.total !== undefined);
-            return last ? [`Hyperscaler capex: ${format("usd", last.total)} combined in ${last.label}`] : [];
-          })(),
-          ...hyperscalers.map((h) => `${h.name} capex ${growthText(h.yoy)} on a year ago${h.label ? `, ${h.label}` : ""}`),
+        // The card's two halves: the customer groups ranked with their bars, and the hyperscalers' capex.
+        panels: [
+          {
+            rows: rows.map(({ g, growth }) => ({
+              title: COHORT_LABELS[g.cohort],
+              value: growthText(growth),
+              bar: { share: Math.abs(growth ?? 0) / max, color: VIZ.benchmark },
+            })),
+          },
+          {
+            title: "Hyperscaler capital spending",
+            detail: "Combined capex of the five, by calendar quarter. Blank until all five have reported",
+            bars: {
+              labels: capex.map((c) => c.label),
+              values: capex.map((c) => c.total ?? null),
+              valueLabels: capex.map((c) => (c.total === undefined ? "" : format("usd", c.total))),
+              color: VIZ.benchmark,
+            },
+            pairs: hyperscalers.map((h) => ({ label: h.name, value: growthText(h.yoy) })),
+          },
         ],
         source: "SEC filings",
         period: latest,

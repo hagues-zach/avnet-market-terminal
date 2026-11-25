@@ -243,7 +243,15 @@ function Panels({ panels }: { panels: Panel[] }) {
   const items = h ? layoutPanels(panels, { x: 0, y: 0, w: BODY_W, h }) : [];
   return (
     <div ref={ref} className="relative h-full">
+      {items.some((it) => it.kind === "seg") && (
+        <svg aria-hidden className="absolute left-0 top-0 h-full w-full overflow-visible" viewBox={`0 0 ${BODY_W} ${h}`} preserveAspectRatio="none">
+          {items.map((it, i) =>
+            it.kind === "seg" ? <line key={i} x1={it.x1} y1={it.y1} x2={it.x2} y2={it.y2} stroke={it.color} strokeWidth={it.width / 72} strokeLinecap="round" /> : null,
+          )}
+        </svg>
+      )}
       {items.map((it, i) => {
+        if (it.kind === "seg") return null;
         const at: CSSProperties = { position: "absolute", left: inch(it.x), top: inch(it.y), width: inch(it.w), height: inch(it.h) };
         if (it.kind === "line")
           return <div key={i} style={{ ...at, ...(it.w ? { height: 0, borderTop: `${it.width}pt solid ${it.color}` } : { width: 0, borderLeft: `${it.width}pt solid ${it.color}` }) }} />;

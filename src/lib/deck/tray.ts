@@ -39,7 +39,20 @@ const ChartSchema = z.object({
     .max(6),
 });
 
-const Tone = z.enum(["good", "bad", "neutral"]);
+const Tone = z.enum(["good", "bad", "neutral", "plain"]);
+const Hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
+const PanelRowSchema = z.object({
+  title: text(120),
+  strong: z.boolean().optional(),
+  value: text(60).optional(),
+  change: text(40).optional(),
+  tone: Tone.optional(),
+  bar: z.object({ share: z.number().min(0).max(1), color: Hex }).optional(),
+  markers: z.array(z.object({ text: text(60), color: Hex, strong: z.boolean().optional() })).max(3).optional(),
+  text: text(300).optional(),
+  lines: z.array(z.object({ values: z.array(z.number().nullable()).max(16), color: Hex, width: z.number().min(0.25).max(4).optional() })).max(3).optional(),
+});
+const PanelCellSchema = z.union([text(40), z.object({ change: text(40), tone: Tone.optional() })]);
 
 export const PreviewSchema = z.object({
   headline: text(240),
@@ -66,6 +79,13 @@ export const PreviewSchema = z.object({
         notes: z.array(z.object({ title: text(60), value: text(40).optional(), text: text(160).optional(), marker: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() })).max(3).optional(),
         notesLabel: text(60).optional(),
         next: z.boolean().optional(),
+        rows: z.array(PanelRowSchema).max(10).optional(),
+        rowRules: z.boolean().optional(),
+        table: z
+          .object({ columns: z.array(text(40)).max(5), rows: z.array(z.object({ label: text(80), cells: z.array(PanelCellSchema).max(4) })).max(12) })
+          .optional(),
+        bars: z.object({ labels: z.array(text(20)).max(12), values: z.array(z.number().nullable()).max(12), valueLabels: z.array(text(20)).max(12).optional(), color: Hex }).optional(),
+        pairs: z.array(z.object({ label: text(40), value: text(30) })).max(12).optional(),
         spark: z.object({ label: text(60), values: z.array(z.number()).max(16), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() }).optional(),
       }),
     )

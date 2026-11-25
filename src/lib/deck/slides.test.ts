@@ -140,6 +140,17 @@ const funnel = panelsSlide({
 assert.equal(funnel.preview.panels![0].bar?.share, 1, "bar share capped at 1");
 assert.equal(funnel.preview.panels![1].bar?.share, 0, "and floored at 0");
 valid(funnel.preview, "a funnel panels slide");
+const rowsSlide = panelsSlide({
+  key: "competitive:avnet-stronger",
+  title: "Where Avnet is stronger",
+  panels: [{ rows: Array.from({ length: 12 }, (_, i) => ({ title: `Measure ${i}`, text: "t".repeat(400), bar: { share: 2, color: "#919191" }, lines: [{ values: [1, NaN, 3], color: "#41C363" }] })) }],
+  source: "SEC",
+});
+assert.equal(rowsSlide.preview.panels![0].rows?.length, 10, "ten rows at most");
+assert.ok(rowsSlide.preview.panels![0].rows![0].text!.length <= 300, "long sentences cut");
+assert.equal(rowsSlide.preview.panels![0].rows![0].bar?.share, 1, "row bar capped");
+assert.deepEqual(rowsSlide.preview.panels![0].rows![0].lines?.[0].values, [1, null, 3], "gaps in a line kept as gaps");
+valid(rowsSlide.preview, "a rows panels slide");
 assert.equal(panelChange("+1.2 pts"), "\u2191 +1.2 pts");
 assert.equal(panelChange("\u221216d"), "\u2193 \u221216d");
 assert.equal(panelChange("0d"), "\u2192 0d");

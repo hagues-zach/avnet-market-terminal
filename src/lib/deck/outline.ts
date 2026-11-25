@@ -404,7 +404,30 @@ export const PRIMER_SEGMENT: Record<string, string> = {
 
 /* ---------- Previews ---------- */
 
-export type PanelTone = "good" | "bad" | "neutral";
+/** A change's colour: good green, bad red, neutral grey (flat), plain black (a change that is neither good nor bad). */
+export type PanelTone = "good" | "bad" | "neutral" | "plain";
+
+/** One row down a panel: a label with its value, and under it what the page shows under it. */
+export interface PanelRow {
+  title: string;
+  /** The label as a card title (bold) rather than body text. */
+  strong?: boolean;
+  /** Right-aligned beside the label, and its change after it. */
+  value?: string;
+  change?: string;
+  tone?: PanelTone;
+  /** A bar under the row, 0 to 1 of the panel's width. */
+  bar?: { share: number; color: string };
+  /** Values with a colour marker in a line: "Avnet 10.4%", "Arrow 11.3%"; the strong one bold, the rest grey. */
+  markers?: { text: string; color: string; strong?: boolean }[];
+  /** A sentence under it. */
+  text?: string;
+  /** A small line chart on the right: a line per series, drawn in order (the last on top). */
+  lines?: { values: (number | null)[]; color: string; width?: number }[];
+}
+
+/** A table cell: text, or a change with its arrow. */
+export type PanelCell = string | { change: string; tone?: PanelTone };
 
 
 /** One column of a panels slide. */
@@ -432,6 +455,15 @@ export interface Panel {
   notesLabel?: string;
   /** A chevron on the divider to its right, as the funnel draws between its steps. */
   next?: boolean;
+  /** Rows down the panel; with rowRules, a hairline between them. */
+  rows?: PanelRow[];
+  rowRules?: boolean;
+  /** A compact table: column heads in small capitals, the first column left, the rest right. */
+  table?: { columns: string[]; rows: { label: string; cells: PanelCell[] }[] };
+  /** Small columns over periods, each labelled under and its value over it: the hyperscalers' capex by quarter. */
+  bars?: { labels: string[]; values: (number | null)[]; valueLabels?: string[]; color: string };
+  /** Names and values in a grid of three: each hyperscaler's capex growth. */
+  pairs?: { label: string; value: string }[];
   /** A small bar chart along the foot, the last bar darker: the last eight quarters. */
   spark?: { label: string; values: number[]; color?: string };
 }
