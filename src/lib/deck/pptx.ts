@@ -3,8 +3,8 @@ import { plainDashes } from "@/lib/ai/dashes";
 import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
 import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
-import { AREA, chartTitle, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
-import type { Chart, Preview, SeriesWho } from "./outline";
+import { AREA, chartTitle, layoutPanels, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
+import type { Chart, Panel, Preview, SeriesWho } from "./outline";
 
 // The deck's PowerPoint export (the Pitch Deck Builder and Add to deck): the
 // previews on screen, written on the Avnet FY27 PowerPoint template
@@ -167,6 +167,31 @@ function addSide(slide: PptxGenJS.Slide, p: Preview, plan: SlidePlan, box: Box) 
     slide.addText(bulletRuns(p.lines), { x, y, w, h: box.y + box.h - y - 0.1, fontFace: BODY, fontSize: 10, color: INK, valign: "top", margin: 0 });
 }
 
+/** Side-by-side panels: the shared layout's pieces as native shapes and text. */
+function addPanels(slide: PptxGenJS.Slide, panels: Panel[], box: Box) {
+  for (const it of layoutPanels(panels, box)) {
+    const at = { x: it.x, y: it.y, w: it.w, h: it.h };
+    if (it.kind === "line") slide.addShape("line", { ...at, line: { color: hex(it.color), width: it.width } });
+    else if (it.kind === "rect")
+      slide.addShape("rect", { ...at, fill: { color: hex(it.color), transparency: Math.round((1 - (it.opacity ?? 1)) * 100) }, line: { type: "none" } });
+    else if (it.kind === "pill")
+      slide.addShape("roundRect", { ...at, rectRadius: it.h / 2, fill: { color: "FFFFFF" }, line: { color: hex(it.color), width: 0.75, ...(it.dashed ? { dashType: "dash" as const } : {}) } });
+    else
+      slide.addText(
+        it.runs.map((r) => ({ text: t(r.text), options: { fontSize: Math.round(r.size * 10) / 10, bold: Boolean(r.bold), color: r.color ? hex(r.color) : INK } })),
+        {
+          ...at,
+          fontFace: BODY,
+          margin: 0,
+          align: it.align ?? "left",
+          valign: it.valign ?? "top",
+          ...(it.spaced ? { charSpacing: 0.5 } : {}),
+          ...(it.fill ? { fill: { color: hex(it.fill) } } : {}),
+        },
+      );
+  }
+}
+
 /** Source, period and the Mock data tag, beside the template's slide number. */
 function addFooter(slide: PptxGenJS.Slide, p: Preview, mock: boolean) {
   slide.addText(`Source: ${t(p.source)}${p.period ? `, ${t(p.period)}` : ""}`, { x: LEFT, y: FOOT_Y, w: mock ? 7.6 : 9, h: 0.2, fontFace: BODY, fontSize: 8, color: MUTED, valign: "middle", margin: 0 });
@@ -279,7 +304,9 @@ function content(d: DeckSlide): TemplateSlide {
     fill: { title: [t(p.headline)], ...(sentence && sub ? { "11": [{ text: sentence, size: 14, bold: false, color: INK }] } : {}) },
     draw: (s, pptx) => {
       addClaude(s, p.claude, claudeAt);
-      if (plan.kind === "chart" && p.chart) {
+      if (plan.kind === "panels" && p.panels) {
+        addPanels(s, p.panels, { x: LEFT, y: top, w: RIGHT - LEFT, h });
+      } else if (plan.kind === "chart" && p.chart) {
         const chartW = (plan.side ? RIGHT - plan.sideW - SIDE.gap : RIGHT) - LEFT;
         const label = chartTitle(p.chart);
         const labelH = label ? 0.24 : 0;

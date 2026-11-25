@@ -3,8 +3,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { usdShort } from "@/lib/deck/slides";
-import { AREA, chartTitle, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
-import type { Chart, Preview } from "@/lib/deck/outline";
+import { AREA, chartTitle, layoutPanels, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
+import type { Chart, Panel, Preview } from "@/lib/deck/outline";
 import { AVNET, VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 // container, so 1 inch is 10cqw; the charts, drawn in pixels, scale by the
 // frame's measured width.
 
+/** The body's width in inches, as on the slide. */
+const BODY_W = AREA.right - AREA.left;
 const inch = (n: number) => `${n * 10}cqw`;
 const pt = (n: number) => `${(n * 10) / 72}cqw`;
 const ARIAL = "Arial, Helvetica, sans-serif";
@@ -226,8 +228,61 @@ const Bullets = ({ lines, size }: { lines: string[]; size: number }) => (
   </ul>
 );
 
+/** Side-by-side panels: the shared layout's pieces, placed in inches as on the slide. */
+function Panels({ panels }: { panels: Panel[] }) {
+  const px = usePx();
+  const ref = useRef<HTMLDivElement>(null);
+  const [h, setH] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setH(el.clientHeight / px(72)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [px]);
+  const items = h ? layoutPanels(panels, { x: 0, y: 0, w: BODY_W, h }) : [];
+  return (
+    <div ref={ref} className="relative h-full">
+      {items.map((it, i) => {
+        const at: CSSProperties = { position: "absolute", left: inch(it.x), top: inch(it.y), width: inch(it.w), height: inch(it.h) };
+        if (it.kind === "line")
+          return <div key={i} style={{ ...at, ...(it.w ? { height: 0, borderTop: `${it.width}pt solid ${it.color}` } : { width: 0, borderLeft: `${it.width}pt solid ${it.color}` }) }} />;
+        if (it.kind === "rect") return <div key={i} style={{ ...at, background: it.color, opacity: it.opacity }} />;
+        if (it.kind === "pill") return <div key={i} style={{ ...at, borderRadius: 999, border: `0.75pt ${it.dashed ? "dashed" : "solid"} ${it.color}`, background: "#FFFFFF" }} />;
+        return (
+          <div
+            key={i}
+            className="tabular-nums"
+            style={{
+              ...at,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: it.valign === "middle" ? "center" : it.valign === "bottom" ? "flex-end" : "flex-start",
+              textAlign: it.align ?? "left",
+              background: it.fill,
+              // The line box from the largest run, not the page's 16px, so lines are as tall as on the slide.
+              fontSize: pt(Math.max(...it.runs.map((r) => r.size))),
+              lineHeight: 1.2,
+              letterSpacing: it.spaced ? "0.06em" : undefined,
+            }}
+          >
+            <p>
+              {it.runs.map((r, j) => (
+                <span key={j} style={{ fontSize: pt(r.size), fontWeight: r.bold ? 700 : 400, color: r.color ?? INK, whiteSpace: "pre-wrap" }}>
+                  {r.text}
+                </span>
+              ))}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** The slide's body, below the title and takeaway, laid out by planSlide. */
 function Body({ p, plan }: { p: Preview; plan: SlidePlan }) {
+  if (plan.kind === "panels" && p.panels) return <Panels panels={p.panels} />;
   if (plan.kind === "groups")
     return (
       <div className="grid h-full grid-cols-2" style={{ gap: inch(0.4) }}>

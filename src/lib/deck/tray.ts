@@ -39,6 +39,8 @@ const ChartSchema = z.object({
     .max(6),
 });
 
+const Tone = z.enum(["good", "bad", "neutral"]);
+
 export const PreviewSchema = z.object({
   headline: text(240),
   text: text(1200).optional(),
@@ -47,6 +49,28 @@ export const PreviewSchema = z.object({
   chart: ChartSchema.optional(),
   lines: z.array(text(300)).max(12).optional(),
   groups: z.array(z.object({ title: text(80), lines: z.array(text(300)).max(8) })).max(2).optional(),
+  panels: z
+    .array(
+      z.object({
+        title: text(80).optional(),
+        kicker: text(80).optional(),
+        tag: text(40).optional(),
+        tagMock: z.boolean().optional(),
+        detail: text(200).optional(),
+        figure: z.object({ value: text(40), note: text(200).optional(), change: text(40).optional(), tone: Tone.optional(), period: text(40).optional() }).optional(),
+        metrics: z
+          .array(z.object({ label: text(60), value: text(40), change: text(60).optional(), tone: Tone.optional(), period: text(40).optional(), large: z.boolean().optional() }))
+          .max(5)
+          .optional(),
+        bar: z.object({ share: z.number().min(0).max(1), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/), label: text(80).optional() }).optional(),
+        notes: z.array(z.object({ title: text(60), value: text(40).optional(), text: text(160).optional(), marker: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() })).max(3).optional(),
+        notesLabel: text(60).optional(),
+        next: z.boolean().optional(),
+        spark: z.object({ label: text(60), values: z.array(z.number()).max(16), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() }).optional(),
+      }),
+    )
+    .max(6)
+    .optional(),
   claude: z.object({ label: text(120), date: text(40).optional() }).optional(),
   source: text(300),
   period: text(60).optional(),

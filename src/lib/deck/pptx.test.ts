@@ -71,6 +71,26 @@ const slides: DeckSlide[] = [
     },
   },
   {
+    mock: false,
+    preview: {
+      headline: "The chain, from customers back to equipment",
+      panels: [
+        {
+          title: "Distributors",
+          detail: "Electronic components distribution. 6 of 6 reported",
+          metrics: [
+            { label: "Revenue growth YoY", value: "+18.1%", change: "+4.0 pts", tone: "good", period: "on prior qtr", large: true },
+            { label: "Inventory days", value: "77", change: "\u221216d", tone: "good", period: "YoY" },
+          ],
+          notes: [{ title: "Avnet", value: "+47.7%", text: "Inventory 77 days (\u221216d YoY), margin 4.4%", marker: "#41C363" }],
+          spark: { label: "Growth, last 8 quarters", values: [-0.1, -0.05, 0.02, 0.18] },
+        },
+        { kicker: "SOM, Avnet", tag: "Mock", tagMock: true, figure: { value: "$16.4B", note: "Avnet billings" }, bar: { share: 0.118, color: "#41C363", label: "11.8% of SAM" } },
+      ],
+      source: "SEC filings",
+    },
+  },
+  {
     kind: "sources",
     mock: false,
     preview: { headline: "Sources", lines: ["Company at a glance: SEC filings, Q2 2026", "Avnet's business: Mock model of Avnet (mock data)"], source: "This deck" },
@@ -102,7 +122,7 @@ try {
     };
     assert.deepEqual(
       slides.map((_, i) => layoutName(i + 1)),
-      ["Cover - Full Image - 1 Line", "Title and Subhead - 1 Line", "2-Line Title", "Title and Subhead - 1 Line", "2 Column - 1 Line", "Basic - 1 Line"],
+      ["Cover - Full Image - 1 Line", "Title and Subhead - 1 Line", "2-Line Title", "Title and Subhead - 1 Line", "2 Column - 1 Line", "1 Line - Title", "Basic - 1 Line"],
     );
     assert.equal(layoutName(slides.length + 1), "Closing");
     // A chart with key figures beside it: the side panel's figures are written, and its title is the comparison's.
@@ -110,6 +130,14 @@ try {
     assert.match(texts0(read(slideParts0(list)[2])), /Revenue growth on a year ago/, "a comparison chart is titled by what it measures");
     assert.match(read("ppt/slides/slide2.xml"), /<p:ph type="title"\/>[\s\S]*?Microchip grew 38\.0%/, "headlines fill the title placeholder");
     assert.ok(!list.some((p) => /slideLayout(9|42|65|102)\.xml$/.test(p)), "no slash pattern layouts");
+    // Panels are native shapes and text, as the page draws them: no picture, no chart.
+    const panelsXml = read(slideParts0(list)[5]);
+    const panelsText = texts0(panelsXml);
+    for (const want of ["Distributors", "REVENUE GROWTH YOY", "+18.1%", "\u2191 +4.0 pts", "on prior qtr", "\u2193 \u221216d", "Inventory 77 days", "GROWTH, LAST 8 QUARTERS", "SOM, AVNET", "$16.4B", "11.8% of SAM", "Mock"])
+      assert.ok(panelsText.includes(want), `the panels slide shows ${want}: ${panelsText}`);
+    assert.ok(!/<p:pic>|<c:chart/.test(panelsXml), "panels drawn natively");
+    assert.match(panelsXml, /prst="roundRect"[\s\S]*?prstDash val="dash"/, "the Mock tag a dashed pill");
+    assert.ok((panelsXml.match(/prst="rect"/g) ?? []).length >= 6, "the spark's bars, the share bar and the marker");
 
     const text = (xml: string) => [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join(" ");
     const texts = slideParts.slice(0, slides.length).map((p) => text(read(p)));

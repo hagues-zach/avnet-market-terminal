@@ -1,7 +1,7 @@
 // The slide each card makes. Run with: npx tsx src/lib/deck/slides.test.ts
 import assert from "node:assert/strict";
-import { planSlide } from "./layout";
-import { comparisonSlide, figuresSlide, formatFigure, linesSlide, seriesSlide, tableSlide } from "./slides";
+import { panelChange, planSlide } from "./layout";
+import { comparisonSlide, figuresSlide, formatFigure, linesSlide, panelsSlide, seriesSlide, tableSlide } from "./slides";
 import { PreviewSchema } from "./tray";
 
 const valid = (p: unknown, what: string) => {
@@ -108,6 +108,41 @@ const points = linesSlide({ key: "competitive:avnet-stronger", title: "Where Avn
 assert.equal(points.preview.lines?.length, 2, "empty lines dropped");
 assert.ok(points.preview.lines![0].length <= 300, "long lines cut");
 valid(points.preview, "a lines slide");
+
+// Panels: columns drawn as the page draws them.
+const chain = panelsSlide({
+  key: "cycle:the-chain",
+  title: "The chain, from customers back to equipment",
+  panels: [
+    ...Array.from({ length: 7 }, (_, i) => ({
+      title: `Stage ${i}`,
+      detail: "d".repeat(300),
+      metrics: [{ label: "Revenue growth YoY", value: "+12.0%", change: "+1.2 pts", tone: "good" as const, period: "on prior qtr", large: true }],
+      spark: { label: "Growth, last 8 quarters", values: [0.1, -0.05, NaN, 0.2] },
+    })),
+  ],
+  source: "SEC filings",
+});
+assert.equal(chain.preview.panels?.length, 6, "six panels at most");
+assert.ok(chain.preview.panels![0].detail!.length <= 200, "long detail cut");
+assert.deepEqual(chain.preview.panels![0].spark?.values, [0.1, -0.05, 0.2], "non-numbers dropped from the spark");
+assert.equal(planSlide(chain.preview).kind, "panels");
+valid(chain.preview, "a panels slide");
+const funnel = panelsSlide({
+  key: "tam:opportunity",
+  title: "The opportunity in 2025",
+  panels: [
+    { kicker: "TAM, total market", tag: "WSTS Autumn 2025", figure: { value: "$772.2B", note: "World semiconductor sales,", change: "+22.5%", tone: "good", period: "on 2024" }, bar: { share: 1.4, color: "#A7A8AA" } },
+    { kicker: "SOM, Avnet", tag: "Mock", tagMock: true, figure: { value: "$16.4B" }, bar: { share: -1, color: "#41C363", label: "11.8% of SAM" } },
+  ],
+  source: "WSTS",
+});
+assert.equal(funnel.preview.panels![0].bar?.share, 1, "bar share capped at 1");
+assert.equal(funnel.preview.panels![1].bar?.share, 0, "and floored at 0");
+valid(funnel.preview, "a funnel panels slide");
+assert.equal(panelChange("+1.2 pts"), "\u2191 +1.2 pts");
+assert.equal(panelChange("\u221216d"), "\u2193 \u221216d");
+assert.equal(panelChange("0d"), "\u2192 0d");
 
 // Formatting.
 assert.equal(formatFigure("number", 141.2), "141");

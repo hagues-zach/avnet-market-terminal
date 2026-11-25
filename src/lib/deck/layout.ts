@@ -17,8 +17,8 @@
 // - No chart: the figures are large-number tiles across the body, or a full-width
 //   table when there are too many or they compare things.
 
-import { VIZ } from "@/lib/colors";
-import type { Chart, Preview, SeriesWho } from "./outline";
+import { AVNET, VIZ } from "@/lib/colors";
+import type { Chart, Panel, PanelTone, Preview, SeriesWho } from "./outline";
 
 /** The slide in inches: the FY27 template's 10 by 5.625. */
 export const SLIDE = { w: 10, h: 5.625 } as const;
@@ -39,7 +39,7 @@ export interface Callout {
 }
 
 export interface SlidePlan {
-  kind: "chart" | "figures" | "table" | "text" | "groups";
+  kind: "chart" | "figures" | "table" | "text" | "groups" | "panels";
   /** Something goes beside the chart; without it the chart takes the full width. */
   side: boolean;
   /** The side column's width in inches. */
@@ -173,7 +173,190 @@ export function chartFromFacts(p: Preview): Chart | undefined {
 /** The slide as it is drawn: its own chart, or one made from its figures. */
 export const withChart = (p: Preview): Preview => (p.chart ? p : ((c) => (c ? { ...p, chart: c } : p))(chartFromFacts(p)));
 
+/** A change as the page's Delta shows it: an arrow from its sign, then the change. "+1.2 pts" reads "↑ +1.2 pts". */
+export const panelChange = (change: string): string =>
+  `${/^\+/.test(change) ? "\u2191" : /^[-\u2212]/.test(change) ? "\u2193" : "\u2192"} ${change}`;
+
+/** The gap between panels, in inches. */
+export const PANEL_GAP = 0.28;
+
+/** A run of text in a panel: its size in points, and black unless a colour is given. */
+export interface PanelRun {
+  text: string;
+  size: number;
+  bold?: boolean;
+  color?: string;
+}
+
+/**
+ * What a panels slide draws, in inches from the slide's top left, so the PowerPoint
+ * file and the on-screen preview place every piece in the same spot.
+ */
+export type PanelItem =
+  | { kind: "text"; x: number; y: number; w: number; h: number; runs: PanelRun[]; align?: "left" | "center" | "right"; valign?: "top" | "middle" | "bottom"; spaced?: boolean; fill?: string }
+  | { kind: "rect"; x: number; y: number; w: number; h: number; color: string; opacity?: number }
+  /** A hairline: horizontal when h is 0, vertical when w is 0. Width in points. */
+  | { kind: "line"; x: number; y: number; w: number; h: number; color: string; width: number }
+  /** A chip: a rounded outline, dashed on Mock. */
+  | { kind: "pill"; x: number; y: number; w: number; h: number; color: string; dashed: boolean };
+
+const PANEL_INK = { muted: "#6B7075", line: "#E3E5E8", good: "#138036", bad: "#D7263D" } as const;
+const PANEL_TONE = { good: PANEL_INK.good, bad: PANEL_INK.bad, neutral: PANEL_INK.muted } as const;
+
+/** A change as runs: its arrow and value in its tone, then the period in grey. */
+const changeRuns = (change: string | undefined, tone: PanelTone | undefined, period: string | undefined, size: number): PanelRun[] =>
+  change ? [{ text: panelChange(change), size, color: PANEL_TONE[tone ?? "neutral"] }, ...(period ? [{ text: ` ${period}`, size, color: PANEL_INK.muted }] : [])] : [];
+
+/** Panels at scale k (1 is full size), and how far the tallest runs past the box. */
+function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h: number }, k: number): { items: PanelItem[]; over: number } {
+  const z = (n: number) => n * k;
+  const n = Math.max(1, panels.length);
+  const gap = PANEL_GAP;
+  const w = (box.w - gap * (n - 1)) / n;
+  const bottom = box.y + box.h;
+  const lineCount = (s: string, size: number, cw = w) => Math.max(1, Math.ceil((s.length * size * 0.5) / (cw * 72)));
+  const tall = (s: string, size: number, cw = w) => (lineCount(s, size, cw) * size * 1.25) / 72;
+  const fits = (s: string, size: number) => s.length * size * 0.55 <= w * 72;
+  // One size for every title and figure, and one height for the details, so the columns read as a row.
+  const titleSize = [12, 11, 10, 9].map(z).find((sz) => panels.every((p) => !p.title || fits(p.title, sz))) ?? z(9);
+  const figureSize = [26, 22, 18].map(z).find((sz) => panels.every((p) => !p.figure || fits(p.figure.value, sz * 0.95))) ?? z(18);
+  const large = z(19);
+  const small = z(11.5);
+  const ch = z(7.5);
+  const label = z(6.5);
+  // A large measure's change sits beside it when every one fits; otherwise each goes on the line below, as the page wraps it.
+  const inline = panels.every((p) =>
+    (p.metrics ?? []).every((m) => !m.large || !m.change || m.value.length * large * 0.6 + 6 + `${m.change} ${m.period ?? ""}`.length * ch * 0.52 <= w * 72),
+  );
+  const detailH = Math.max(0, ...panels.map((p) => (p.detail ? tall(p.detail, z(8)) : 0)));
+  const sparkH = panels.some((p) => p.spark && p.spark.values.length > 1) ? z(0.52) : 0;
+
+  const items: PanelItem[] = [];
+  const text = (x: number, y: number, cw: number, h: number, runs: PanelRun[], o: Partial<Extract<PanelItem, { kind: "text" }>> = {}) =>
+    items.push({ kind: "text", x, y, w: cw, h, runs, ...o });
+  const caps = (s: string, x: number, y: number, cw = w) => text(x, y, cw, label / 72 + 0.04, [{ text: s.toUpperCase(), size: label, bold: true, color: PANEL_INK.muted }], { spaced: true });
+  const rule = (x: number, y: number, width = 0.75) => items.push({ kind: "line", x, y, w, h: 0, color: PANEL_INK.line, width });
+  let over = -Infinity;
+
+  panels.forEach((p, i) => {
+    const x = box.x + i * (w + gap);
+    if (i) items.push({ kind: "line", x: x - gap / 2, y: box.y, w: 0, h: box.h, color: PANEL_INK.line, width: 0.75 });
+    let y = box.y;
+    const tagW = p.tag ? Math.min(1.3, 0.16 + p.tag.length * 0.052) * k : 0;
+    if (p.tag) {
+      items.push({ kind: "pill", x: x + w - tagW, y, w: tagW, h: z(0.18), color: p.tagMock ? AVNET.yellow : PANEL_INK.line, dashed: Boolean(p.tagMock) });
+      text(x + w - tagW, y, tagW, z(0.18), [{ text: p.tag, size: z(7) }], { align: "center", valign: "middle" });
+    }
+    if (p.kicker) {
+      text(x, y, w - tagW - 0.05, z(0.18), [{ text: p.kicker.toUpperCase(), size: z(7.5), bold: true, color: PANEL_INK.muted }], { spaced: true, valign: "middle" });
+      y += z(0.24);
+    }
+    if (p.title) {
+      const h = (titleSize * 1.25) / 72;
+      text(x, y, w - (p.kicker ? 0 : tagW + 0.05), h, [{ text: p.title, size: titleSize, bold: true }]);
+      y += h + z(0.04);
+    }
+    if (detailH) {
+      if (p.detail) text(x, y, w, detailH, [{ text: p.detail, size: z(8), color: PANEL_INK.muted }]);
+      y += detailH + z(0.04);
+    }
+    if (p.figure) {
+      text(x, y, w, (figureSize * 1.15) / 72, [{ text: p.figure.value, size: figureSize, bold: true }]);
+      y += figureSize / 72 + z(0.12);
+      if (p.figure.note || p.figure.change) {
+        const h = tall(`${p.figure.note ?? ""} ${p.figure.change ?? ""} ${p.figure.period ?? ""}`, z(9.5));
+        text(x, y, w, h, [...(p.figure.note ? [{ text: p.figure.note + (p.figure.change ? " " : ""), size: z(9.5) }] : []), ...changeRuns(p.figure.change, p.figure.tone, p.figure.period, z(8.5))]);
+        y += h + z(0.04);
+      }
+      if (p.next) {
+        // The funnel's chevron on the divider, level with the figure, as on the page.
+        const cy = box.y + (p.kicker ? z(0.24) : 0) + figureSize / 144;
+        text(x + w + gap / 2 - z(0.09), cy - z(0.11), z(0.18), z(0.22), [{ text: "›", size: z(16), color: PANEL_INK.muted }], { align: "center", valign: "middle", fill: "#FFFFFF" });
+      }
+    }
+    for (const m of p.metrics ?? []) {
+      rule(x, y + z(0.02));
+      caps(m.label, x, y + z(0.06));
+      const size = m.large ? large : small;
+      const vh = (size * 1.2) / 72;
+      const below = Boolean(m.large && m.change && !inline);
+      text(x, y + z(0.19), w, vh, [{ text: m.value, size, bold: Boolean(m.large) }, ...(m.change && !below ? [{ text: "  ", size: ch }, ...changeRuns(m.change, m.tone, m.period, ch)] : [])], {
+        valign: "bottom",
+      });
+      y += z(0.21) + vh;
+      if (below) {
+        text(x, y, w, z(0.14), changeRuns(m.change, m.tone, m.period, ch));
+        y += z(0.15);
+      }
+    }
+    if (p.bar) {
+      y += z(0.1);
+      items.push({ kind: "rect", x, y, w: Math.max(0.03, w * p.bar.share), h: z(0.1), color: p.bar.color });
+      if (p.bar.label) text(x, y + z(0.14), w, z(0.18), [{ text: p.bar.label, size: z(8), color: PANEL_INK.muted }]);
+      y += p.bar.label ? z(0.36) : z(0.18);
+    }
+    if (p.notes?.length) {
+      rule(x, y + z(0.02));
+      y += z(0.06);
+      if (p.notesLabel) {
+        caps(p.notesLabel, x, y);
+        y += z(0.16);
+      }
+      p.notes.forEach((note, j) => {
+        if (j) rule(x, y - z(0.02), 0.5);
+        if (note.marker) items.push({ kind: "rect", x, y: y + z(0.045), w: z(0.08), h: z(0.08), color: note.marker });
+        const at = note.marker ? z(0.13) : 0;
+        text(x + at, y, w * 0.6 - at, z(0.17), [{ text: note.title, size: z(8.5), bold: true }]);
+        if (note.value) text(x + w * 0.5, y, w * 0.5, z(0.17), [{ text: note.value, size: z(8.5) }], { align: "right" });
+        y += z(0.16);
+        if (note.text) {
+          const h = tall(note.text, z(7));
+          text(x, y, w, h, [{ text: note.text, size: z(7), color: PANEL_INK.muted }]);
+          y += h + z(0.04);
+        }
+      });
+    }
+    if (sparkH && p.spark && p.spark.values.length > 1) {
+      // Along the foot, as on the page: bars around a zero line, negatives below it, the latest solid.
+      const top = Math.max(y + z(0.06), bottom - sparkH);
+      rule(x, top);
+      caps(p.spark.label, x, top + z(0.05));
+      const vals = p.spark.values;
+      const max = Math.max(0, ...vals);
+      const min = Math.min(0, ...vals);
+      const span = max - min || 1;
+      const H = z(0.28);
+      const zero = top + z(0.2) + (max / span) * H;
+      const bw = (w - 0.02 * (vals.length - 1)) / vals.length;
+      rule(x, zero, 0.5);
+      vals.forEach((v, j) => {
+        const h = Math.max(0.01, (Math.abs(v) / span) * H);
+        items.push({ kind: "rect", x: x + j * (bw + 0.02), y: v >= 0 ? zero - h : zero, w: bw, h, color: p.spark!.color ?? VIZ.arrow, opacity: j === vals.length - 1 ? 1 : 0.45 });
+      });
+      over = Math.max(over, top + sparkH - bottom);
+    } else over = Math.max(over, y - bottom);
+  });
+  return { items, over };
+}
+
+/**
+ * Side-by-side panels, drawn as the page draws them: each column's title, detail,
+ * measures under hairlines, share bar, notes and small bar chart along the foot.
+ * When the tallest column will not fit, every column shrinks by the same amount
+ * (to no less than 70%), so the row keeps one size.
+ */
+export function layoutPanels(panels: Panel[], box: { x: number; y: number; w: number; h: number }): PanelItem[] {
+  let k = 1;
+  let r = placePanels(panels, box, k);
+  for (let i = 0; i < 4 && r.over > 0.005 && k > 0.7; i++) {
+    k = Math.max(0.7, k * (box.h / (box.h + r.over)));
+    r = placePanels(panels, box, k);
+  }
+  return r.items;
+}
+
 export function planSlide(p: Preview): SlidePlan {
+  if (p.panels?.length) return { kind: "panels", side: false, sideW: 0, callouts: [], labels: true };
   if (p.groups?.length) return { kind: "groups", side: false, sideW: 0, callouts: [], labels: true };
   const single = (p.facts ?? []).every((f) => f.values.length === 1);
   const c = p.chart;

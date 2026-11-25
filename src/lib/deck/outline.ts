@@ -404,6 +404,38 @@ export const PRIMER_SEGMENT: Record<string, string> = {
 
 /* ---------- Previews ---------- */
 
+export type PanelTone = "good" | "bad" | "neutral";
+
+
+/** One column of a panels slide. */
+export interface Panel {
+  /** Its name, as a card title: "Distributors". */
+  title?: string;
+  /** Or a small capitals label: "TAM, total market". */
+  kicker?: string;
+  /** A short tag in the corner, as a pill: "WSTS Autumn 2025", or "Mock" with mock set (a dashed yellow outline). */
+  tag?: string;
+  tagMock?: boolean;
+  /** One line under the title: "Electronic components distribution. 6 of 6 reported". */
+  detail?: string;
+  /** A large figure and the line under it, which may end in a change: "World semiconductor sales, +22.5% on 2024". */
+  figure?: { value: string; note?: string; change?: string; tone?: PanelTone; period?: string };
+  /**
+   * Measures, each under a hairline: a label in capitals, the value, and its change
+   * ("+1.2 pts", with its arrow drawn from the sign) and the period it is on, muted.
+   */
+  metrics?: { label: string; value: string; change?: string; tone?: PanelTone; period?: string; large?: boolean }[];
+  /** A share bar, 0 to 1, with the line under it. Avnet Green only for Avnet. */
+  bar?: { share: number; color: string; label?: string };
+  /** Short entries with a colour marker: Avnet and Arrow within the distributors. */
+  notes?: { title: string; value?: string; text?: string; marker?: string }[];
+  notesLabel?: string;
+  /** A chevron on the divider to its right, as the funnel draws between its steps. */
+  next?: boolean;
+  /** A small bar chart along the foot, the last bar darker: the last eight quarters. */
+  spark?: { label: string; values: number[]; color?: string };
+}
+
 /** What a slide shows: a headline, a sentence, its figures, and where they came from. */
 export type SeriesWho = "avnet" | "arrow" | "company" | "market";
 
@@ -430,6 +462,12 @@ export interface Preview {
   lines?: string[];
   /** Side-by-side lists, each with its heading: talking points beside questions to ask. */
   groups?: { title: string; lines: string[] }[];
+  /**
+   * Side-by-side panels, drawn as the page draws them: the supply chain's stages,
+   * the TAM, SAM and SOM funnel. Each is a column of text, figures, an optional
+   * share bar, notes and a small bar chart along its foot.
+   */
+  panels?: Panel[];
   /** Text Claude wrote earlier and the app cached. */
   claude?: { label: string; date?: string };
   source: string;

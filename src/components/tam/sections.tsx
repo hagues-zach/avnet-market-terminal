@@ -13,7 +13,7 @@ import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { CategoryTable } from "./category-table";
-import { comparisonSlide, figuresSlide, formatGrowth, linesSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { comparisonSlide, formatGrowth, linesSlide, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
 import { TrendMini } from "./trend-mini";
 
 // TAM and its splits are published WSTS / SIA figures, labelled with their
@@ -75,18 +75,40 @@ export function FunnelCard({ t, vintage }: { t: TamSummary; vintage: string }) {
       <Panel
         title={`The opportunity in ${t.latestYear}`}
         subtitle="The world market, the part sold through distribution, and the part Avnet bills"
-        deck={figuresSlide({
+        deck={panelsSlide({
           key: "tam:opportunity",
           title: `The opportunity in ${t.latestYear}`,
           text: "The world market, the part sold through distribution, and the part Avnet bills.",
-          figures: [
-            { label: "TAM, world semiconductor sales", value: formatUsdMillions(t.tamUsdM) },
-            { label: "SAM, sold through distribution", value: formatUsdMillions(t.samUsdM) },
-            { label: "SOM, Avnet billings", value: formatUsdMillions(t.somUsdM) },
-          ],
-          lines: [
-            `TAM ${formatGrowth(t.yoyGrowth)} on ${t.latestYear - 1}; ${formatUsdMillions(t.forecastNextYearUsdM)} forecast for ${t.latestYear + 1} (${vintage})`,
-            `SAM is ${pct(samShare)} of TAM; SOM is ${pct(t.somShareOfSam)} of SAM. SAM and SOM are mock until billings and the code map are hooked up`,
+          // The funnel's three steps, drawn on the slide as the page draws them.
+          panels: [
+            {
+              kicker: "TAM, total market",
+              next: true,
+              tag: vintage,
+              figure: {
+                value: formatUsdMillions(t.tamUsdM),
+                note: "World semiconductor sales,",
+                change: formatGrowth(t.yoyGrowth),
+                tone: t.yoyGrowth > 0 ? "good" : t.yoyGrowth < 0 ? "bad" : "neutral",
+                period: `on ${t.latestYear - 1}`,
+              },
+              bar: { share: 1, color: VIZ.benchmark, label: `${formatUsdMillions(t.forecastNextYearUsdM)} forecast for ${t.latestYear + 1}` },
+            },
+            {
+              kicker: "SAM, served by distribution",
+              next: true,
+              tag: "Mock",
+              tagMock: true,
+              figure: { value: formatUsdMillions(t.samUsdM), note: "The part of the market sold through distributors" },
+              bar: { share: samShare, color: VIZ.benchmark, label: `${pct(samShare)} of TAM` },
+            },
+            {
+              kicker: "SOM, Avnet",
+              tag: "Mock",
+              tagMock: true,
+              figure: { value: formatUsdMillions(t.somUsdM), note: "Avnet billings in the served market" },
+              bar: { share: t.somShareOfSam, color: VIZ.avnet, label: `${pct(t.somShareOfSam)} of SAM` },
+            },
           ],
           source: `${vintage}; SAM and SOM modelled (mock)`,
           period: String(t.latestYear),

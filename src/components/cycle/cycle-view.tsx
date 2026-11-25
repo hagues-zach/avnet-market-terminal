@@ -8,7 +8,9 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { CapexBars, GrowthBars, InventoryLines } from "./charts";
 import { Spark } from "./spark";
-import { comparisonSlide, formatFigure, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { comparisonSlide, formatFigure, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import type { PanelTone } from "@/lib/deck/outline";
+import { VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 
 const at = (points: GroupPoint[], label: string) => points.find((p) => p.label === label);
@@ -25,6 +27,19 @@ const ptChange = (a: number | undefined, b: number | undefined) => {
   const d = diff(a, b);
   return d === undefined ? undefined : Math.round(d * 1000) / 1000;
 };
+
+/** A change as the card's Delta writes it, for a slide: its sign, the shown value, and whether it is good. */
+const slideChange = (v: number | undefined, show: (v: number) => string, invert = false): { change?: string; tone?: PanelTone } =>
+  v === undefined ? {} : { change: `${v > 0 ? "+" : v < 0 ? "\u2212" : ""}${show(v)}`, tone: v === 0 ? "neutral" : v > 0 !== invert ? "good" : "bad" };
+
+/** A company's inventory and margin line: "Inventory 77 days (−16d YoY), margin 4.4%". */
+function inventoryLine(company: CompanySeries, latest: string, yearAgo: string) {
+  const now = at(company.points, latest);
+  const change = dayChange(now?.inventoryDays, at(company.points, yearAgo)?.inventoryDays);
+  return `Inventory ${now?.inventoryDays === undefined ? NA : `${Math.round(now.inventoryDays)} days`}${
+    change !== undefined ? ` (${change >= 0 ? "+" : "\u2212"}${days(change)} YoY)` : ""
+  }, margin ${format("pct", now?.operatingMargin)}`;
+}
 
 const link = "text-ink underline-offset-2 hover:underline";
 
@@ -195,7 +210,6 @@ function Measure({ label, children }: { label: string; children: React.ReactNode
 
 function CompanyLine({ company, latest, yearAgo, marker }: { company: CompanySeries; latest: string; yearAgo: string; marker: string }) {
   const now = at(company.points, latest);
-  const change = dayChange(now?.inventoryDays, at(company.points, yearAgo)?.inventoryDays);
   return (
     <li className="py-1.5">
       <div className="flex items-baseline justify-between gap-2 text-body-sm">
@@ -205,10 +219,7 @@ function CompanyLine({ company, latest, yearAgo, marker }: { company: CompanySer
         </Link>
         <span className="tabular-nums text-ink">{growthText(now?.growth)}</span>
       </div>
-      <p className="mt-0.5 text-caption text-ink-muted">
-        Inventory {now?.inventoryDays === undefined ? NA : `${Math.round(now.inventoryDays)} days`}
-        {change !== undefined && ` (${change >= 0 ? "+" : "−"}${days(change)} YoY)`}, margin {format("pct", now?.operatingMargin)}
-      </p>
+      <p className="mt-0.5 text-caption text-ink-muted">{inventoryLine(company, latest, yearAgo)}</p>
     </li>
   );
 }
@@ -237,21 +248,50 @@ function Chain({
       subtitle={`${latest}. Each stage is its companies taken together: combined revenue growth, median inventory and margin`}
       bodyClassName="p-0"
       footer={<SourceLine source="SEC filings" asOf={latest} />}
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "cycle:the-chain",
         title: "The chain, from customers back to equipment",
         text: `${latest}. Each stage is its companies taken together: combined revenue growth on a year ago, median inventory and margin.`,
-        unit: "pct",
-        measure: "Revenue growth YoY",
-        keepOrder: true,
-        items: stages.map((s) => {
+        // The card's own columns, drawn on the slide as the page draws them.
+        panels: stages.map((s) => {
           const now = at(s.points, latest);
-          return { name: s.name, value: now?.growth, extra: [format("days", now?.inventoryDays), format("pct", now?.operatingMargin)] };
-        }),
-        extraColumns: ["Inv days", "Op margin"],
-        lines: [avnet, arrow].map((c) => {
-          const now = at(c.points, latest);
-          return `${c.name.replace(" Electronics", "")}: revenue ${growthText(now?.growth)} on a year ago, inventory ${formatFigure("days", now?.inventoryDays)}, margin ${format("pct", now?.operatingMargin)}`;
+          return {
+            title: s.name,
+            detail: `${s.detail}. ${now?.reporting ?? 0} of ${s.companies} reported`,
+            metrics: [
+              {
+                label: "Revenue growth YoY",
+                value: growthText(now?.growth),
+                ...slideChange(ptChange(now?.growth, at(s.points, prior)?.growth), pts),
+                period: "on prior qtr",
+                large: true,
+              },
+              {
+                label: "Inventory days",
+                value: now?.inventoryDays === undefined ? NA : String(Math.round(now.inventoryDays)),
+                ...slideChange(dayChange(now?.inventoryDays, at(s.points, yearAgo)?.inventoryDays), days, true),
+                period: "YoY",
+              },
+              { label: "Operating margin", value: format("pct", now?.operatingMargin) },
+            ],
+            ...(s.id === "distributors" && {
+              notesLabel: "Avnet and Arrow",
+              notes: [
+                { c: avnet, marker: VIZ.avnet },
+                { c: arrow, marker: VIZ.arrow },
+              ].map(({ c, marker }) => ({
+                title: c.name.replace(" Electronics", ""),
+                value: growthText(at(c.points, latest)?.growth),
+                text: inventoryLine(c, latest, yearAgo),
+                marker,
+              })),
+            }),
+            spark: {
+              label: `Growth, last ${labels.length} quarters`,
+              values: s.points.slice(-labels.length).flatMap((p) => (p.growth === undefined ? [] : [p.growth])),
+              color: VIZ.arrow,
+            },
+          };
         }),
         source: "SEC filings",
         period: latest,

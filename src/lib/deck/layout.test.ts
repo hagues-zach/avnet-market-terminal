@@ -1,7 +1,7 @@
 // How a slide uses its space. Run with: npx tsx src/lib/deck/layout.test.ts
 import assert from "node:assert/strict";
-import { chartFromFacts, niceRange, planSlide, readFigure, withChart } from "./layout";
-import type { Preview } from "./outline";
+import { chartFromFacts, layoutPanels, niceRange, planSlide, readFigure, withChart } from "./layout";
+import type { Panel, Preview } from "./outline";
 
 const quarters = ["CY24 Q4", "CY25 Q1", "CY25 Q2", "CY25 Q3", "CY25 Q4", "CY26 Q1", "CY26 Q2", "CY26 Q3"];
 const line = (name: string, who: "avnet" | "arrow", vals: number[]) => ({ name, who, points: vals.map((value, i) => ({ label: quarters[i], value })) });
@@ -138,5 +138,35 @@ assert.deepEqual(
 assert.equal(chartFromFacts(arrow), undefined, "a comparison across companies stays a table");
 assert.equal(chartFromFacts({ ...capital, columns: ["FY27 Q1"], facts: [{ label: "Inventory", values: ["77 days"] }] }), undefined);
 assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ label: "r", values: ["1", "2"] }], source: "s" }), undefined);
+
+// Panels: every piece inside the body, the sparks level along the foot, and the row shrunk as one when a column is tall.
+{
+  const column = (notes: boolean): Panel => ({
+    title: "Distributors",
+    detail: "Electronic components distribution. 6 of 6 reported",
+    metrics: [
+      { label: "Revenue growth YoY", value: "+18.1%", change: "+4.0 pts", tone: "good", period: "on prior qtr", large: true },
+      { label: "Inventory days", value: "77", change: "\u221216d", tone: "good", period: "YoY" },
+      { label: "Operating margin", value: "4.4%" },
+    ],
+    ...(notes && {
+      notesLabel: "Avnet and Arrow",
+      notes: [
+        { title: "Avnet", value: "+47.7%", text: "Inventory 77 days (\u221216d YoY), margin 4.4%", marker: "#41C363" },
+        { title: "Arrow", value: "+31.8%", text: "Inventory 70 days (\u22129d YoY), margin 3.9%", marker: "#4273B8" },
+      ],
+    }),
+    spark: { label: "Growth, last 8 quarters", values: [-0.1, -0.05, 0.02, 0.04, 0.06, 0.1, 0.14, 0.18] },
+  });
+  const box = { x: 0.5, y: 1.6, w: 9, h: 3.2 };
+  const roomy = layoutPanels([column(false), column(false)], box);
+  const tight = layoutPanels([column(false), column(true), column(false), column(false), column(false)], box);
+  for (const items of [roomy, tight]) for (const it of items) assert.ok(it.y + it.h <= box.y + box.h + 0.01, `${it.kind} inside the body`);
+  const size = (items: typeof roomy, s: string) => items.flatMap((it) => (it.kind === "text" ? it.runs : [])).find((r) => r.text === s)?.size ?? 0;
+  assert.equal(size(roomy, "+18.1%"), 19, "full size when it fits");
+  assert.ok(size(tight, "+18.1%") < 19 && size(tight, "+18.1%") >= 19 * 0.7, "smaller, within limits, when a column runs long");
+  const sparkTops = tight.filter((it) => it.kind === "text" && it.runs[0].text === "GROWTH, LAST 8 QUARTERS").map((it) => it.y.toFixed(3));
+  assert.equal(new Set(sparkTops).size, 1, "the sparks level along the foot");
+}
 
 console.log("layout.test.ts: ok");

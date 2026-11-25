@@ -7,7 +7,7 @@
 
 import { AVNET, VIZ } from "@/lib/colors";
 import { formatPctSigned, formatUsdMillions } from "@/lib/format";
-import type { Chart, Preview, SeriesWho } from "./outline";
+import type { Chart, Panel, Preview, SeriesWho } from "./outline";
 
 /** The slide a card makes: its tray id, the title the tray shows, and the slide. */
 export interface CardSlide {
@@ -245,4 +245,24 @@ export function figuresSlide(b: SlideBase & { figures: { label: string; value: s
 /** A headline and up to twelve points: sentences to use, stories, reasons. */
 export function linesSlide(b: SlideBase & { lines: string[] }): CardSlide {
   return card(b, { ...base(b), lines: b.lines.filter(Boolean).slice(0, 12).map((l) => cut(l, 300)!) });
+}
+
+/* ---------- Panels ---------- */
+
+/** Side-by-side panels, drawn as the page draws them (up to six). */
+export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
+  const panels = b.panels.slice(0, 6).map((x) =>
+    defined({
+      ...x,
+      title: cut(x.title, 80),
+      kicker: cut(x.kicker, 80),
+      notesLabel: cut(x.notesLabel, 60),
+      detail: cut(x.detail, 200),
+      metrics: x.metrics?.slice(0, 5),
+      notes: x.notes?.slice(0, 3).map((n) => defined({ ...n, text: cut(n.text, 160) })),
+      spark: x.spark && { ...x.spark, values: x.spark.values.filter(Number.isFinite).slice(-16) },
+      bar: x.bar && { ...x.bar, share: Math.max(0, Math.min(1, x.bar.share)) },
+    }),
+  );
+  return card(b, { ...base(b), panels });
 }
