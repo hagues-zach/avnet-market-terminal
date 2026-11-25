@@ -8,6 +8,7 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { CapexBars, GrowthBars, InventoryLines } from "./charts";
 import { Spark } from "./spark";
+import { comparisonSlide, formatFigure, seriesSlide, tableSlide } from "@/lib/deck/slides";
 import { cn } from "@/lib/utils";
 
 const at = (points: GroupPoint[], label: string) => points.find((p) => p.label === label);
@@ -33,7 +34,7 @@ export async function CycleView() {
   const { labels, latest, groups, supply, phases, stages, avnet, arrow, hyperscalerCapex, hyperscalers, phase } = cycle;
   if (!latest) {
     return (
-      <Panel>
+      <Panel deck={null}>
         <ErrorState title="Company filings could not be loaded right now" source="SEC EDGAR" retryHref="/cycle" />
       </Panel>
     );
@@ -110,6 +111,20 @@ export async function CycleView() {
         title="How we got here"
         subtitle="Supply-chain revenue growth on a year ago, by calendar quarter, with the phase each quarter was in"
         footer={<SourceLine source="SEC filings" asOf={latest} />}
+        deck={seriesSlide({
+          key: "cycle:how-we-got-here",
+          title: "How we got here",
+          text: `${phase ?? "The cycle"}: supply-chain revenue ${growthText(supplyNow?.growth)} on a year ago in ${latest}, from ${growthText(supplyPrior?.growth)} the quarter before.`,
+          unit: "pct",
+          kind: "column",
+          periods: supply.map((p) => p.label),
+          series: [{ name: "Supply-chain revenue growth", values: supply.map((p) => p.growth) }],
+          chartTitle: "Supply-chain revenue growth on a year ago, %",
+          lines: supply.map((p, i) => (phases[i] ? `${p.label}: ${phases[i]}` : "")).slice(-4),
+          source: "SEC filings",
+          period: latest,
+          hookups: ["sec"],
+        })}
       >
         <GrowthBars rows={supply.map((p, i) => ({ label: p.label, growth: p.growth, phase: phases[i] }))} />
       </Panel>
@@ -120,6 +135,22 @@ export async function CycleView() {
           subtitle="Median days of inventory, by calendar quarter"
           footer={<SourceLine source="SEC filings" asOf={latest} />}
           bodyClassName="flex flex-col"
+          deck={seriesSlide({
+            key: "cycle:inventory-in-the-chain",
+            title: "Inventory in the chain",
+            text: `Median days of inventory by calendar quarter. Distributors held ${formatFigure("days", distDays)} in ${latest}.`,
+            unit: "days",
+            periods: labels,
+            series: [
+              { name: "Manufacturers", values: labels.map((l) => at(group("manufacturer").points, l)?.inventoryDays) },
+              { name: "Distributors", values: labels.map((l) => at(dist.points, l)?.inventoryDays) },
+              { name: "Contract manufacturers", values: labels.map((l) => at(group("ems").points, l)?.inventoryDays) },
+            ],
+            chartTitle: "Median inventory, days",
+            source: "SEC filings",
+            period: latest,
+            hookups: ["sec"],
+          })}
         >
           <InventoryLines
             fill
@@ -206,6 +237,26 @@ function Chain({
       subtitle={`${latest}. Each stage is its companies taken together: combined revenue growth, median inventory and margin`}
       bodyClassName="p-0"
       footer={<SourceLine source="SEC filings" asOf={latest} />}
+      deck={comparisonSlide({
+        key: "cycle:the-chain",
+        title: "The chain, from customers back to equipment",
+        text: `${latest}. Each stage is its companies taken together: combined revenue growth on a year ago, median inventory and margin.`,
+        unit: "pct",
+        measure: "Revenue growth YoY",
+        keepOrder: true,
+        items: stages.map((s) => {
+          const now = at(s.points, latest);
+          return { name: s.name, value: now?.growth, extra: [format("days", now?.inventoryDays), format("pct", now?.operatingMargin)] };
+        }),
+        extraColumns: ["Inv days", "Op margin"],
+        lines: [avnet, arrow].map((c) => {
+          const now = at(c.points, latest);
+          return `${c.name.replace(" Electronics", "")}: revenue ${growthText(now?.growth)} on a year ago, inventory ${formatFigure("days", now?.inventoryDays)}, margin ${format("pct", now?.operatingMargin)}`;
+        }),
+        source: "SEC filings",
+        period: latest,
+        hookups: ["sec"],
+      })}
     >
       <ol className="grid divide-hairline sm:grid-cols-2 xl:grid-cols-5 xl:divide-x">
         {stages.map((s) => {
@@ -275,6 +326,24 @@ function EndDemand({
       subtitle={`What the customers are doing: revenue growth on a year ago, ${latest}`}
       footer={<SourceLine source="SEC filings" asOf={latest} />}
       bodyClassName="space-y-4"
+      deck={comparisonSlide({
+        key: "cycle:end-demand",
+        title: "End demand",
+        text: `What the customers are doing: revenue growth on a year ago, ${latest}.`,
+        unit: "pct",
+        measure: "Revenue growth YoY",
+        items: rows.map(({ g, growth }) => ({ name: COHORT_LABELS[g.cohort], value: growth })),
+        lines: [
+          ...(() => {
+            const last = [...capex].reverse().find((c) => c.total !== undefined);
+            return last ? [`Hyperscaler capex: ${format("usd", last.total)} combined in ${last.label}`] : [];
+          })(),
+          ...hyperscalers.map((h) => `${h.name} capex ${growthText(h.yoy)} on a year ago${h.label ? `, ${h.label}` : ""}`),
+        ],
+        source: "SEC filings",
+        period: latest,
+        hookups: ["sec"],
+      })}
     >
       <ul className="space-y-2">
         {rows.map(({ g, growth }) => (
@@ -384,6 +453,22 @@ function Scorecard({
       subtitle={`All ${supplyGroups.length + demandGroups.length} groups, ${latest}. Changes in margin and inventory are on a year ago`}
       bodyClassName="p-0"
       footer={<SourceLine source="SEC filings" asOf={latest} />}
+      deck={tableSlide({
+        key: "cycle:group-scorecard",
+        title: "Group scorecard",
+        text: `All ${supplyGroups.length + demandGroups.length} groups, ${latest}: growth, margin and inventory.`,
+        columns: ["Group", "Growth YoY", "Prior qtr", "Growing", "Op margin", "Inv days"],
+        rows: [...supplyGroups, ...demandGroups].map((g) => {
+          const now = at(g.points, latest);
+          return {
+            label: COHORT_LABELS[g.cohort],
+            values: [growthText(now?.growth), growthText(at(g.points, prior)?.growth), now?.growing === undefined ? NA : `${Math.round(now.growing * 100)}%`, format("pct", now?.operatingMargin), format("days", now?.inventoryDays)],
+          };
+        }),
+        source: "SEC filings",
+        period: latest,
+        hookups: ["sec"],
+      })}
     >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse font-body text-table">
@@ -446,6 +531,7 @@ export function CycleFallback() {
         ))}
       </div>
       <Panel
+        deck={null}
         title="Reading filings"
         subtitle="Rolling up every company's quarterly history from SEC EDGAR. The first load after a refresh can take a minute."
       >

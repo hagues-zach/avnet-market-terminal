@@ -8,6 +8,7 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { SignalLines, type Row } from "./charts";
 import { IndicatorTabs, type Change, type IndicatorGroup } from "./indicators";
+import { seriesSlide, tableSlide } from "@/lib/deck/slides";
 import { cn } from "@/lib/utils";
 import { isHidden } from "@/lib/visibility";
 
@@ -123,7 +124,7 @@ export async function SignalsView() {
 
   if (!signals.length) {
     return (
-      <Panel title="Economic signals">
+      <Panel title="Economic signals" deck={null}>
         <ErrorState
           title="None of the public data sources could be reached"
           source="Federal Reserve, Bureau of Labor Statistics, IMF, US Treasury, New York Fed, European Central Bank"
@@ -234,12 +235,50 @@ export async function SignalsView() {
           footer={
             <SourceLine source="Federal Reserve G.17, seasonally adjusted" asOf={months.length ? when(months[months.length - 1]) : undefined} />
           }
+          deck={
+            months.length
+              ? seriesSlide({
+                  key: "signals:us-production",
+                  title: "US production",
+                  text: `Industrial production, each series rebased to 100 at ${when(months[0])}. ${production
+                    .map((p) => {
+                      const v = productionRows[productionRows.length - 1]?.[p.key];
+                      return typeof v === "number" ? `${p.name} ${Math.round(v)}` : "";
+                    })
+                    .filter(Boolean)
+                    .join(", ")} by ${when(months[months.length - 1])}.`,
+                  unit: "number",
+                  periods: productionRows.map((r) => String(r.label)),
+                  series: production.map((p) => ({ name: p.name, color: p.color, values: productionRows.map((r) => r[p.key] as number | undefined) })),
+                  chartTitle: `Industrial production, ${when(months[0])} = 100`,
+                  source: "Federal Reserve G.17, seasonally adjusted",
+                  period: when(months[months.length - 1]),
+                  hookups: ["macro"],
+                })
+              : null
+          }
         >
           <SignalLines rows={productionRows} series={production} format="index" />
         </Panel>
         <Panel
           title="Capacity utilization"
           subtitle="Semiconductors and electronic components, percent of capacity"
+          deck={
+            util?.points.length
+              ? seriesSlide({
+                  key: "signals:capacity-utilization",
+                  title: "Capacity utilization",
+                  text: `Semiconductors and electronic components ran at ${value(util)} of capacity in ${when(util.points[util.points.length - 1].date)}.`,
+                  unit: "pct",
+                  periods: util.points.map((p) => shortMonth(p.date)),
+                  series: [{ name: "Utilization", color: VIZ.arrow, values: util.points.map((p) => p.value / 100) }],
+                  chartTitle: "Percent of capacity",
+                  source: "Federal Reserve G.17",
+                  period: when(util.points[util.points.length - 1].date),
+                  hookups: ["macro"],
+                })
+              : null
+          }
           footer={
             <>
               <SourceLine source="Federal Reserve G.17" asOf={util?.points.length ? when(util.points[util.points.length - 1].date) : undefined} />
@@ -255,7 +294,20 @@ export async function SignalsView() {
         </Panel>
       </div>
 
-      <Panel title="All indicators" subtitle="Latest value and change on a month and a year ago, by group" bodyClassName="p-0">
+      <Panel
+        title="All indicators"
+        subtitle="Latest value and change on a month and a year ago, by group"
+        bodyClassName="p-0"
+        deck={tableSlide({
+          key: "signals:all-indicators",
+          title: "Economic indicators",
+          text: lead || "Latest value and change on a month and a year ago.",
+          columns: ["Indicator", "Latest", "On a month", "On a year"],
+          rows: groups.flatMap((g) => g.rows).map((r) => ({ label: r.label, values: [r.latest, r.month?.text ?? "n/a", r.year?.text ?? "n/a"] })),
+          source: "Federal Reserve, BLS, IMF, US Treasury, New York Fed, ECB",
+          hookups: ["macro"],
+        })}
+      >
         <IndicatorTabs groups={groups} />
       </Panel>
 
@@ -301,12 +353,12 @@ export function SignalsFallback() {
     <>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {["Demand", "Costs", "Financing", "Dollar"].map((t) => (
-          <Panel key={t} title={t}>
+          <Panel key={t} title={t} deck={null}>
             <LoadingBlock label={`Loading ${t.toLowerCase()}…`} lines={3} />
           </Panel>
         ))}
       </div>
-      <Panel title="Reading public data">
+      <Panel title="Reading public data" deck={null}>
         <LoadingBlock label="Loading economic signals…" lines={8} />
       </Panel>
     </>

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { usdShort } from "@/lib/deck/slides";
 import { AREA, chartTitle, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
 import type { Chart, Preview } from "@/lib/deck/outline";
 import { AVNET, VIZ } from "@/lib/colors";
@@ -41,13 +42,14 @@ function fmt(format: Chart["format"], v: number, decimals = 1): string {
   // Days: whole numbers (the chart's title says days). EPS: dollars and cents.
   if (format === "days") return `${v < 0 ? "−" : ""}${Math.round(Math.abs(v))}`;
   if (format === "eps") return `${v < 0 ? "−" : ""}$${Math.abs(v).toFixed(2)}`;
-  const a = Math.abs(v);
-  const s = a >= 1e9 ? `$${(a / 1e9).toFixed(2)}B` : `$${Math.round(a / 1e6)}M`;
+  if (format === "number") return Math.abs(v) >= 100 ? String(Math.round(v)) : v.toFixed(1);
+  const s = usdShort(Math.abs(v));
   return v < 0 ? `−${s}` : s;
 }
 
 /** An axis tick: short, so it fits beside the plot. Dollars drop trailing zeros ($12B, $1.5B, $850M). */
 function tickFmt(format: Chart["format"], v: number, decimals: number): string {
+  if (format === "number") return Math.abs(v) >= 10 ? String(Math.round(v)) : v.toFixed(1);
   if (format !== "usd") return fmt(format, v, decimals);
   const a = Math.abs(v);
   const s = a >= 1e9 ? `$${Number((a / 1e9).toFixed(2))}B` : `$${Number((a / 1e6).toFixed(0))}M`;
@@ -72,7 +74,7 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} layout="vertical" margin={{ top: 0, right: px(44), bottom: 0, left: 0 }} barCategoryGap="30%">
             <XAxis type="number" hide domain={[0, "dataMax"]} />
-            <YAxis type="category" dataKey="name" width={px(64)} tick={{ ...tick, fontSize: px(11), fill: INK }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" width={px(Math.min(150, 8 + 5.6 * Math.max(...rows.map((r) => r.name.length))))} tick={{ ...tick, fontSize: px(11), fill: INK }} axisLine={false} tickLine={false} />
             <Bar dataKey="value" maxBarSize={px(40)} isAnimationActive={false}>
               {rows.map((r) => (
                 <Cell key={r.name} fill={r.color} />
@@ -112,7 +114,8 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
   const grid = !labels && <CartesianGrid vertical={false} stroke={LINE} strokeWidth={0.75} />;
   const legend = many && <Legend iconSize={px(8)} wrapperStyle={{ fontSize: px(9), fontFamily: ARIAL, color: INK }} />;
   const margin = { top: px(14), right: labels ? px(10) : px(42), bottom: 0, left: labels ? px(10) : 0 };
-  const xAxis = <XAxis dataKey="name" tick={tick} axisLine={{ stroke: LINE }} tickLine={false} interval={0} tickMargin={px(4)} />;
+  // Every label up to eight points; past that, as many as fit, always keeping the first and last.
+  const xAxis = <XAxis dataKey="name" tick={tick} axisLine={{ stroke: LINE }} tickLine={false} interval={rows.length > 8 ? "preserveStartEnd" : 0} minTickGap={px(6)} tickMargin={px(4)} />;
 
   return (
     <div className="h-full" role="img" aria-label={described}>
@@ -183,7 +186,11 @@ function FactTable({ table, size }: { table: NonNullable<SlidePlan["table"]>; si
         <thead>
           <tr style={{ borderBottom: `1px solid ${INK}` }}>
             {table.headers.map((h, i) => (
-              <th key={`${h}-${i}`} scope="col" style={{ fontSize: pt(size - 1.5), color: MUTED, padding: `${inch(0.03)} 0`, textAlign: i ? "right" : "left", fontWeight: 700 }}>
+              <th
+                key={`${h}-${i}`}
+                scope="col"
+                style={{ fontSize: pt(size - 1.5), color: MUTED, padding: `${inch(0.03)} 0 ${inch(0.03)} ${i ? inch(0.12) : 0}`, textAlign: i ? "right" : "left", fontWeight: 700, verticalAlign: "bottom", lineHeight: 1.15 }}
+              >
                 {h}
               </th>
             ))}

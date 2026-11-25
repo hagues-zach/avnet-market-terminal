@@ -13,6 +13,7 @@ import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { CategoryTable } from "./category-table";
+import { comparisonSlide, figuresSlide, formatGrowth, linesSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
 import { TrendMini } from "./trend-mini";
 
 // TAM and its splits are published WSTS / SIA figures, labelled with their
@@ -71,7 +72,27 @@ export function FunnelCard({ t, vintage }: { t: TamSummary; vintage: string }) {
   const samShare = t.samUsdM / t.tamUsdM;
   return (
     <div className="space-y-2">
-      <Panel title={`The opportunity in ${t.latestYear}`} subtitle="The world market, the part sold through distribution, and the part Avnet bills">
+      <Panel
+        title={`The opportunity in ${t.latestYear}`}
+        subtitle="The world market, the part sold through distribution, and the part Avnet bills"
+        deck={figuresSlide({
+          key: "tam:opportunity",
+          title: `The opportunity in ${t.latestYear}`,
+          text: "The world market, the part sold through distribution, and the part Avnet bills.",
+          figures: [
+            { label: "TAM, world semiconductor sales", value: formatUsdMillions(t.tamUsdM) },
+            { label: "SAM, sold through distribution", value: formatUsdMillions(t.samUsdM) },
+            { label: "SOM, Avnet billings", value: formatUsdMillions(t.somUsdM) },
+          ],
+          lines: [
+            `TAM ${formatGrowth(t.yoyGrowth)} on ${t.latestYear - 1}; ${formatUsdMillions(t.forecastNextYearUsdM)} forecast for ${t.latestYear + 1} (${vintage})`,
+            `SAM is ${pct(samShare)} of TAM; SOM is ${pct(t.somShareOfSam)} of SAM. SAM and SOM are mock until billings and the code map are hooked up`,
+          ],
+          source: `${vintage}; SAM and SOM modelled (mock)`,
+          period: String(t.latestYear),
+          hookups: ["billings", "code-map", "tam-sam-som"],
+        })}
+      >
         <div className="grid md:grid-cols-3">
           <Step
             label="TAM, total market"
@@ -132,6 +153,18 @@ export function TrendRow({ t, vintage }: { t: TamSummary; vintage: string }) {
             subtitle={`${formatUsdMillions(latest[s.key])} in ${t.latestYear}, ${pct(cagr)} a year since ${first}`}
             actions={s.chip}
             footer={<SourceLine source={s.source} />}
+            deck={seriesSlide({
+              key: `tam:trend-${s.name.toLowerCase()}`,
+              title: s.title,
+              text: `${formatUsdMillions(latest[s.key])} in ${t.latestYear}, ${pct(cagr)} a year since ${first}.`,
+              unit: "usd",
+              kind: "line",
+              periods: t.trend.map((p) => (p.isForecast ? `${p.year}F` : String(p.year))),
+              series: [{ name: s.name, color: s.color, values: t.trend.map((p) => p[s.key] * 1e6) }],
+              chartTitle: `${s.title}, $`,
+              source: s.source,
+              hookups: s.key === "tamUsdM" ? undefined : s.key === "samUsdM" ? ["tam-sam-som"] : ["billings"],
+            })}
           >
             <div className="h-40">
               <TrendMini
@@ -163,6 +196,20 @@ export function CategoryCard({ t, vintage }: { t: TamSummary; vintage: string })
         subtitle={takeaway}
         bodyClassName="px-0 pb-0"
         footer={<SourceLine source={`${vintage} by product category; served and Avnet columns from billings and the code map (mock)`} />}
+        deck={tableSlide({
+          key: "tam:where-the-market-is-growing",
+          title: "Where the market is growing",
+          text: takeaway,
+          columns: ["Category", `${t.latestYear} market`, `Growth on ${t.latestYear - 1}`, "Share of TAM", "Served (mock)", "Avnet SOM (mock)", "Share of served"],
+          rows: [...rows]
+            .sort((x, y) => y.market - x.market)
+            .map((r) => ({
+              label: PRODUCT_LABEL[r.product],
+              values: [formatUsdMillions(r.market), formatGrowth(r.growth), pct(r.shareOfTam), formatUsdMillions(r.served), formatUsdMillions(r.som), pct(r.shareOfServed)],
+            })),
+          source: `${vintage} by product category; served and Avnet columns from billings and the code map (mock)`,
+          hookups: ["billings", "code-map"],
+        })}
       >
         <CategoryTable rows={rows} />
       </Panel>
@@ -183,7 +230,7 @@ export async function ForecastCard({ t }: { t: TamSummary }) {
     reported = p ? { label: p.label, growth: p.growth! } : null;
   } catch {
     return (
-      <Panel title="Is the forecast holding?">
+      <Panel title="Is the forecast holding?" deck={null}>
         <ErrorState title="Couldn't load the cycle data" source="SEC EDGAR" detail="Try again in a few minutes." />
       </Panel>
     );
@@ -205,6 +252,20 @@ export async function ForecastCard({ t }: { t: TamSummary }) {
       }
       className="h-full"
       actions={<DataChip status="live" label="SEC EDGAR" />}
+      deck={comparisonSlide({
+        key: "tam:is-the-forecast-holding",
+        title: "Is the forecast holding?",
+        text: reported
+          ? `Reported growth is ${Math.abs(gap * 100).toFixed(0)} pts ${gap >= 0 ? "above" : "below"} the forecast pace.`
+          : "Waiting for enough companies to report.",
+        unit: "pct",
+        measure: "Growth",
+        keepOrder: true,
+        items: rows.map((r) => ({ name: r.label, value: r.value })),
+        lines: rows.map((r) => `${r.label}: ${r.note}`),
+        source: "SEC filings and WSTS",
+        period: reported ? fullQuarter(reported.label) : undefined,
+      })}
       footer={
         <SourceLine source="SEC filings and WSTS" asOf={reported ? fullQuarter(reported.label) : undefined}>
           <Link href="/cycle" className="ml-auto text-ink underline-offset-2 hover:underline">
@@ -235,7 +296,7 @@ export async function ForecastCard({ t }: { t: TamSummary }) {
 
 export function ForecastFallback() {
   return (
-    <Panel title="Is the forecast holding?" className="h-full">
+    <Panel title="Is the forecast holding?" className="h-full" deck={null}>
       <LoadingBlock label="Loading reported growth…" lines={5} />
     </Panel>
   );
@@ -277,6 +338,16 @@ export function RegionCard({ t, vintage }: { t: TamSummary; vintage: string }) {
       actions={<Chip>WSTS</Chip>}
       footer={<SourceLine source={`${vintage}, ${t.latestYear}`} />}
       className="h-full"
+      deck={comparisonSlide({
+        key: "tam:by-region",
+        title: "By region",
+        text: `${top.name} buys ${pct(top.value / t.tamUsdM)} of the world's chips.`,
+        unit: "usd",
+        measure: `${t.latestYear} sales`,
+        items: items.map((i) => ({ name: i.name, value: i.value * 1e6, extra: [pct(i.value / t.tamUsdM), formatGrowth(i.growth)] })),
+        extraColumns: ["Share", "Growth"],
+        source: `${vintage}, ${t.latestYear}`,
+      })}
     >
       <BarList items={items} />
     </Panel>
@@ -292,6 +363,16 @@ export function EndMarketCard({ t }: { t: TamSummary }) {
       actions={<Chip>SIA</Chip>}
       footer={<SourceLine source={`SIA 2024 end-market mix applied to the ${t.latestYear} total`} />}
       className="h-full"
+      deck={comparisonSlide({
+        key: "tam:by-end-market",
+        title: "By end market",
+        text: "Computers and communications take two thirds of the market.",
+        unit: "usd",
+        measure: `${t.latestYear} sales`,
+        items: items.map((i) => ({ name: i.name, value: i.value * 1e6, extra: [pct(i.value / t.tamUsdM), formatGrowth(i.growth)] })),
+        extraColumns: ["Share", "Growth"],
+        source: `SIA 2024 end-market mix applied to the ${t.latestYear} total`,
+      })}
     >
       <BarList items={items} />
     </Panel>
@@ -302,7 +383,19 @@ export function EndMarketCard({ t }: { t: TamSummary }) {
 
 export function MethodCard({ vintage }: { vintage: string }) {
   return (
-    <Panel title="Method">
+    <Panel
+      title="Method"
+      deck={linesSlide({
+        key: "tam:method",
+        title: "How TAM, SAM and SOM are measured",
+        lines: [
+          `TAM and its splits by product, region and end market are published figures: ${vintage} for the market and its forecast, SIA 2024 for the end-market mix`,
+          "SAM is the part of the market sold through distributors, modelled at 18% of TAM in line with the ECIA channel size",
+          "SOM is Avnet's billings in that market. SAM and SOM are mock until Avnet billings are joined to the WSTS categories through the code map",
+        ],
+        source: `${vintage}; SIA 2024`,
+      })}
+    >
       <div className="max-w-prose space-y-2 text-body-sm text-ink">
         <p>
           <span className="font-semibold">TAM</span> and its splits by product, region and end market are published figures: {vintage} for the

@@ -410,8 +410,8 @@ export type SeriesWho = "avnet" | "arrow" | "company" | "market";
 export interface Chart {
   /** bar: horizontal bars (a comparison); column: bars over time; line: a rate over time. */
   kind: "bar" | "column" | "line";
-  /** usd: dollars; pct: a share or rate; days: a count of days; eps: dollars and cents per share. */
-  format: "usd" | "pct" | "days" | "eps";
+  /** usd: dollars; pct: a share or rate; days: a count of days; eps: dollars and cents per share; number: an index or count. */
+  format: "usd" | "pct" | "days" | "eps" | "number";
   /** What it measures, with the unit where the name doesn't carry it: "Gross margin, % of revenue". */
   title?: string;
   /** `color` (a #RRGGBB hex) is the series' colour in the view it came from; without it, `who` picks one. */

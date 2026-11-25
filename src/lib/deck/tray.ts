@@ -24,7 +24,7 @@ const text = (max: number) => z.string().max(max);
 
 const ChartSchema = z.object({
   kind: z.enum(["bar", "column", "line"]),
-  format: z.enum(["usd", "pct", "days", "eps"]),
+  format: z.enum(["usd", "pct", "days", "eps", "number"]),
   title: text(120).optional(),
   series: z
     .array(

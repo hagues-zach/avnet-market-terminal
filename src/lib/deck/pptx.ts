@@ -57,8 +57,10 @@ function numberFormat(c: Chart): string {
   if (c.format === "pct") return "0.0%";
   if (c.format === "days") return "0";
   if (c.format === "eps") return "$0.00";
+  if (c.format === "number") return Math.max(...c.series.flatMap((s) => s.points.map((p) => Math.abs(p.value)))) >= 100 ? "0" : "0.0";
   const max = Math.max(...c.series.flatMap((s) => s.points.map((p) => Math.abs(p.value))));
-  return max >= 1e9 ? '$#,##0.00,,,"B"' : '$#,##0,,"M"';
+  // Three figures, as on screen: $412B, $77.2B, $1.62B, $850M.
+  return max >= 1e12 ? '$#,##0.00,,,,"T"' : max >= 100e9 ? '$#,##0,,,"B"' : max >= 10e9 ? '$#,##0.0,,,"B"' : max >= 1e9 ? '$#,##0.00,,,"B"' : '$#,##0,,"M"';
 }
 
 /** The chart, filling its box: values labelled, or (two or more lines) a light value axis set to the data. */
