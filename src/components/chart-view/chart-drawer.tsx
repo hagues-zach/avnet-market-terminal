@@ -3,6 +3,7 @@
 import { useEffect, useId } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { tabHasData, type ChartData } from "@/lib/chart-view/model";
+import { AddChartToDeck } from "@/components/deck/add-chart-to-deck";
 import { StackedPanes, ValuesTable } from "./panes";
 
 // The chart view in a right-hand drawer, for tables people read one row after
@@ -62,6 +63,11 @@ export function ChartDrawer({
             {data.title}
           </h2>
         </div>
+        {tab && has && (
+          <span className="mr-1">
+            <AddChartToDeck data={data} tab={tab} />
+          </span>
+        )}
         <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous measure" title="Previous measure" className={button}>
           <ChevronUp className="h-4 w-4" strokeWidth={1.5} aria-hidden />
         </button>

@@ -14,6 +14,9 @@ const VARIANTS: Record<Variant, string> = {
 const BASE =
   "inline-flex h-control shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-none px-3 font-body text-button transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer";
 
+/** A button's look for another element, such as a Link that closes a dialog as it navigates. */
+export const buttonClass = (variant: Variant = "secondary", className?: string) => cn(BASE, VARIANTS[variant], className);
+
 export function Button({
   variant = "secondary",
   className,

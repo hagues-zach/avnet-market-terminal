@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Database, Menu, Sparkles } from "lucide-react";
+import { DeckButton } from "@/components/deck/deck-button";
 
 /**
  * Top bar from DESIGN.md: 48px, white, hairline bottom. The left slot holds
@@ -37,7 +38,10 @@ export function AppTopbar({
         )}
         {left ?? (pathname === "/copilot" ? <DataLine /> : <AskBox />)}
       </div>
-      <div className="hidden shrink-0 items-center gap-3 text-body-sm text-ink-muted sm:flex">{right ?? <span>Refreshes automatically</span>}</div>
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="hidden items-center gap-3 text-body-sm text-ink-muted sm:flex">{right ?? <span>Refreshes automatically</span>}</div>
+        <DeckButton />
+      </div>
     </header>
   );
 }

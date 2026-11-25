@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
+import { TrayProvider } from "@/components/deck/tray-provider";
 import { AppSidebar } from "./app-sidebar";
 import { AppTopbar } from "./app-topbar";
 import { HubTabs } from "./hub-tabs";
@@ -12,6 +13,15 @@ import { HubTabs } from "./hub-tabs";
  * below that it opens as a drawer from the top bar's menu button.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
+  // The deck tray (Add to deck) is shared by every page, its toast and its mini tray.
+  return (
+    <TrayProvider>
+      <Shell>{children}</Shell>
+    </TrayProvider>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const closeRef = useRef<HTMLButtonElement>(null);

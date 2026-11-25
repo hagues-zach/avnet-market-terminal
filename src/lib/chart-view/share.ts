@@ -9,6 +9,7 @@ export function shareChartData({
   history,
   periods,
   source,
+  hookups,
 }: {
   /** "Share by segment", "Share by supplier" or "Share by region". */
   view: string;
@@ -16,6 +17,7 @@ export function shareChartData({
   history: number[];
   periods: string[];
   source: string;
+  hookups?: string[];
 }): ChartData {
   return {
     eyebrow: `${view} · Mock`,
@@ -33,5 +35,6 @@ export function shareChartData({
     takeaways: { share: describeSeries(`Avnet's share of ${name}`, "pct", history, periods) },
     source: `${source}. Quarters before the latest are modelled`,
     asOf: periods[periods.length - 1],
+    hookups,
   };
 }

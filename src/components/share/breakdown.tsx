@@ -23,7 +23,7 @@ export interface ShareRow {
 
 type View = "segment" | "supplier" | "region";
 
-const VIEWS: Record<View, { label: string; title: string; subtitle: string; name: string; size: string; source: string }> = {
+const VIEWS: Record<View, { label: string; title: string; subtitle: string; name: string; size: string; source: string; hookups: string[] }> = {
   segment: {
     label: "Segment",
     title: "Share by segment",
@@ -31,6 +31,7 @@ const VIEWS: Record<View, { label: string; title: string; subtitle: string; name
     name: "Segment",
     size: "Market size",
     source: "Avnet billings, WSTS and Gartner market sizes, joined through the code map",
+    hookups: ["billings", "wsts", "gartner-forecast", "code-map"],
   },
   supplier: {
     label: "Supplier",
@@ -39,6 +40,7 @@ const VIEWS: Record<View, { label: string; title: string; subtitle: string; name
     name: "Supplier",
     size: "Supplier revenue",
     source: "Avnet billings by manufacturer, suppliers' reported revenue",
+    hookups: ["billings", "sec"],
   },
   region: {
     label: "Region",
@@ -47,6 +49,7 @@ const VIEWS: Record<View, { label: string; title: string; subtitle: string; name
     name: "Region",
     size: "Market size",
     source: "Avnet billings by region, WSTS regional market sizes",
+    hookups: ["billings", "wsts"],
   },
 };
 
@@ -163,7 +166,7 @@ export function ShareBreakdown({
         onOrder={setOrder}
       />
       <ChartDrawer
-        data={current?.history ? shareChartData({ view: v.title, name: current.name, history: current.history, periods, source: v.source }) : null}
+        data={current?.history ? shareChartData({ view: v.title, name: current.name, history: current.history, periods, source: v.source, hookups: v.hookups }) : null}
         position={at >= 0 ? `${at + 1} of ${order.length}` : undefined}
         onClose={close}
         onPrev={at > 0 ? () => setSelected(order[at - 1]) : undefined}
