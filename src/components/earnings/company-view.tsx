@@ -5,7 +5,7 @@ import { yearAgo } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState } from "@/components/ui/states";
-import { ChartableSection } from "@/components/chart-view/chartable-section";
+import { ChartButton } from "@/components/chart-view/chart-button";
 import { earningsChartData, type EarningsSection } from "@/lib/chart-view/earnings";
 import { TrendChart } from "./trend-chart";
 import { format, longDate, type Row } from "./format";
@@ -178,6 +178,7 @@ export function QuarterlyDetail({ earnings, open = false }: { earnings: CompanyE
         <span className="ml-auto truncate pl-3 text-caption text-ink-muted">
           The same {DETAIL.reduce((n, s) => n + s.rows.length, 0)} line items for every company
         </span>
+        <ChartButton label="quarterly detail" sections={charts} />
       </summary>
       <div className="overflow-x-auto border-t border-hairline">
         <table className="w-full min-w-[760px] border-collapse font-body text-table">
@@ -197,7 +198,12 @@ export function QuarterlyDetail({ earnings, open = false }: { earnings: CompanyE
             </tr>
           </thead>
           {DETAIL.map((section) => (
-            <ChartableSection key={section.id} title={section.group} sectionId={section.id} sections={charts} colSpan={quarters.length + 1}>
+            <tbody key={section.id}>
+              <tr className="border-b border-hairline">
+                <th scope="colgroup" colSpan={quarters.length + 1} className="px-3 pb-1 pt-3 text-left font-normal">
+                  <span className="font-display text-card-title text-ink">{section.group}</span>
+                </th>
+              </tr>
               {section.rows.map((row) => (
                 <tr key={row.metric} className="border-b border-hairline last:border-b-0 hover:bg-surface-sunken">
                   <th scope="row" className="px-3 py-1.5 text-left font-normal text-ink">
@@ -216,7 +222,7 @@ export function QuarterlyDetail({ earnings, open = false }: { earnings: CompanyE
                   ))}
                 </tr>
               ))}
-            </ChartableSection>
+            </tbody>
           ))}
         </table>
       </div>
