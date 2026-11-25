@@ -87,6 +87,7 @@ export default async function CodeMappingPage() {
           subtitle="Newest first. Validators are shown by role"
           actions={<DataChip status={avnet.status} />}
           bodyClassName="p-0"
+          deck={null}
         >
           <table className="w-full border-collapse font-body text-table">
             <caption className="sr-only">Recent changes to the code map. Mock data.</caption>
@@ -120,7 +121,7 @@ export default async function CodeMappingPage() {
             </tbody>
           </table>
         </Panel>
-        <Panel className="xl:col-span-5" title="Why mapping is hard" subtitle="PRD section 6.3">
+        <Panel className="xl:col-span-5" title="Why mapping is hard" subtitle="PRD section 6.3" deck={null}>
           <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
             {HARD.map((h) => (
               <div key={h.title}>

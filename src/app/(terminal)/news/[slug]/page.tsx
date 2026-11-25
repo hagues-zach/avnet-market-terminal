@@ -105,7 +105,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             </Suspense>
           )}
           {companies.length > 0 && (
-            <Panel title="Companies mentioned">
+            <Panel title="Companies mentioned" deck={null}>
               <CompanyLinks companies={companies} />
             </Panel>
           )}

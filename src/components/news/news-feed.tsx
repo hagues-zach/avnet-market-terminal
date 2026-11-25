@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { linesSlide } from "@/lib/deck/slides";
 import { Search, SlidersHorizontal, Star } from "lucide-react";
 import type { Angles } from "@/lib/ai/news-angles";
 import { KIND_LABELS, type ArticleKind, type LiveArticle } from "@/lib/data/live/shared";
@@ -155,7 +156,23 @@ export function AllNews({
   ];
 
   return (
-    <Panel title="All news" subtitle={`${visible.length} of ${articles.length} stories from the last two weeks`} bodyClassName="space-y-3">
+    <Panel
+      title="All news"
+      subtitle={`${visible.length} of ${articles.length} stories from the last two weeks`}
+      bodyClassName="space-y-3"
+      deck={
+        visible.length
+          ? linesSlide({
+              key: "news:feed",
+              title: "In the news",
+              trayTitle: "All news, as filtered",
+              text: `The latest of ${visible.length} stories from the last two weeks${chips.length ? `, filtered to ${chips.map((c) => c.label).join(", ")}` : ""}.`,
+              lines: visible.slice(0, 10).map((a) => `${a.title} (${a.outlet})`),
+              source: "Market News feeds",
+            })
+          : null
+      }
+    >
       <div role="group" aria-label="Filter the feed" className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-[10rem] flex-1">
           <span className="sr-only">Search headlines</span>
