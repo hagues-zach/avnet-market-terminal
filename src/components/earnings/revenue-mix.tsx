@@ -4,7 +4,8 @@ import { Panel } from "@/components/ui/panel";
 import { LoadingBlock } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
 import { NA, format, longDate } from "./format";
-import { comparisonSlide } from "@/lib/deck/slides";
+import { panelsSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 
 const TITLE = "Revenue mix";
 const LABEL = "mb-1.5 font-display text-label uppercase text-ink-muted";
@@ -77,22 +78,30 @@ export async function RevenueMix({ company }: { company: string }) {
       deck={
         empty || !mix.breakdowns[0]
           ? null
-          : comparisonSlide({
+          : panelsSlide({
               key: `profile:${mix.company.slug}:revenue-mix`,
-              title: `${mix.company.name}: revenue ${mix.breakdowns[0].title.toLowerCase()}`,
+              title: `${mix.company.name}: revenue mix`,
               trayTitle: `${mix.company.name}: Revenue mix`,
               text: period ? `${period}, from the company's own tags in its latest ${mix.form}.` : undefined,
-              unit: "usd",
-              measure: "Revenue",
-              items: mix.breakdowns[0].items.map((i) => ({
-                name: i.label,
-                value: i.value,
-                extra: [i.share === undefined ? NA : `${Math.round(i.share * 100)}%`, i.yoy === undefined ? NA : format("growth", i.yoy)],
-              })),
-              extraColumns: ["Share", "Growth YoY"],
-              lines: [
-                ...mix.breakdowns.slice(1).map((b) => `${b.title}: ${b.items.slice(0, 4).map((i) => `${i.label} ${format("usd", i.value)}`).join(", ")}`),
-                ...(mix.customers.length ? [`Largest customers: ${mix.customers.map((c) => `${c.label} ${(c.share * 100).toFixed(0)}%`).join(", ")}`] : []),
+              // The card's breakdowns side by side: each item's revenue over its bar, its share and growth; then the largest customers.
+              panels: [
+                ...mix.breakdowns.slice(0, mix.customers.length ? 2 : 3).map((b) => {
+                  const top = Math.max(...b.items.map((i) => i.value));
+                  return {
+                    kicker: b.title,
+                    rows: b.items.slice(0, 10).map((i) => ({
+                      title: i.label,
+                      value: format("usd", i.value),
+                      ...(i.share !== undefined && { note: `${Math.round(i.share * 100)}%` }),
+                      ...(i.yoy !== undefined && { change: format("growth", i.yoy), tone: "plain" as const }),
+                      // Avnet Green only ever represents Avnet; anyone else's bars are grey.
+                      bar: { share: Math.max(0, i.value / top), color: mix.company.slug === "avnet" ? VIZ.avnet : VIZ.other },
+                    })),
+                  };
+                }),
+                ...(mix.customers.length
+                  ? [{ kicker: "Largest customers", rows: mix.customers.slice(0, 10).map((c) => ({ title: c.label, value: `${(c.share * 100).toFixed(0)}% of revenue` })) }]
+                  : []),
               ],
               source: `${mix.company.name}'s latest ${mix.form}`,
             })

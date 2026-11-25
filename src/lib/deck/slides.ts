@@ -263,6 +263,8 @@ export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
       title: cut(x.title, 80),
       kicker: cut(x.kicker, 80),
       notesLabel: cut(x.notesLabel, 60),
+      lede: cut(x.lede, 300),
+      paragraphs: x.paragraphs?.slice(0, 6).map((g) => defined({ ...g, text: cut(g.text, 400)! })),
       detail: cut(x.detail, 200),
       metrics: x.metrics?.slice(0, 5),
       notes: x.notes?.slice(0, 3).map((n) => defined({ ...n, text: cut(n.text, 160) })),

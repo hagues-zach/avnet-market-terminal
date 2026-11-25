@@ -83,6 +83,9 @@ export const PreviewSchema = z.object({
         notes: z.array(z.object({ title: text(60), value: text(40).optional(), text: text(160).optional(), marker: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() })).max(3).optional(),
         notesLabel: text(60).optional(),
         next: z.boolean().optional(),
+        marker: Hex.optional(),
+        lede: text(300).optional(),
+        paragraphs: z.array(z.object({ lead: text(40).optional(), text: text(400) })).max(6).optional(),
         rows: z.array(PanelRowSchema).max(10).optional(),
         rowRules: z.boolean().optional(),
         table: z

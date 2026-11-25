@@ -5,7 +5,8 @@ import type { Topic, TopicFacet } from "@/lib/news/briefing";
 import { Panel } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/states";
-import { comparisonSlide } from "@/lib/deck/slides";
+import { panelsSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 
 const LIMIT = 6;
@@ -34,13 +35,13 @@ export function Topics({
       className="xl:col-span-4"
       deck={
         list.length
-          ? comparisonSlide({
+          ? panelsSlide({
               key: `news:topics-${facet}`,
               title: `What the news is about this week, by ${facet === "segments" ? "segment" : "end market"}`,
               trayTitle: "Topics this week",
-              unit: "number",
-              measure: "Stories, last 7 days",
-              items: list.map((t) => ({ name: t.name, value: t.count })),
+              text: "Stories in the last 7 days.",
+              // The card's bars: each topic's story count.
+              panels: [{ rows: list.map((t) => ({ title: t.name, value: String(t.count), bar: { share: t.count / max, color: VIZ.benchmark } })) }],
               source: "Market News feeds",
             })
           : null

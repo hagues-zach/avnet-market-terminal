@@ -11,7 +11,8 @@ import { format } from "./format";
 import { GroupTable } from "./group-table";
 import { GrowthMarginChart, RankChart } from "./leaderboard-charts";
 import { peerRows, peersSlide } from "./peer-section";
-import { comparisonSlide, linesSlide, tableSlide } from "@/lib/deck/slides";
+import { comparisonSlide, panelsSlide, tableSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 
 const UNIT: Record<(typeof MEASURES)[Measure]["kind"], Unit> = { growth: "growth", pct: "pct", days: "days", usd: "usd" };
 const href = (measure: Measure, group: Cohort | "all") =>
@@ -126,11 +127,31 @@ export async function LeaderboardView({ measure, group }: { measure: Measure; gr
               subtitle={`Biggest changes in ${m.label.toLowerCase()}, each company against its own previous quarter`}
               deck={
                 moved.length
-                  ? linesSlide({
+                  ? panelsSlide({
                       key: `earnings:movers-${measure}-${group}`,
                       title: `Movers in ${m.label.toLowerCase()}: ${scope}`,
                       text: "The biggest changes since the quarter before, each company against its own previous quarter.",
-                      lines: moved.map((r) => `${r.company.name}: ${format(m.kind, r.previous)} to ${format(m.kind, r.value)}`),
+                      // The card's list: each company, where it was and is, and the change in its colour.
+                      panels: [
+                        {
+                          rowRules: true,
+                          rows: moved.map((r) => {
+                            const up = r.change! > 0;
+                            const shown =
+                              m.kind === "days"
+                                ? `${Math.abs(Math.round(r.change!))} days`
+                                : m.kind === "usd"
+                                  ? format("usd", Math.abs(r.change!))
+                                  : `${Math.abs(r.change! * 100).toFixed(1)} pts`;
+                            return {
+                              title: r.company.name,
+                              value: `${format(m.kind, r.previous)} to ${format(m.kind, r.value)}`,
+                              change: r.change === 0 ? shown : `${up ? "+" : "\u2212"}${shown}`,
+                              tone: r.change === 0 ? ("neutral" as const) : up === m.higherIsBetter ? ("good" as const) : ("bad" as const),
+                            };
+                          }),
+                        },
+                      ],
                       source: "SEC filings, GAAP as reported",
                     })
                   : null

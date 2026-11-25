@@ -195,4 +195,17 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   assert.ok(caption && caption.kind === "text" && bar.kind === "rect" && caption.y >= bar.y + bar.h, "the caption under the bar");
 }
 
+// A digest column: a marker before the title, the lead sentence, and paragraphs opening in bold.
+{
+  const items = layoutPanels(
+    [{ title: "Arrow", marker: "#4273B8", lede: "Demand improved across regions.", paragraphs: [{ lead: "Demand", text: "Orders rose." }, { text: "Not covered." }] }],
+    { x: 0.5, y: 1.6, w: 4, h: 3 },
+  );
+  const marker = items.find((it) => it.kind === "rect");
+  const title = items.find((it) => it.kind === "text" && it.runs[0].text === "Arrow");
+  assert.ok(marker && title && marker.kind === "rect" && title.kind === "text" && marker.x < title.x, "the marker before the title");
+  const para = items.find((it) => it.kind === "text" && it.runs[0].text === "Demand: ");
+  assert.ok(para && para.kind === "text" && para.runs[0].bold && !para.runs[1].bold, "the paragraph's label in bold");
+}
+
 console.log("layout.test.ts: ok");

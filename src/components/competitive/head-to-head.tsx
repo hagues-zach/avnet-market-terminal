@@ -249,18 +249,23 @@ export async function ManagementSaid() {
       subtitle="Set beside what Avnet's said. Written by Claude from each company's latest earnings release; check the release before quoting it"
       deck={
         arrow.digest || avnet.digest
-          ? linesSlide({
+          ? panelsSlide({
               key: "competitive:management-said",
               title: "What Arrow's and Avnet's management said last quarter",
-              text: arrow.digest?.headline,
-              lines: [arrow, avnet].flatMap((c) =>
-                c.digest
-                  ? [
-                      `${c.company.slug === "avnet" ? "Avnet" : "Arrow"}: ${c.digest.headline}`,
-                      ...TOPICS.flatMap(([key, name]) => (c.digest![key] ? [`${c.company.slug === "avnet" ? "Avnet" : "Arrow"}, ${name.toLowerCase()}: ${c.digest![key]}`] : [])),
-                    ]
-                  : [],
-              ),
+              // The card's two columns: each company's headline, then demand, inventory, lead times and pricing.
+              panels: [
+                { c: arrow, label: "Arrow", marker: VIZ.arrow },
+                { c: avnet, label: "And Avnet", marker: VIZ.avnet },
+              ].map(({ c, label, marker }) => ({
+                title: label,
+                marker,
+                ...(c.digest
+                  ? {
+                      lede: c.digest.headline,
+                      paragraphs: TOPICS.map(([key, name]) => ({ lead: name, text: c.digest![key] ?? "Not covered in the release." })),
+                    }
+                  : { paragraphs: [{ text: c.message ?? "The latest earnings release could not be read." }] }),
+              })),
               source: "Each company's latest earnings release",
               claude: "Written by Claude from each company's latest earnings release",
             })

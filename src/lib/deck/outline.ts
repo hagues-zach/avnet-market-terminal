@@ -439,6 +439,8 @@ export type PanelCell = string | { change: string; tone?: PanelTone };
 export interface Panel {
   /** Its name, as a card title: "Distributors". */
   title?: string;
+  /** A colour marker before the title: Avnet's green, Arrow's blue. */
+  marker?: string;
   /** Or a small capitals label: "TAM, total market". */
   kicker?: string;
   /** A short tag in the corner, as a pill: "WSTS Autumn 2025", or "Mock" with mock set (a dashed yellow outline). */
@@ -460,6 +462,10 @@ export interface Panel {
   notesLabel?: string;
   /** A chevron on the divider to its right, as the funnel draws between its steps. */
   next?: boolean;
+  /** A lead sentence in larger type, under the title. */
+  lede?: string;
+  /** Paragraphs, each opening with a bold label: "Demand: Orders picked up in Asia." */
+  paragraphs?: { lead?: string; text: string }[];
   /** Rows down the panel; with rowRules, a hairline between them. */
   rows?: PanelRow[];
   rowRules?: boolean;

@@ -216,7 +216,21 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
   const gap = PANEL_GAP;
   const w = (box.w - gap * (n - 1)) / n;
   const bottom = box.y + box.h;
-  const lineCount = (s: string, size: number, cw = w) => Math.max(1, Math.ceil((s.length * size * 0.5) / (cw * 72)));
+  // Lines a text takes, wrapped word by word as a renderer does: Arial averages a little over half an em a character.
+  const lineCount = (s: string, size: number, cw = w) => {
+    const em = (size / 72) * 0.53;
+    let lines = 1;
+    let at = 0;
+    for (const word of s.split(/\s+/).filter(Boolean)) {
+      const ww = word.length * em;
+      const next = at ? at + em * 0.55 + ww : ww;
+      if (next > cw && at) {
+        lines++;
+        at = ww;
+      } else at = next;
+    }
+    return lines;
+  };
   const tall = (s: string, size: number, cw = w) => (lineCount(s, size, cw) * size * 1.25) / 72;
   const fits = (s: string, size: number) => s.length * size * 0.55 <= w * 72;
   // One size for every title and figure, and one height for the details, so the columns read as a row.
@@ -255,12 +269,24 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
     }
     if (p.title) {
       const h = (titleSize * 1.25) / 72;
-      text(x, y, w - (p.kicker ? 0 : tagW + 0.05), h, [{ text: p.title, size: titleSize, bold: true }]);
+      const at = p.marker ? z(0.16) : 0;
+      if (p.marker) items.push({ kind: "rect", x, y: y + h / 2 - z(0.05), w: z(0.1), h: z(0.1), color: p.marker });
+      text(x + at, y, w - at - (p.kicker ? 0 : tagW + 0.05), h, [{ text: p.title, size: titleSize, bold: true }]);
       y += h + z(0.04);
     }
     if (detailH) {
       if (p.detail) text(x, y, w, detailH, [{ text: p.detail, size: z(8), color: PANEL_INK.muted }]);
       y += detailH + z(0.04);
+    }
+    if (p.lede) {
+      const h = tall(p.lede, z(11.5), w);
+      text(x, y, w, h, [{ text: p.lede, size: z(11.5) }]);
+      y += h + z(0.08);
+    }
+    for (const g of p.paragraphs ?? []) {
+      const h = tall(`${g.lead ? `${g.lead}: ` : ""}${g.text}`, z(9.5), w);
+      text(x, y, w, h, [...(g.lead ? [{ text: `${g.lead}: `, size: z(9.5), bold: true }] : []), { text: g.text, size: z(9.5) }]);
+      y += h + z(0.06);
     }
     if (p.figure) {
       text(x, y, w, (figureSize * 1.15) / 72, [{ text: p.figure.value, size: figureSize, bold: true }]);
@@ -484,17 +510,19 @@ export function layoutPanels(panels: Panel[], box: { x: number; y: number; w: nu
     k = Math.max(0.7, k * (box.h / (box.h + r.over)));
     r = placePanels(panels, box, k);
   }
-  // A short list of rows (a few bars, two figures) grows to use the slide, up to half as large again;
-  // the last step backs off if it overshoots.
-  if (k === 1 && panels.every((p) => p.rows?.length) && r.over < -0.3) {
-    let best = r;
-    for (let i = 0; i < 4 && r.over < -0.05 && k < 1.5; i++) {
-      k = Math.min(1.5, k * (box.h / (box.h + r.over)) * 0.97);
-      r = placePanels(panels, box, k);
-      if (r.over > 0) break;
-      best = r;
+  // A short list of rows, bars or paragraphs grows to use the slide, up to half as large again. Text
+  // rewraps as it grows, so the largest scale that still fits is found by halving the interval.
+  if (k === 1 && panels.every((p) => p.rows?.length || p.paragraphs?.length) && r.over < -0.3) {
+    let lo = 1;
+    let hi = 1.5;
+    for (let i = 0; i < 7; i++) {
+      const mid = (lo + hi) / 2;
+      const t = placePanels(panels, box, mid);
+      if (t.over <= -0.2) {
+        lo = mid;
+        r = t;
+      } else hi = mid;
     }
-    r = best;
   }
   return r.items;
 }

@@ -14,7 +14,7 @@ import { HookupMarker } from "@/components/ui/hookup-marker";
 import { EmptyState, ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { ShareBreakdown } from "./breakdown";
 import { LabelledLines } from "./line-chart";
-import { comparisonSlide, seriesSlide } from "@/lib/deck/slides";
+import { panelsSlide, seriesSlide } from "@/lib/deck/slides";
 
 // Avnet's own share figures are MOCK until billings and the code map are hooked
 // up. The Avnet against Arrow and growth comparisons are live SEC data, kept in
@@ -136,14 +136,21 @@ export async function WhiteSpaceCard() {
       title="White space"
       subtitle="Large markets where Avnet's share is under 5%"
       actions={<DataChip status={m.status} />}
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "share:white-space",
         title: "White space: large markets where Avnet's share is under 5%",
         trayTitle: "White space",
-        unit: "usd",
-        measure: "Market size",
-        items: items.map((s) => ({ name: s.segment, value: s.tam * 1e9, extra: [`${(s.share * 100).toFixed(1)}%`] })),
-        extraColumns: ["Avnet share"],
+        // The card's bars: each market's size and Avnet's share of it.
+        panels: [
+          {
+            rows: items.map((s) => ({
+              title: s.segment,
+              value: `$${s.tam}B market,`,
+              note: `${(s.share * 100).toFixed(1)}% share`,
+              bar: { share: s.tam / max, color: VIZ.other },
+            })),
+          },
+        ],
         source: "TAM, SAM and SOM and the code map",
         hookups: ["billings", "wsts", "tam-sam-som", "code-map"],
       })}
