@@ -328,13 +328,23 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
         }
         const top = y;
         const size = r.strong ? z(12) : z(9.5);
-        const value = r.value ? [{ text: r.value, size: z(9.5) }, ...(r.change ? [{ text: "  ", size: z(8) }, ...changeRuns(r.change, r.tone, undefined, z(8.5))] : [])] : [];
-        const valueW = value.length ? Math.min(tw * 0.6, (value.reduce((n, v) => n + v.text.length * v.size, 0) * 0.55) / 72 + 0.05) : 0;
-        // The label wraps beside its value, as the page's does, and the row grows with it.
+        const vs = r.large ? z(18) : z(9.5);
+        const value = r.value
+          ? [
+              { text: r.value, size: vs, bold: Boolean(r.large) },
+              ...(r.note ? [{ text: `  ${r.note}`, size: z(9.5), color: PANEL_INK.muted }] : []),
+              ...(r.change ? [{ text: "  ", size: z(8) }, ...changeRuns(r.change, r.tone, r.period, z(8.5))] : []),
+            ]
+          : [];
+        // Wide enough for the value, its note and change on one line (figures and the arrow run wider than letters).
+        const valueW = value.length ? Math.min(tw * 0.6, (value.reduce((n, v) => n + v.text.length * v.size, 0) * 0.64) / 72 + 0.15) : 0;
+        const vh = (vs * 1.2) / 72;
+        // The label wraps beside its value, as the page's does, and the row grows with it; a large value sits on the label's baseline.
         const h = tall(r.title, r.strong ? size * 1.1 : size, tw - valueW - 0.05);
-        text(x, y, tw - valueW - 0.05, h, [{ text: r.title, size, bold: Boolean(r.strong) }]);
-        if (value.length) text(x + tw - valueW, y + (size - z(9.5)) / 72, valueW, (z(9.5) * 1.25) / 72, value, { align: "right" });
-        y += h + z(0.03);
+        const lift = r.large ? vh - (size * 1.25) / 72 : 0;
+        text(x, y + Math.max(0, lift), tw - valueW - 0.05, h, [{ text: r.title, size, bold: Boolean(r.strong) }]);
+        if (value.length) text(x + tw - valueW, y + (r.large ? 0 : (size - z(9.5)) / 72), valueW, vh, value, { align: "right", valign: "bottom" });
+        y += Math.max(h + Math.max(0, lift), r.large ? vh : 0) + z(0.03);
         if (r.markers?.length) {
           let mx = x;
           for (const m of r.markers) {
@@ -353,6 +363,11 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
         if (r.bar) {
           items.push({ kind: "rect", x, y: y + z(0.01), w: Math.max(0.02, tw * r.bar.share), h: z(0.09), color: r.bar.color });
           y += z(0.14);
+        }
+        if (r.caption) {
+          const ch2 = tall(r.caption, z(8), tw);
+          text(x, y, tw, ch2, [{ text: r.caption, size: z(8), color: PANEL_INK.muted }]);
+          y += ch2 + z(0.02);
         }
         if (linesW && r.lines?.length) {
           // The page's pair spark: both lines on one scale, the last drawn on top.
@@ -459,7 +474,8 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
  * Side-by-side panels, drawn as the page draws them: each column's title, detail,
  * measures under hairlines, share bar, notes and small bar chart along the foot.
  * When the tallest column will not fit, every column shrinks by the same amount
- * (to no less than 70%), so the row keeps one size.
+ * (to no less than 70%), so the row keeps one size; a slide of short row lists
+ * grows to fill the body (to no more than 150%).
  */
 export function layoutPanels(panels: Panel[], box: { x: number; y: number; w: number; h: number }): PanelItem[] {
   let k = 1;
@@ -467,6 +483,18 @@ export function layoutPanels(panels: Panel[], box: { x: number; y: number; w: nu
   for (let i = 0; i < 4 && r.over > 0.005 && k > 0.7; i++) {
     k = Math.max(0.7, k * (box.h / (box.h + r.over)));
     r = placePanels(panels, box, k);
+  }
+  // A short list of rows (a few bars, two figures) grows to use the slide, up to half as large again;
+  // the last step backs off if it overshoots.
+  if (k === 1 && panels.every((p) => p.rows?.length) && r.over < -0.3) {
+    let best = r;
+    for (let i = 0; i < 4 && r.over < -0.05 && k < 1.5; i++) {
+      k = Math.min(1.5, k * (box.h / (box.h + r.over)) * 0.97);
+      r = placePanels(panels, box, k);
+      if (r.over > 0) break;
+      best = r;
+    }
+    r = best;
   }
   return r.items;
 }

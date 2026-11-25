@@ -412,16 +412,21 @@ export interface PanelRow {
   title: string;
   /** The label as a card title (bold) rather than body text. */
   strong?: boolean;
-  /** Right-aligned beside the label, and its change after it. */
+  /** Right-aligned beside the label: the value (large as a figure), a grey note such as its share, and its change and period. */
   value?: string;
+  large?: boolean;
+  note?: string;
   change?: string;
   tone?: PanelTone;
+  period?: string;
   /** A bar under the row, 0 to 1 of the panel's width. */
   bar?: { share: number; color: string };
   /** Values with a colour marker in a line: "Avnet 10.4%", "Arrow 11.3%"; the strong one bold, the rest grey. */
   markers?: { text: string; color: string; strong?: boolean }[];
   /** A sentence under it. */
   text?: string;
+  /** A small grey line under the bar. */
+  caption?: string;
   /** A small line chart on the right: a line per series, drawn in order (the last on top). */
   lines?: { values: (number | null)[]; color: string; width?: number }[];
 }

@@ -170,4 +170,29 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   assert.equal(new Set(sparkTops).size, 1, "the sparks level along the foot");
 }
 
+// Rows: a value with its grey note and change, a large figure, and a caption under the bar.
+{
+  const items = layoutPanels(
+    [
+      {
+        rows: [
+          { title: "Americas", value: "$210.1B", note: "27%", change: "+22.5%", tone: "good", period: "YoY", bar: { share: 1, color: "#D2D2D2" } },
+          { title: "Reported, Q3 2026", value: "+31.0%", large: true, bar: { share: 0.6, color: "#000000" }, caption: "48 chip makers, combined revenue on a year ago" },
+        ],
+      },
+    ],
+    { x: 0.5, y: 1.6, w: 9, h: 3.2 },
+  );
+  const runs = items.flatMap((it) => (it.kind === "text" ? it.runs : []));
+  assert.ok(runs.some((r) => r.text === "  27%" && r.color), "the note in grey after the value");
+  assert.ok(runs.some((r) => r.text === " YoY"), "the change's period");
+  const big = runs.find((r) => r.text === "+31.0%")!.size;
+  const plain = runs.find((r) => r.text === "$210.1B")!.size;
+  assert.equal(big / plain, 18 / 9.5, "a large value as a figure");
+  assert.ok(plain > 9.5 && plain <= 9.5 * 1.5, "a short list grows to use the slide, within limits");
+  const caption = items.find((it) => it.kind === "text" && it.runs[0].text.startsWith("48 chip makers"));
+  const bar = items.filter((it) => it.kind === "rect").at(-1)!;
+  assert.ok(caption && caption.kind === "text" && bar.kind === "rect" && caption.y >= bar.y + bar.h, "the caption under the bar");
+}
+
 console.log("layout.test.ts: ok");

@@ -249,6 +249,10 @@ export function linesSlide(b: SlideBase & { lines: string[] }): CardSlide {
 
 /* ---------- Panels ---------- */
 
+/** A change's tone as the page's Delta colours it: up good, down bad, flat grey; `plain` for Delta's neutral (black either way). */
+export const toneOf = (v: number | null | undefined, plain = false): "good" | "bad" | "neutral" | "plain" =>
+  v === null || v === undefined || v === 0 ? "neutral" : plain ? "plain" : v > 0 ? "good" : "bad";
+
 const clamp01 = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0);
 
 /** Side-by-side panels, drawn as the page draws them (up to six). */
@@ -269,6 +273,7 @@ export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
           ...r,
           title: cut(r.title, 120)!,
           text: cut(r.text, 300),
+          caption: cut(r.caption, 200),
           bar: r.bar && { ...r.bar, share: clamp01(r.bar.share) },
           lines: r.lines?.map((l) => ({ ...l, values: l.values.slice(-16).map((v) => (v !== null && Number.isFinite(v) ? v : null)) })),
         }),

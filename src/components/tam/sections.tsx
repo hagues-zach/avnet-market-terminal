@@ -13,7 +13,8 @@ import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { CategoryTable } from "./category-table";
-import { comparisonSlide, formatGrowth, linesSlide, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { formatGrowth, linesSlide, panelsSlide, seriesSlide, tableSlide, toneOf } from "@/lib/deck/slides";
+import type { Panel as SlidePanel } from "@/lib/deck/outline";
 import { TrendMini } from "./trend-mini";
 
 // TAM and its splits are published WSTS / SIA figures, labelled with their
@@ -274,17 +275,24 @@ export async function ForecastCard({ t }: { t: TamSummary }) {
       }
       className="h-full"
       actions={<DataChip status="live" label="SEC EDGAR" />}
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "tam:is-the-forecast-holding",
         title: "Is the forecast holding?",
         text: reported
           ? `Reported growth is ${Math.abs(gap * 100).toFixed(0)} pts ${gap >= 0 ? "above" : "below"} the forecast pace.`
           : "Waiting for enough companies to report.",
-        unit: "pct",
-        measure: "Growth",
-        keepOrder: true,
-        items: rows.map((r) => ({ name: r.label, value: r.value })),
-        lines: rows.map((r) => `${r.label}: ${r.note}`),
+        // The card's two rows: each growth as a figure, its bar (reported grey, forecast black) and what it counts.
+        panels: [
+          {
+            rows: rows.map((r, i) => ({
+              title: r.label,
+              value: r.value === undefined ? "n/a" : `${r.value >= 0 ? "+" : "\u2212"}${Math.abs(r.value * 100).toFixed(1)}%`,
+              large: true,
+              bar: { share: Math.abs(r.value ?? 0) / max, color: i === 0 ? VIZ.benchmark : "#000000" },
+              caption: r.note,
+            })),
+          },
+        ],
         source: "SEC filings and WSTS",
         period: reported ? fullQuarter(reported.label) : undefined,
       })}
@@ -326,6 +334,22 @@ export function ForecastFallback() {
 
 /* ---------- Region and end market ---------- */
 
+/** BarList as a slide's panel: each item's value, share and growth over its bar. */
+function barListPanel(items: { name: string; value: number; growth: number }[]): SlidePanel {
+  const sorted = [...items].sort((a, b) => b.value - a.value);
+  const total = sorted.reduce((s, i) => s + i.value, 0);
+  return {
+    rows: sorted.map((i) => ({
+      title: i.name,
+      value: formatUsdMillions(i.value),
+      note: pct(i.value / total),
+      change: formatGrowth(i.growth),
+      tone: toneOf(i.growth),
+      bar: { share: i.value / (sorted[0]?.value || 1), color: VIZ.other },
+    })),
+  };
+}
+
 function BarList({ items }: { items: { name: string; value: number; growth: number }[] }) {
   const sorted = [...items].sort((a, b) => b.value - a.value);
   const max = sorted[0]?.value ?? 1;
@@ -360,14 +384,11 @@ export function RegionCard({ t, vintage }: { t: TamSummary; vintage: string }) {
       actions={<Chip>WSTS</Chip>}
       footer={<SourceLine source={`${vintage}, ${t.latestYear}`} />}
       className="h-full"
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "tam:by-region",
         title: "By region",
         text: `${top.name} buys ${pct(top.value / t.tamUsdM)} of the world's chips.`,
-        unit: "usd",
-        measure: `${t.latestYear} sales`,
-        items: items.map((i) => ({ name: i.name, value: i.value * 1e6, extra: [pct(i.value / t.tamUsdM), formatGrowth(i.growth)] })),
-        extraColumns: ["Share", "Growth"],
+        panels: [barListPanel(items)],
         source: `${vintage}, ${t.latestYear}`,
       })}
     >
@@ -385,14 +406,11 @@ export function EndMarketCard({ t }: { t: TamSummary }) {
       actions={<Chip>SIA</Chip>}
       footer={<SourceLine source={`SIA 2024 end-market mix applied to the ${t.latestYear} total`} />}
       className="h-full"
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "tam:by-end-market",
         title: "By end market",
         text: "Computers and communications take two thirds of the market.",
-        unit: "usd",
-        measure: `${t.latestYear} sales`,
-        items: items.map((i) => ({ name: i.name, value: i.value * 1e6, extra: [pct(i.value / t.tamUsdM), formatGrowth(i.growth)] })),
-        extraColumns: ["Share", "Growth"],
+        panels: [barListPanel(items)],
         source: `SIA 2024 end-market mix applied to the ${t.latestYear} total`,
       })}
     >

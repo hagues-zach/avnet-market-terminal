@@ -13,7 +13,7 @@ import { HookupMarker } from "@/components/ui/hookup-marker";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/ui/states";
 import { BillingsBookingsChart, BookToBillChart, Key, SegmentRevenueChart } from "./charts";
 import { RegionTable } from "./region-table";
-import { comparisonSlide, formatGrowth, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { formatGrowth, panelsSlide, seriesSlide, tableSlide, toneOf } from "@/lib/deck/slides";
 
 // Avnet's own numbers come from src/lib/avnet (mock until AVNET_DATA points at
 // Avnet's tables). "What Avnet reports" is live SEC data, kept in its own section.
@@ -186,15 +186,21 @@ export async function SupplierCard() {
       subtitle={`The top ${named.length} suppliers make up ${Math.round(topShare * 100)}% of billings. Names withheld in mock`}
       actions={<DataChip status={m.status} />}
       footer={<SourceLine source="Avnet billings by manufacturer, last 12 months" />}
-      deck={comparisonSlide({
+      deck={panelsSlide({
         key: "performance:supplier-concentration",
         title: "Avnet supplier concentration",
         text: `The top ${named.length} suppliers make up ${Math.round(topShare * 100)}% of billings.`,
-        unit: "usd",
-        measure: "Billings, last 12 months",
-        keepOrder: true,
-        items: m.suppliers.map((x) => ({ name: x.name, value: x.billings * 1e6, extra: [formatGrowth(x.growth)] })),
-        extraColumns: ["Growth YoY"],
+        // The card's bars: each supplier's billings and growth, Avnet green, the remainder grey.
+        panels: [
+          {
+            rows: m.suppliers.map((x) => ({
+              title: x.name,
+              value: fmtM(x.billings),
+              ...(x.growth !== undefined && { change: formatGrowth(x.growth), tone: toneOf(x.growth), period: "YoY" }),
+              bar: { share: x.billings / Math.max(...m.suppliers.map((y) => y.billings)), color: x.revenue === 0 ? VIZ.other : VIZ.avnet },
+            })),
+          },
+        ],
         source: m.status === "mock" ? "Mock model of Avnet; names withheld" : "Avnet billings by manufacturer",
         hookups: ["billings"],
       })}
