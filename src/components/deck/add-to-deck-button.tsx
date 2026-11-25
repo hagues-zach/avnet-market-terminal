@@ -8,7 +8,9 @@ import { useTray, type NewTrayItem } from "./tray-provider";
 // Add to deck (docs/design/deck-tray, mockup 1): puts a chart, table or view in
 // the deck tray, and reads "In deck" once it's there; a second click takes it
 // out. `make` builds the item on click, so a page's view can be fetched only
-// when someone asks for it.
+// when someone asks for it. Until the page has hydrated the button is disabled:
+// the server renders it before its click handler exists, and a click then does
+// nothing (seen on the Overview, whose sections stream in).
 
 export function AddToDeckButton({
   itemId,
@@ -26,7 +28,7 @@ export function AddToDeckButton({
   size?: "compact" | "regular";
   className?: string;
 }) {
-  const { has, add, remove, notify } = useTray();
+  const { has, add, remove, notify, ready } = useTray();
   const [busy, setBusy] = useState(false);
   const inDeck = has(itemId);
 
@@ -47,9 +49,9 @@ export function AddToDeckButton({
     <button
       type="button"
       onClick={onClick}
-      disabled={busy}
+      disabled={busy || !ready}
       aria-pressed={inDeck}
-      aria-busy={busy}
+      aria-busy={busy || !ready}
       aria-label={inDeck ? `${label} is in your deck. Remove it` : `Add ${label} to your deck`}
       title={inDeck ? "In your deck. Click to remove" : undefined}
       className={cn(
