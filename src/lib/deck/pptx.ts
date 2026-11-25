@@ -63,7 +63,13 @@ function numberFormat(c: Chart): string {
 
 /** The chart, filling its box: values labelled, or (two or more lines) a light value axis set to the data. */
 function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: Box, plan: Pick<SlidePlan, "labels" | "range">) {
-  const data = c.series.map((s) => ({ name: t(s.name), labels: s.points.map((p) => t(p.label)), values: s.points.map((p) => p.value) }));
+  // A comparison (one value per company) is one series with a bar per company, as on screen:
+  // each bar named on the axis and in its company's colour, Avnet first, no legend.
+  const comparison = c.kind === "bar";
+  const colorOf = (s: Chart["series"][number]) => (s.color ? hex(s.color) : COLOR[s.who]);
+  const data = comparison
+    ? [{ name: t(chartTitle(c) ?? "Value"), labels: c.series.map((s) => t(s.name)), values: c.series.map((s) => s.points[0]?.value ?? 0) }]
+    : c.series.map((s) => ({ name: t(s.name), labels: s.points.map((p) => t(p.label)), values: s.points.map((p) => p.value) }));
   const axis = !plan.labels;
   const wide = plan.range && plan.range.max - plan.range.min >= 0.2;
   slide.addChart(c.kind === "line" ? pptx.ChartType.line : pptx.ChartType.bar, data, {
@@ -71,7 +77,10 @@ function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: Box, p
     barDir: c.kind === "bar" ? "bar" : "col",
     // A comparison of two or three bars reads better slim.
     barGapWidthPct: c.kind === "bar" ? 140 : 55,
-    chartColors: c.series.map((s) => (s.color ? hex(s.color) : COLOR[s.who])),
+    chartColors: c.series.map(colorOf),
+    // Horizontal bars list bottom up; reversed, the first company sits on top.
+    // pptxgenjs writes "maxMin" as given, though its types list only "minMax".
+    ...(comparison ? { catAxisOrientation: "maxMin" as unknown as "minMax" } : {}),
     lineSize: 2,
     lineDataSymbol: "circle",
     lineDataSymbolSize: 6,
@@ -91,7 +100,7 @@ function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: Box, p
     catAxisLabelColor: c.kind === "bar" ? INK : MUTED,
     catAxisLineShow: c.kind !== "bar",
     catAxisLineColor: LINE,
-    showLegend: c.series.length > 1,
+    showLegend: !comparison && c.series.length > 1,
     legendPos: "b",
     legendFontFace: BODY,
     legendFontSize: 9,
