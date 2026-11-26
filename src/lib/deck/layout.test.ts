@@ -230,6 +230,8 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   };
   const bases = tops((h) => h > 0.15);
   assert.ok(bases.every((b) => Math.abs(b - bases[0]) < 1e-9), `small columns share a baseline: ${bases}`);
+  // With room under them, the columns grow into it: the baseline sits near the foot of the box.
+  assert.ok(box.y + box.h - bases[0] < 0.6, `the columns fill the foot: baseline ${bases[0]}, box ends ${box.y + box.h}`);
 }
 
 console.log("layout.test.ts: ok");

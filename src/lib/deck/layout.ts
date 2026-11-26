@@ -503,7 +503,12 @@ function placeAt(
       const max = Math.max(...vals.map((v) => v ?? 0)) || 1;
       const gapB = z(0.06);
       const bw = (w - gapB * (vals.length - 1)) / vals.length;
-      const chartH = z(0.7);
+      // When the columns end the panel, they grow into the room left under them (to no more than
+      // 2.2 inches), so they don't sit small over an empty foot; every panel starts them level
+      // (barsAt), so they grow to the same height across the row.
+      const last = !p.pairs?.length && !(sparkH && p.spark && p.spark.values.length > 1);
+      const room = bottom - y - z(0.16) - z(0.22) - z(0.12);
+      const chartH = last ? Math.min(z(2.2), Math.max(z(0.7), room)) : z(0.7);
       const base = y + z(0.16) + chartH;
       vals.forEach((v, k) => {
         const bx = x + k * (bw + gapB);
