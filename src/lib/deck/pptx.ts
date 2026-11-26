@@ -3,7 +3,7 @@ import { plainDashes } from "@/lib/ai/dashes";
 import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
 import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
-import { AREA, chartTitle, layoutPanels, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
+import { AREA, barLabelWidth, barNameWidth, chartTitle, layoutPanels, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
 import type { Chart, Panel, Preview, SeriesWho } from "./outline";
 
 // The deck's PowerPoint export (the Pitch Deck Builder and Add to deck): the
@@ -73,6 +73,12 @@ function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: Box, p
     ? [{ name: t(chartTitle(c) ?? "Value"), labels: c.series.map((s) => t(s.name)), values: c.series.map((s) => s.points[0]?.value ?? 0) }]
     : c.series.map((s) => ({ name: t(s.name), labels: s.points.map((p) => t(p.label)), values: s.points.map((p) => p.value) }));
   const axis = !plan.labels;
+  // A comparison's longest bar stops short of the edge by its label's width, so the label isn't cut:
+  // the value axis runs past the largest value by that share of the plot.
+  const values = c.series.map((s) => s.points[0]?.value ?? 0);
+  const plotW = box.w - barNameWidth(c);
+  const room = comparison && plan.labels && !plan.range && Math.min(...values) >= 0 && plotW > 1 ? barLabelWidth(c) / plotW : 0;
+  const headroom = room > 0 && room < 0.6 ? { valAxisMinVal: 0, valAxisMaxVal: Math.max(...values) / (1 - room) } : {};
   const wide = plan.range && plan.range.max - plan.range.min >= 0.2;
   slide.addChart(c.kind === "line" ? pptx.ChartType.line : pptx.ChartType.bar, data, {
     ...box,
@@ -96,7 +102,7 @@ function addChart(pptx: PptxGenJS, slide: PptxGenJS.Slide, c: Chart, box: Box, p
     valAxisHidden: !axis,
     valGridLine: axis ? { color: LINE, size: 0.75 } : { style: "none" },
     ...(axis ? { valAxisLabelFormatCode: c.format === "pct" ? (wide ? "0%" : "0.0%") : numberFormat(c), valAxisLabelFontSize: 9, valAxisLabelColor: MUTED, valAxisLabelFontFace: BODY, valAxisLineShow: false } : {}),
-    ...(plan.range ? { valAxisMinVal: plan.range.min, valAxisMaxVal: plan.range.max } : {}),
+    ...(plan.range ? { valAxisMinVal: plan.range.min, valAxisMaxVal: plan.range.max } : headroom),
     catAxisLabelFontFace: BODY,
     catAxisLabelFontSize: c.kind === "bar" ? 11 : 9,
     catAxisLabelColor: c.kind === "bar" ? INK : MUTED,
@@ -184,7 +190,9 @@ function addPanels(slide: PptxGenJS.Slide, panels: Panel[], box: Box) {
       continue;
     }
     const at = { x: it.x, y: it.y, w: it.w, h: it.h };
-    if (it.kind === "line") slide.addShape("line", { ...at, line: { color: hex(it.color), width: it.width } });
+    if (it.kind === "line") slide.addShape("line", { ...at, line: { color: hex(it.color), width: it.width, ...(it.dashed ? { dashType: "dash" as const } : {}) } });
+    else if (it.kind === "dot")
+      slide.addShape("ellipse", { ...at, fill: { color: hex(it.color), transparency: Math.round((1 - (it.opacity ?? 1)) * 100) }, line: { type: "none" } });
     else if (it.kind === "rect")
       slide.addShape("rect", { ...at, fill: { color: hex(it.color), transparency: Math.round((1 - (it.opacity ?? 1)) * 100) }, line: { type: "none" } });
     else if (it.kind === "pill")

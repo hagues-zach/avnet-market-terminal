@@ -324,6 +324,15 @@ export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
       },
       bars: x.bars && { ...x.bars, labels: x.bars.labels.slice(-12), values: x.bars.values.slice(-12).map((v) => (v !== null && Number.isFinite(v) ? v : null)), valueLabels: x.bars.valueLabels?.slice(-12), forecast: x.bars.forecast?.slice(-12) },
       pairs: x.pairs?.slice(0, 12),
+      scatter: x.scatter && {
+        ...x.scatter,
+        // The crowd is trimmed before the strong points, so Avnet and Arrow always stay.
+        points: [...x.scatter.points.filter((pt) => pt.strong), ...x.scatter.points.filter((pt) => !pt.strong)]
+          .filter((pt) => Number.isFinite(pt.x) && Number.isFinite(pt.y))
+          .slice(0, 150)
+          .map((pt) => defined({ ...pt, label: cut(pt.label, 40) })),
+        note: cut(x.scatter.note, 120),
+      },
     }),
   );
   return card(b, { ...base(b), panels });

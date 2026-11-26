@@ -443,6 +443,14 @@ export type PanelCell =
 
 
 /** One column of a panels slide. */
+/** A scatter's axis: its name, how its values read (a share, or a signed change), and its range. */
+export interface ScatterAxis {
+  label: string;
+  format: "pct" | "growth";
+  min: number;
+  max: number;
+}
+
 export interface Panel {
   /** Its name, as a card title: "Distributors". */
   title?: string;
@@ -486,6 +494,18 @@ export interface Panel {
   bars?: { labels: string[]; values: (number | null)[]; valueLabels?: string[]; color: string; forecast?: boolean[] };
   /** Names and values in a grid of three: each hyperscaler's capex growth. */
   pairs?: { label: string; value: string }[];
+  /**
+   * A scatter filling the rest of the panel: a dot per company, the strong ones in their colour,
+   * on top and labelled, with dashed lines at the medians. Each axis's range is what the page shows.
+   */
+  scatter?: {
+    x: ScatterAxis;
+    y: ScatterAxis;
+    points: { x: number; y: number; color: string; strong?: boolean; label?: string }[];
+    medians?: { x?: number; y?: number };
+    /** A grey line under it: "3 companies are off the scale". */
+    note?: string;
+  };
   /** A small bar chart along the foot, the last bar darker: the last eight quarters. */
   spark?: { label: string; values: number[]; color?: string };
 }

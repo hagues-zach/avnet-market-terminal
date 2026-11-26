@@ -1,6 +1,6 @@
 // How a slide uses its space. Run with: npx tsx src/lib/deck/layout.test.ts
 import assert from "node:assert/strict";
-import { chartFromFacts, layoutPanels, niceRange, planSlide, readFigure, withChart } from "./layout";
+import { barLabelWidth, chartFromFacts, layoutPanels, niceRange, planSlide, readFigure, withChart } from "./layout";
 import type { Panel, Preview } from "./outline";
 
 const quarters = ["CY24 Q4", "CY25 Q1", "CY25 Q2", "CY25 Q3", "CY25 Q4", "CY26 Q1", "CY26 Q2", "CY26 Q3"];
@@ -232,6 +232,44 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   assert.ok(bases.every((b) => Math.abs(b - bases[0]) < 1e-9), `small columns share a baseline: ${bases}`);
   // With room under them, the columns grow into it: the baseline sits near the foot of the box.
   assert.ok(box.y + box.h - bases[0] < 0.6, `the columns fill the foot: baseline ${bases[0]}, box ends ${box.y + box.h}`);
+}
+
+// A scatter: a dot per point inside the plot, the strong one named, the medians dashed.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4.2 };
+  const items = layoutPanels(
+    [
+      {
+        scatter: {
+          x: { label: "Growth", format: "growth", min: 0, max: 1 },
+          y: { label: "Margin", format: "pct", min: 0, max: 0.5 },
+          points: [
+            { x: 0, y: 0, color: "#808080" },
+            { x: 1, y: 0.5, color: "#808080" },
+            { x: 0.5, y: 0.25, color: "#4DB848", strong: true, label: "Avnet" },
+          ],
+          medians: { x: 0.3, y: 0.2 },
+        },
+      },
+    ],
+    box,
+  );
+  const dots = items.filter((it) => it.kind === "dot");
+  assert.equal(dots.length, 3, "a dot per point");
+  for (const d of dots) assert.ok(d.x >= box.x && d.x + d.w <= box.x + box.w + 0.1 && d.y >= box.y && d.y + d.h <= box.y + box.h + 0.1, "dots inside the box");
+  const [lo, hi] = [dots[0], dots[1]];
+  assert.ok(hi.x > lo.x && hi.y < lo.y, "higher values to the right and up");
+  assert.ok(items.some((it) => it.kind === "text" && it.runs[0].text === "Avnet"), "the strong point named");
+  assert.equal(items.filter((it) => it.kind === "line" && it.dashed).length, 2, "both medians dashed");
+  assert.ok(items.some((it) => it.kind === "text" && it.runs[0].text === "+50%"), "growth ticks signed");
+}
+
+// A comparison's labels get the room their widest value needs, not a fixed gap.
+{
+  const bar = (v: number) => ({ kind: "bar" as const, format: "pct" as const, series: [{ name: "Micron", who: "market" as const, points: [{ label: "Growth", value: v }] }] });
+  const wide = barLabelWidth(bar(3.793));
+  assert.ok(wide > 44 / 72, `"379.3%" gets more than the old 44pt: ${wide}`);
+  assert.ok(barLabelWidth(bar(0.05)) < wide, "a short label takes less room");
 }
 
 console.log("layout.test.ts: ok");

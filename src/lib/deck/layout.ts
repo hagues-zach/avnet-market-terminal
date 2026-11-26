@@ -18,7 +18,8 @@
 //   table when there are too many or they compare things.
 
 import { AVNET, VIZ } from "@/lib/colors";
-import type { Chart, Panel, PanelTone, Preview, SeriesWho } from "./outline";
+import { formatFigure } from "./slides";
+import type { ScatterAxis, Chart, Panel, PanelTone, Preview, SeriesWho } from "./outline";
 
 /** The slide in inches: the FY27 template's 10 by 5.625. */
 export const SLIDE = { w: 10, h: 5.625 } as const;
@@ -82,6 +83,19 @@ export function niceRange(values: number[]): { min: number; max: number } | unde
   // Don't cross zero for data that doesn't.
   return { min: lo >= 0 && min < 0 ? 0 : min, max: hi <= 0 && max > 0 ? 0 : max };
 }
+
+/**
+ * The room, in inches, a comparison's value labels take beside the longest bar: the widest label
+ * at 12pt bold (Arial runs about 0.62 em a character in bold), with a little air. Both the
+ * preview and the PowerPoint keep this clear, so "+379.3%" isn't cut at the edge.
+ */
+export function barLabelWidth(c: Chart): number {
+  const longest = Math.max(0, ...c.series.map((s) => formatFigure(c.format, s.points[0]?.value).length));
+  return (longest * 12 * 0.62) / 72 + 0.12;
+}
+
+/** The width, in inches, of a comparison's company names at 11pt, as the category axis sets them. */
+export const barNameWidth = (c: Chart): number => (Math.max(0, ...c.series.map((s) => s.name.length)) * 11 * 0.55) / 72 + 0.2;
 
 /** What the chart measures: its own title, or for a one-period comparison the period's label ("Revenue growth on a year ago"). */
 export const chartTitle = (c: Chart): string | undefined => c.title ?? (c.kind === "bar" ? c.series[0]?.points[0]?.label : undefined);
@@ -196,7 +210,9 @@ export type PanelItem =
   | { kind: "text"; x: number; y: number; w: number; h: number; runs: PanelRun[]; align?: "left" | "center" | "right"; valign?: "top" | "middle" | "bottom"; spaced?: boolean; fill?: string }
   | { kind: "rect"; x: number; y: number; w: number; h: number; color: string; opacity?: number }
   /** A hairline: horizontal when h is 0, vertical when w is 0. Width in points. */
-  | { kind: "line"; x: number; y: number; w: number; h: number; color: string; width: number }
+  | { kind: "line"; x: number; y: number; w: number; h: number; color: string; width: number; dashed?: boolean }
+  /** A filled circle in its box: a scatter's dot. */
+  | { kind: "dot"; x: number; y: number; w: number; h: number; color: string; opacity?: number }
   /** A chip: a rounded outline, dashed on Mock. */
   | { kind: "pill"; x: number; y: number; w: number; h: number; color: string; dashed: boolean }
   /** A straight stroke from one point to another, for small line charts. Width in points. */
@@ -208,6 +224,81 @@ const PANEL_TONE = { good: PANEL_INK.good, bad: PANEL_INK.bad, neutral: PANEL_IN
 /** A change as runs: its arrow and value in its tone, then the period in grey. */
 const changeRuns = (change: string | undefined, tone: PanelTone | undefined, period: string | undefined, size: number): PanelRun[] =>
   change ? [{ text: panelChange(change), size, color: PANEL_TONE[tone ?? "neutral"] }, ...(period ? [{ text: ` ${period}`, size, color: PANEL_INK.muted }] : [])] : [];
+
+/** Ticks for an axis: a round step, four or so across the range, inside it. */
+function axisTicks(min: number, max: number): number[] {
+  const raw = (max - min || Math.abs(max) || 1) / 4;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
+  const out: number[] = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) out.push(Number(v.toPrecision(12)));
+  return out;
+}
+
+const axisText = (format: ScatterAxis["format"], v: number) => {
+  const p = Math.round(v * 100);
+  return format === "growth" && p > 0 ? `+${p}%` : p < 0 ? `\u2212${-p}%` : `${p}%`;
+};
+
+/**
+ * A scatter in its box, as the page draws it: the value axis's ticks on the left with light gridlines,
+ * the other axis's ticks along the foot with its name, dashed medians, the crowd in light grey and the
+ * strong points (Avnet, Arrow) on top in their colours with their names. Returns where it ends.
+ */
+function placeScatter(s: NonNullable<Panel["scatter"]>, box: { x: number; y: number; w: number; h: number }, z: (n: number) => number, items: PanelItem[]): number {
+  const tick = z(7);
+  const text = (x: number, y: number, w: number, h: number, runs: PanelRun[], o: Partial<Extract<PanelItem, { kind: "text" }>> = {}) =>
+    items.push({ kind: "text", x, y, w, h, runs, ...o });
+  const labelH = z(0.18);
+  const gutter = z(0.5);
+  const noteH = s.note ? z(0.18) : 0;
+  const plot = { x: box.x + gutter, y: box.y + labelH, w: box.w - gutter - z(0.1), h: Math.max(z(1.2), box.h - labelH - z(0.2) - z(0.2) - noteH) };
+  const xs = (v: number) => plot.x + ((v - s.x.min) / (s.x.max - s.x.min || 1)) * plot.w;
+  const ys = (v: number) => plot.y + plot.h - ((v - s.y.min) / (s.y.max - s.y.min || 1)) * plot.h;
+  const caps = (t: string, x: number, y: number, w: number, align: "left" | "right" = "left") =>
+    text(x, y, w, z(0.14), [{ text: t.toUpperCase(), size: z(6.5), bold: true, color: PANEL_INK.muted }], { spaced: true, align });
+
+  caps(s.y.label, box.x, box.y, box.w * 0.6);
+  for (const v of axisTicks(s.y.min, s.y.max)) {
+    const at = ys(v);
+    items.push({ kind: "line", x: plot.x, y: at, w: plot.w, h: 0, color: PANEL_INK.line, width: 0.5 });
+    text(box.x, at - z(0.07), gutter - z(0.08), z(0.14), [{ text: axisText(s.y.format, v), size: tick, color: PANEL_INK.muted }], { align: "right", valign: "middle" });
+  }
+  items.push({ kind: "line", x: plot.x, y: plot.y + plot.h, w: plot.w, h: 0, color: PANEL_INK.muted, width: 0.75 });
+  for (const v of axisTicks(s.x.min, s.x.max)) {
+    text(xs(v) - z(0.3), plot.y + plot.h + z(0.03), z(0.6), z(0.14), [{ text: axisText(s.x.format, v), size: tick, color: PANEL_INK.muted }], { align: "center" });
+  }
+  caps(s.x.label, plot.x, plot.y + plot.h + z(0.2), plot.w, "right");
+
+  const within = (v: number, lo: number, hi: number) => v >= lo && v <= hi;
+  if (s.medians?.x !== undefined && within(s.medians.x, s.x.min, s.x.max))
+    items.push({ kind: "line", x: xs(s.medians.x), y: plot.y, w: 0, h: plot.h, color: PANEL_INK.muted, width: 0.75, dashed: true });
+  if (s.medians?.y !== undefined && within(s.medians.y, s.y.min, s.y.max))
+    items.push({ kind: "line", x: plot.x, y: ys(s.medians.y), w: plot.w, h: 0, color: PANEL_INK.muted, width: 0.75, dashed: true });
+
+  // The crowd first, then the strong points on top with their names.
+  const d = z(0.1);
+  const pts = [...s.points].sort((a, b) => Number(Boolean(a.strong)) - Number(Boolean(b.strong)));
+  for (const pt of pts) {
+    const cx = xs(pt.x);
+    const cy = ys(pt.y);
+    const size = pt.strong ? d * 1.3 : d;
+    items.push({ kind: "dot", x: cx - size / 2, y: cy - size / 2, w: size, h: size, color: pt.color, ...(pt.strong ? {} : { opacity: 0.6 }) });
+    if (pt.strong && pt.label) {
+      const right = cx < plot.x + plot.w - z(0.7);
+      text(right ? cx + size : cx - size - z(0.7), cy - z(0.08), z(0.7), z(0.16), [{ text: pt.label, size: z(8), bold: true, color: pt.color }], {
+        align: right ? "left" : "right",
+        valign: "middle",
+      });
+    }
+  }
+  let end = plot.y + plot.h + z(0.2) + z(0.16);
+  if (s.note) {
+    text(box.x, end + z(0.02), box.w, z(0.16), [{ text: s.note, size: z(7.5), color: PANEL_INK.muted }]);
+    end += noteH;
+  }
+  return end;
+}
 
 /** Panels at scale k (1 is full size), and how far the tallest runs past the box. */
 function placeAt(
@@ -534,6 +625,9 @@ function placeAt(
         text(cx + cw * 0.5, cy, cw * 0.5, z(0.17), [{ text: pr.value, size: z(8), color: PANEL_INK.muted }], { align: "right" });
       });
       y += Math.ceil(p.pairs.length / per) * z(0.18) + z(0.04);
+    }
+    if (p.scatter && p.scatter.points.length) {
+      y = placeScatter(p.scatter, { x, y: y + z(0.04), w, h: bottom - y - z(0.04) }, z, items);
     }
     if (sparkH && p.spark && p.spark.values.length > 1) {
       // Along the foot, as on the page: bars around a zero line, negatives below it, the latest solid.
