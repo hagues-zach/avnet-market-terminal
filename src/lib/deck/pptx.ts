@@ -3,7 +3,7 @@ import { plainDashes } from "@/lib/ai/dashes";
 import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
 import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
-import { AREA, barLabelWidth, barNameWidth, chartTitle, layoutPanels, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
+import { AREA, barLabelWidth, barNameWidth, bulletsHeight, chartTitle, layoutPanels, PANEL_BULLETS, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
 import type { Chart, Panel, Preview, SeriesWho } from "./outline";
 
 // The deck's PowerPoint export (the Pitch Deck Builder and Add to deck): the
@@ -326,7 +326,15 @@ function content(d: DeckSlide): TemplateSlide {
     draw: (s, pptx) => {
       addClaude(s, p.claude, claudeAt);
       if (plan.kind === "panels" && p.panels) {
-        addPanels(s, p.panels, { x: LEFT, y: top, w: RIGHT - LEFT, h });
+        // Claude's bullets, when there are any, in a strip under the panels.
+        const w = RIGHT - LEFT;
+        const strip = p.lines?.length ? bulletsHeight(p.lines, w) : 0;
+        addPanels(s, p.panels, { x: LEFT, y: top, w, h: h - (strip ? strip + PANEL_BULLETS.gap : 0) });
+        if (strip)
+          s.addText(
+            p.lines!.map((x) => ({ text: t(x), options: { bullet: { indent: 12 }, breakLine: true, paraSpaceAfter: PANEL_BULLETS.spaceAfter } })),
+            { x: LEFT, y: BOTTOM - strip, w, h: strip, fontFace: BODY, fontSize: PANEL_BULLETS.size, color: INK, valign: "top", margin: 0 },
+          );
       } else if (plan.kind === "chart" && p.chart) {
         const chartW = (plan.side ? RIGHT - plan.sideW - SIDE.gap : RIGHT) - LEFT;
         const label = chartTitle(p.chart);

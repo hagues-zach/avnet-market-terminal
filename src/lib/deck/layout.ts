@@ -29,6 +29,20 @@ export const AREA = { left: 0.5, right: 9.5, bottom: 5.12, footer: 5.27 } as con
 export const SIDE = { w: 2.85, table: 3.4, gap: 0.35 } as const;
 
 export const MAX_CALLOUTS = 4;
+
+/**
+ * Bullets under a panels slide's panels (Claude's commentary, Phase 2): set at
+ * this size across the body, the panels shrinking to make room.
+ */
+export const PANEL_BULLETS = { size: 10.5, gap: 0.14, spaceAfter: 3 } as const;
+
+/** The height bullets take at `size` points across `w` inches (Arial averages half an em a character). */
+export function bulletsHeight(lines: string[], w: number, size: number = PANEL_BULLETS.size, spaceAfter: number = PANEL_BULLETS.spaceAfter): number {
+  const perLine = (size * 1.2) / 72;
+  // Less the bullet's indent.
+  const chars = ((w - 0.2) * 72) / (size * 0.5);
+  return lines.reduce((h, l) => h + Math.max(1, Math.ceil(l.length / chars)) * perLine + spaceAfter / 72, 0);
+}
 /** Tiles across a slide with no chart. */
 export const MAX_TILES = 5;
 
