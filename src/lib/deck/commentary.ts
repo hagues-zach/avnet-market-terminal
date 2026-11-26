@@ -237,15 +237,17 @@ function partial(input: DeckInput, r: Pick<DeckCommentary, "slides" | "summary">
 
 /**
  * Commentary for the deck: from the store when this exact deck was written
- * before, otherwise written now and kept. `fresh` skips the stored copy (the
- * reader asked for a slide again) and replaces it with the new answer.
+ * before, otherwise written now and kept. `fresh` skips the stored copy. With
+ * `only` (the reader asked for one slide again), only that slide's new
+ * commentary goes into the stored answer: the rest of the deck and the summary
+ * stay as the reader saw them, and nothing is stored when there was no answer.
  */
 export async function getDeckCommentary(
   input: DeckInput,
-  deps: { store?: Store; write?: typeof writeDeckCommentary; on?: boolean; fresh?: boolean; client?: Anthropic } = {},
+  deps: { store?: Store; write?: typeof writeDeckCommentary; on?: boolean; fresh?: boolean; only?: string; client?: Anthropic } = {},
 ): Promise<DeckCommentary> {
   if (!(deps.on ?? aiConfigured()))
-    return { status: "off", slides: {}, message: "Claude's commentary is off on this server, so the deck uses the app's wording. Set ANTHROPIC_API_KEY to turn it on." };
+    return { status: "off", slides: {}, message: "Claude's commentary is off on this server, so the deck keeps the app's wording." };
   const s = deps.store ?? defaultStore;
   const key = commentaryKey(input);
   if (!deps.fresh) {
@@ -254,6 +256,12 @@ export async function getDeckCommentary(
   }
   const r = await (deps.write ?? writeDeckCommentary)(input, deps.client ? { client: deps.client } : {});
   if (r.status !== "ok") return { status: r.status, slides: {}, message: r.message }; // Not kept, so the next try calls again.
+  if (deps.only) {
+    const slide = r.slides[deps.only];
+    const prev = validHit(await s.get<Stored>(COMMENTARY_NS, key));
+    if (slide && prev) await s.set<Stored>(COMMENTARY_NS, key, { ...prev, slides: { ...prev.slides, [deps.only]: slide } }, { days: KEEP_DAYS, dateOf: (_k, v) => v.writtenAt });
+    return slide ? { status: "ok", slides: { [deps.only]: slide } } : { status: "failed", slides: {}, message: "Claude's new commentary for this slide didn't hold up against it, so the old one stays." };
+  }
   const message = partial(input, r);
   // Only a complete answer is kept: a deck with bare slides or no summary is tried again next time.
   if (!message) {

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { usdShort } from "@/lib/deck/slides";
-import { AREA, barLabelWidth, chartTitle, layoutPanels, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
+import { AREA, barLabelWidth, bulletsHeight, chartTitle, layoutPanels, PANEL_BULLETS, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
 import type { Chart, Panel, Preview } from "@/lib/deck/outline";
 import { AVNET, VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
@@ -217,10 +217,11 @@ function FactTable({ table, size }: { table: NonNullable<SlidePlan["table"]>; si
   );
 }
 
-const Bullets = ({ lines, size }: { lines: string[]; size: number }) => (
-  <ul style={{ fontSize: pt(size) }} className="space-y-[0.6cqw]">
-    {lines.map((l) => (
-      <li key={l} className="flex gap-[1cqw]">
+/** `tight`: set as the PowerPoint sets the strip under panels (line height 1.2, spaceAfter points after each), so the two match. */
+const Bullets = ({ lines, size, tight }: { lines: string[]; size: number; tight?: boolean }) => (
+  <ul style={{ fontSize: pt(size), ...(tight ? { lineHeight: 1.2 } : {}) }} className={tight ? undefined : "space-y-[0.6cqw]"}>
+    {lines.map((l, i) => (
+      <li key={i} className="flex gap-[1cqw]" style={tight ? { marginBottom: pt(PANEL_BULLETS.spaceAfter) } : undefined}>
         <span aria-hidden style={{ marginTop: pt(size * 0.42), width: pt(5), height: pt(5), background: AVNET.green }} className="shrink-0" />
         <span>{l}</span>
       </li>
@@ -296,7 +297,21 @@ function Panels({ panels }: { panels: Panel[] }) {
 
 /** The slide's body, below the title and takeaway, laid out by planSlide. */
 function Body({ p, plan }: { p: Preview; plan: SlidePlan }) {
-  if (plan.kind === "panels" && p.panels) return <Panels panels={p.panels} />;
+  if (plan.kind === "panels" && p.panels) {
+    if (!p.lines?.length) return <Panels panels={p.panels} />;
+    // Claude's bullets in a strip under the panels, the same height as on the PowerPoint slide.
+    const strip = bulletsHeight(p.lines, BODY_W);
+    return (
+      <div className="flex h-full flex-col" style={{ gap: inch(PANEL_BULLETS.gap) }}>
+        <div className="min-h-0 flex-1">
+          <Panels panels={p.panels} />
+        </div>
+        <div className="shrink-0 overflow-hidden" style={{ height: inch(strip) }}>
+          <Bullets lines={p.lines} size={PANEL_BULLETS.size} tight />
+        </div>
+      </div>
+    );
+  }
   if (plan.kind === "groups")
     return (
       <div className="grid h-full grid-cols-2" style={{ gap: inch(0.4) }}>

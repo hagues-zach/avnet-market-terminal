@@ -20,7 +20,7 @@ One line per decision, with the option not taken. Review findings I rejected are
 - Saved commentary and the saved summary are checked against the slide again every time a slide is built (`slidePreview`, `summaryPreview`). This happens in the review page, the PDF and the PowerPoint. A forged or stale figure in the browser's copy, or a slide re-added after its data moved, can't ship a figure the slide doesn't show.
 - Grounding works per piece: headline, sentence, each bullet, each summary line. A dropped sentence falls back to the card's own sentence. Dropped bullets fall back to the card's own lines when none survive. The headline falls back to the reader's note, then the card's headline.
 - Two-column talking-point slides (`groups`) keep their columns. Claude's bullets aren't drawn there because the columns already are the bullets. Claude still writes those slides' headline and sentence.
-- Rewriting one slide makes the same whole-deck call with the cache read skipped, so the new headline stays in step with the rest. Only that slide's result is kept, and the fresh answer replaces the cached one. Not taken: a separate one-slide call, which could drift from the summary.
+- Rewriting one slide makes the same whole-deck call with the cache read skipped, so the new headline stays in step with the rest. Only that slide's result is returned and stored: it goes into the cached answer, and the other slides and the summary stay as the reader saw them. Nothing is stored when no answer was cached before. Not taken: replacing the whole cached answer. The milestone 2 review showed that would quietly swap in slides the reader never reviewed. Also not taken: a separate one-slide call, which could drift from the summary.
 - Only complete answers are cached: every slide has commentary and there's a summary. A partial answer still goes back to the page, with a message naming what's missing, and the next try calls Claude again. An answer where every slide was dropped counts as failed. A cache hit that no longer passes the tray schema is treated as a miss.
 - Text is cut at a word boundary, and never through a figure. Evidence is cut on a whole line and always keeps its Source line.
 - Repeated slide ids in the browser's tray are sent once. Not taken: a uniqueness check on `TraySchema`, which could reject a saved tray outright.
@@ -33,11 +33,17 @@ One line per decision, with the option not taken. Review findings I rejected are
 - The executive summary is saved separately (`deck-summary-v1` in localStorage) with the slide ids it covered. It isn't in any item, because it belongs to the deck. If the included slides change, the page says it's out of date. It only ships while it matches.
 - The summary slide goes right after the cover, titled "Executive summary". It's marked as Claude's, and it carries the Mock data tag when any shipped slide is on mock data.
 
+- `writtenAt` on commentary and on the summary must be YYYY-MM-DD. Anything else is refused by the schema, and `writtenDate` prints nothing for it. Without this, a forged date could put any text, figures included, into the "written by Claude" line.
+- The commentary route's contract: 400 or 413 for a bad request, 429 when the cap is hit, otherwise 200 with `status` ("ok", "off", "failed") and a `message`. The page reads `status`. Not taken: 502 for a failed Claude call, because the page shows the same message either way.
+- Cap: 20 uncached Claude calls per 10 minutes per server process, counted inside the write, so a cache hit never counts. It covers both new decks and rewrites (`src/lib/deck/call-cap.ts`). Not taken: a cap per user, since there is no sign-in yet (Phase 3).
+- Request size is checked as bytes, from `content-length` first, on both routes.
+
 ## Review page
 
-- The browser has its own write route, `/api/deck/tray/commentary`. It validates the tray through the same schema as the export and takes the same 1 MB cap.
+- The browser has its own write route, `/api/deck/tray/commentary`. Its handler is `src/lib/deck/commentary-route.ts`, so tests can pass in a fake writer and store. It validates the tray through the same schema as the export and takes the same 1 MB cap.
 
 ## Review findings rejected
 
 - Milestone 1, finding 10 (the scatter's labelled points and medians are in the evidence even though the slide doesn't print the values): kept. They are the app's own figures for the dots the slide labels, and the medians are printed in the slide's sentence. Leaving them out would stop Claude from saying where Avnet sits, which is the point of the slide.
 - Milestone 1, prompt injection through the reader's note steering wording without figures: accepted as a limit. The note is the reader's own brief for their own deck. The tag escaping and the system prompt keep it from acting as instructions, and its figures can't get through.
+- Milestone 2, missing test that the preview and the PowerPoint place the panel-bullet strip at the same height: partly addressed. Both now take the height from one function (`bulletsHeight`), and the preview sets the strip with the PowerPoint's line height and spacing, clipped to that height. There's no pixel-level comparison test, because the preview is a React component and the test suite has no DOM.

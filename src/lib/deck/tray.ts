@@ -134,12 +134,14 @@ export const COMMENTARY = { headline: 240, text: 600, bullet: 240, bullets: 4, s
  * slide (src/lib/deck/commentary.ts). Kept beside the app's preview, never
  * written into it, so clearing it gives the app's wording back.
  */
+/** A day as YYYY-MM-DD: the only thing a "written on" field may hold, so it can't carry text onto the slide. */
+const Ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
 export const CommentarySchema = z.object({
   headline: text(COMMENTARY.headline),
   text: text(COMMENTARY.text).optional(),
   bullets: z.array(text(COMMENTARY.bullet)).max(COMMENTARY.bullets),
-  /** YYYY-MM-DD */
-  writtenAt: text(40),
+  writtenAt: Ymd,
   /** The reader's point it was written from, so the page can say when the point has changed since. */
   forNote: text(300).optional(),
 });
@@ -148,7 +150,7 @@ export type Commentary = z.infer<typeof CommentarySchema>;
 /** Claude's executive summary for the deck, with the slides it was written from, in order. */
 export const DeckSummarySchema = z.object({
   lines: z.array(text(COMMENTARY.summaryLine)).min(1).max(COMMENTARY.summaryLines),
-  writtenAt: text(40),
+  writtenAt: Ymd,
   slideIds: z.array(text(200)).max(TRAY_LIMIT),
 });
 export type DeckSummary = z.infer<typeof DeckSummarySchema>;
@@ -244,10 +246,11 @@ export function isMock(item: Pick<TrayItem, "preview">, register: Hookup[] = HOO
 export const CLAUDE_COMMENTARY = "Commentary written by Claude";
 export const CLAUDE_SUMMARY = "Summary written by Claude";
 
-/** YYYY-MM-DD as "November 25, 2026", the same in every time zone. */
+/** YYYY-MM-DD as "November 25, 2026", the same in every time zone; "" for anything else. */
 export function writtenDate(ymd: string): string {
-  const d = new Date(`${ymd.slice(0, 10)}T12:00:00Z`);
-  return Number.isNaN(d.getTime()) ? ymd : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return "";
+  const d = new Date(`${ymd}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 /**
@@ -276,7 +279,7 @@ export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commenta
         headline: head || note || p.headline,
         ...(text ? { text } : {}),
         ...(bullets.length ? { lines: bullets } : {}),
-        claude: { label: CLAUDE_COMMENTARY, date: writtenDate(c.writtenAt) },
+        claude: { label: CLAUDE_COMMENTARY, ...(writtenDate(c.writtenAt) ? { date: writtenDate(c.writtenAt) } : {}) },
       };
   }
   return note ? { ...item.preview, headline: note } : item.preview;
@@ -298,7 +301,7 @@ export function summaryPreview(summary: DeckSummary, items: TrayItem[]): Preview
     .map((x) => evidenceOf(x.preview))
     .join("\n");
   const lines = summary.lines.map((l) => groundPiece(l, ev)).filter(Boolean);
-  return lines.length ? { headline: "Executive summary", lines, claude: { label: CLAUDE_SUMMARY, date: writtenDate(summary.writtenAt) }, source: "This deck's slides" } : undefined;
+  return lines.length ? { headline: "Executive summary", lines, claude: { label: CLAUDE_SUMMARY, ...(writtenDate(summary.writtenAt) ? { date: writtenDate(summary.writtenAt) } : {}) }, source: "This deck's slides" } : undefined;
 }
 
 /** The sources slide for a tray: each slide's source and period, mock ones said so. */
