@@ -173,6 +173,44 @@ assert.equal(panelChange("+1.2 pts"), "\u2191 +1.2 pts");
 assert.equal(panelChange("\u221216d"), "\u2193 \u221216d");
 assert.equal(panelChange("0d"), "\u2192 0d");
 
+// A ranking of many: eight bars, sixteen rows, and the tray keeps it (it once dropped any over six bars).
+const ranked = comparisonSlide({
+  key: "earnings:ranked",
+  title: "Revenue growth, ranked",
+  unit: "pct",
+  measure: "Revenue growth on a year ago",
+  keepOrder: true,
+  items: Array.from({ length: 20 }, (_, i) => ({ name: `Company ${i}`, value: 1 - i * 0.05 })),
+  source: "SEC filings",
+});
+assert.equal(ranked.preview.chart?.series.length, 8, "eight bars");
+valid(ranked.preview, "an eight-bar ranking");
+
+// A scatter: every point kept within the limit, the strong ones first so they survive the cut.
+const scatter = panelsSlide({
+  key: "earnings:growth-against-margin",
+  title: "Growth against margin",
+  panels: [
+    {
+      scatter: {
+        x: { label: "Growth", format: "growth", min: -0.2, max: 1 },
+        y: { label: "Margin", format: "pct", min: 0, max: 0.6 },
+        points: [
+          ...Array.from({ length: 200 }, (_, i) => ({ x: (i % 10) / 10, y: (i % 6) / 10, color: "#808080" })),
+          { x: 0.8, y: 0.04, color: "#4DB848", strong: true, label: "Avnet" },
+        ],
+        medians: { x: 0.25, y: 0.18 },
+        note: "Dashed lines are the medians.",
+      },
+    },
+  ],
+  source: "SEC filings",
+});
+const kept = scatter.preview.panels![0].scatter!.points;
+assert.equal(kept.length, 150, "within the tray's limit");
+assert.ok(kept.some((pt) => pt.label === "Avnet"), "Avnet survives the cut");
+valid(scatter.preview, "a scatter slide");
+
 // Formatting.
 assert.equal(formatFigure("number", 141.2), "141");
 assert.equal(formatFigure("number", 74.4), "74.4");

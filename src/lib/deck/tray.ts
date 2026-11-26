@@ -36,7 +36,8 @@ const ChartSchema = z.object({
       }),
     )
     .min(1)
-    .max(6),
+    // A comparison's bars are a series each, up to eight (comparisonSlide); a time series has up to six.
+    .max(8),
 });
 
 const Tone = z.enum(["good", "bad", "neutral", "plain"]);
@@ -56,6 +57,7 @@ const PanelRowSchema = z.object({
   text: text(300).optional(),
   lines: z.array(z.object({ values: z.array(z.number().nullable()).max(16), color: Hex, width: z.number().min(0.25).max(4).optional() })).max(3).optional(),
 });
+const ScatterAxisSchema = z.object({ label: text(60), format: z.enum(["pct", "growth"]), min: z.number(), max: z.number() });
 const PanelCellSchema = z.union([
   text(40),
   z.object({ text: text(40), bold: z.boolean().optional(), muted: z.boolean().optional(), marker: Hex.optional() }),
@@ -101,6 +103,15 @@ export const PreviewSchema = z.object({
           .optional(),
         bars: z.object({ labels: z.array(text(20)).max(12), values: z.array(z.number().nullable()).max(12), valueLabels: z.array(text(20)).max(12).optional(), color: Hex, forecast: z.array(z.boolean()).max(12).optional() }).optional(),
         pairs: z.array(z.object({ label: text(40), value: text(30) })).max(12).optional(),
+        scatter: z
+          .object({
+            x: ScatterAxisSchema,
+            y: ScatterAxisSchema,
+            points: z.array(z.object({ x: z.number(), y: z.number(), color: Hex, strong: z.boolean().optional(), label: text(40).optional() })).max(150),
+            medians: z.object({ x: z.number().optional(), y: z.number().optional() }).optional(),
+            note: text(120).optional(),
+          })
+          .optional(),
         spark: z.object({ label: text(60), values: z.array(z.number()).max(16), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() }).optional(),
       }),
     )
