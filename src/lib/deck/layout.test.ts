@@ -1,6 +1,6 @@
 // How a slide uses its space. Run with: npx tsx src/lib/deck/layout.test.ts
 import assert from "node:assert/strict";
-import { barLabelWidth, chartFromFacts, layoutPanels, niceRange, planSlide, readFigure, withChart } from "./layout";
+import { AREA, barLabelWidth, chartFromFacts, layoutPanels, linesInSide, niceRange, planSlide, readFigure, sideUsed, SIDE_BODY_MIN, withChart } from "./layout";
 import type { Panel, Preview } from "./outline";
 
 const quarters = ["CY24 Q4", "CY25 Q1", "CY25 Q2", "CY25 Q3", "CY25 Q4", "CY26 Q1", "CY26 Q2", "CY26 Q3"];
@@ -290,6 +290,34 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   const marks = items.filter((it): it is Extract<typeof it, { kind: "text" }> => it.kind === "text" && /^(Avnet|Arrow) /.test(it.runs[0].text));
   assert.ok(left - box.x > 1.5 && left < box.x + 4.5, `lines take the right of the panel: from ${left}`);
   for (const m of marks) assert.ok(m.x + m.w <= left, `${m.runs[0].text} ends before the lines: ${m.x + m.w} vs ${left}`);
+}
+
+{
+  // Lines beside a chart stay there only when they fit under the key figures (found in the first live export, where four bullets ran off the slide).
+  const series = (vals: number[]) => [{ name: "Billings", who: "avnet" as const, points: vals.map((value, i) => ({ label: quarters[i], value })) }, { name: "Bookings", who: "avnet" as const, points: vals.map((value, i) => ({ label: quarters[i], value: value * 1.1 })) }];
+  const two: Preview = {
+    headline: "Bookings ahead of billings",
+    columns: quarters.slice(4),
+    facts: [
+      { label: "Billings", values: ["$5.79B", "$6.02B", "$6.31B", "$6.58B"] },
+      { label: "Bookings", values: ["$6.14B", "$6.51B", "$6.94B", "$7.17B"] },
+    ],
+    chart: { kind: "line", format: "usd", series: series([5.5e9, 5.4e9, 5.4e9, 5.6e9, 5.79e9, 6.02e9, 6.31e9, 6.58e9]) },
+    source: "Mock model",
+  };
+  const plan = planSlide(two);
+  assert.equal(plan.callouts.length, 2);
+  const long = [
+    "This slide is on mock data, so these are not Avnet's real results.",
+    "Mock billings rose each quarter, from $5.79B in FY26 Q2 to $6.58B in FY27 Q1.",
+    "Mock bookings rose from $6.14B to $7.17B over the same four quarters.",
+    "Connect real sources before using these figures outside the team.",
+  ];
+  assert.equal(linesInSide(plan, long), false, "two key figures and four long bullets don't fit beside the chart");
+  assert.equal(linesInSide(plan, ["Up each quarter."]), true, "one short line does");
+  assert.ok(sideUsed(plan) < SIDE_BODY_MIN);
+  assert.equal(linesInSide(planSlide({ ...two, facts: undefined, lines: long }), long), true, "with no key figures the panel has room for them");
+  assert.ok(AREA.bottom > SIDE_BODY_MIN);
 }
 
 console.log("layout.test.ts: ok");

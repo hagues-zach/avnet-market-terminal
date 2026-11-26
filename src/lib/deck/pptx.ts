@@ -3,7 +3,7 @@ import { plainDashes } from "@/lib/ai/dashes";
 import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
 import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
-import { AREA, barLabelWidth, barNameWidth, chartTitle, layoutPanels, planSlide, SIDE, withChart, type Callout, type SlidePlan } from "./layout";
+import { AREA, barLabelWidth, barNameWidth, bulletsHeight, chartTitle, layoutPanels, linesInSide, PANEL_BULLETS, planSlide, SIDE, SIDE_LINES, withChart, type Callout, type SlidePlan } from "./layout";
 import type { Chart, Panel, Preview, SeriesWho } from "./outline";
 
 // The deck's PowerPoint export (the Pitch Deck Builder and Add to deck): the
@@ -144,7 +144,7 @@ function addTable(slide: PptxGenJS.Slide, table: NonNullable<SlidePlan["table"]>
 const bulletRuns = (lines: string[]) => lines.map((x) => ({ text: t(x), options: { bullet: { indent: 12 }, breakLine: true, paraSpaceAfter: 4 } }));
 
 /** The panel beside a chart: the key figures as large numbers, a compact table, any short lines. */
-function addSide(slide: PptxGenJS.Slide, p: Preview, plan: SlidePlan, box: Box) {
+function addSide(slide: PptxGenJS.Slide, p: Preview, plan: SlidePlan, box: Box, withLines: boolean) {
   slide.addShape("rect", { ...box, fill: { color: PANEL }, line: { type: "none" } });
   const x = box.x + 0.16;
   const w = box.w - 0.32;
@@ -169,8 +169,19 @@ function addSide(slide: PptxGenJS.Slide, p: Preview, plan: SlidePlan, box: Box) 
     addTable(slide, plan.table, { x, y, w, rowH: 0.36 }, 9.5);
     y += 0.36 * (plan.table.rows.length + (plan.table.headers ? 1 : 0)) + 0.15;
   }
-  if (p.lines?.length && y < box.y + box.h - 0.3)
-    slide.addText(bulletRuns(p.lines), { x, y, w, h: box.y + box.h - y - 0.1, fontFace: BODY, fontSize: 10, color: INK, valign: "top", margin: 0 });
+  if (withLines && p.lines?.length)
+    slide.addText(
+      p.lines.map((l) => ({ text: t(l), options: { bullet: { indent: 12 }, breakLine: true, paraSpaceAfter: SIDE_LINES.spaceAfter } })),
+      { x, y, w, h: box.y + box.h - y - 0.1, fontFace: BODY, fontSize: SIDE_LINES.size, color: INK, valign: "top", margin: 0 },
+    );
+}
+
+/** Bullets in a strip across the body, ending at its foot. */
+function addStrip(slide: PptxGenJS.Slide, lines: string[], strip: number, w: number = RIGHT - LEFT) {
+  slide.addText(
+    lines.map((x) => ({ text: t(x), options: { bullet: { indent: 12 }, breakLine: true, paraSpaceAfter: PANEL_BULLETS.spaceAfter } })),
+    { x: LEFT, y: BOTTOM - strip, w, h: strip, fontFace: BODY, fontSize: PANEL_BULLETS.size, color: INK, valign: "top", margin: 0 },
+  );
 }
 
 /** Side-by-side panels: the shared layout's pieces as native shapes and text. */
@@ -326,14 +337,25 @@ function content(d: DeckSlide): TemplateSlide {
     draw: (s, pptx) => {
       addClaude(s, p.claude, claudeAt);
       if (plan.kind === "panels" && p.panels) {
-        addPanels(s, p.panels, { x: LEFT, y: top, w: RIGHT - LEFT, h });
+        // Claude's bullets, when there are any, in a strip under the panels.
+        const w = RIGHT - LEFT;
+        const strip = p.lines?.length ? bulletsHeight(p.lines, w) : 0;
+        addPanels(s, p.panels, { x: LEFT, y: top, w, h: h - (strip ? strip + PANEL_BULLETS.gap : 0) });
+        if (strip) addStrip(s, p.lines!, strip);
       } else if (plan.kind === "chart" && p.chart) {
-        const chartW = (plan.side ? RIGHT - plan.sideW - SIDE.gap : RIGHT) - LEFT;
+        // The lines beside the chart when they fit under the key figures; otherwise in a strip under the chart.
+        const lines = p.lines ?? [];
+        const inSide = linesInSide(plan, lines);
+        const side = plan.callouts.length > 0 || Boolean(plan.table) || inSide;
+        const chartW = (side ? RIGHT - plan.sideW - SIDE.gap : RIGHT) - LEFT;
+        const strip = lines.length && !inSide ? bulletsHeight(lines, chartW) : 0;
+        const chartH = h - (strip ? strip + PANEL_BULLETS.gap : 0);
         const label = chartTitle(p.chart);
         const labelH = label ? 0.24 : 0;
         if (label) s.addText(t(label), { x: LEFT, y: top, w: chartW, h: 0.2, fontFace: BODY, fontSize: 10, bold: true, color: INK, margin: 0 });
-        addChart(pptx, s, p.chart, { x: LEFT - 0.08, y: top + labelH, w: chartW + 0.08, h: h - labelH }, plan);
-        if (plan.side) addSide(s, p, plan, { x: RIGHT - plan.sideW, y: top, w: plan.sideW, h });
+        addChart(pptx, s, p.chart, { x: LEFT - 0.08, y: top + labelH, w: chartW + 0.08, h: chartH - labelH }, plan);
+        if (side) addSide(s, p, plan, { x: RIGHT - plan.sideW, y: top, w: plan.sideW, h }, inSide);
+        if (strip) addStrip(s, lines, strip, chartW);
       } else if (plan.kind === "figures") {
         // Large-number tiles across the body, each under a short black rule; the lines below them.
         const n = plan.callouts.length;

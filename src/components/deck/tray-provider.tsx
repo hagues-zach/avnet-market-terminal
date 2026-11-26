@@ -3,7 +3,21 @@
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { X } from "lucide-react";
-import { addItem, moveItem, parseTray, removeItem, TRAY_LIMIT, TrayItemSchema, updateItem, type TrayItem } from "@/lib/deck/tray";
+import {
+  addItem,
+  CommentarySchema,
+  DeckSummarySchema,
+  moveItem,
+  parseSummary,
+  parseTray,
+  removeItem,
+  TRAY_LIMIT,
+  TrayItemSchema,
+  updateItem,
+  type Commentary,
+  type DeckSummary,
+  type TrayItem,
+} from "@/lib/deck/tray";
 import { MiniTray } from "./mini-tray";
 
 // The deck tray (docs/design/deck-tray): slides collected with Add to deck, kept
@@ -13,36 +27,49 @@ import { MiniTray } from "./mini-tray";
 // Mounted once in the app shell, with the toast and the mini tray.
 
 const KEY = "deck-tray-v1";
+/** Claude's executive summary for the deck, kept beside the tray (each slide's commentary is in its item). */
+const SUMMARY_KEY = "deck-summary-v1";
 const CHANGED = "deck-tray-change";
 
 /** What a page hands over; the tray stamps the time and includes it. */
 export type NewTrayItem = Omit<TrayItem, "addedAt" | "included">;
 
-let memory: string | null = null;
+/** What couldn't be saved, by key, kept for this tab. */
+const memory = new Map<string, string>();
 
-function read(): string {
-  if (memory !== null) return memory;
+function readKey(key: string): string {
+  const kept = memory.get(key);
+  if (kept !== undefined) return kept;
   try {
-    return localStorage.getItem(KEY) ?? "";
+    return localStorage.getItem(key) ?? "";
   } catch {
     return "";
   }
 }
 
-function write(items: TrayItem[]) {
-  memory = JSON.stringify(items);
+/** Saves it; false when the browser wouldn't (it's then kept for this tab only, and gone on reload). */
+function writeKey(key: string, value: string): boolean {
+  memory.set(key, value);
+  let saved = false;
   try {
-    localStorage.setItem(KEY, memory);
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
     // Saved, so other tabs' changes (storage events) are read from storage again.
-    memory = null;
+    memory.delete(key);
+    saved = true;
   } catch {
     // Keep it in memory for this tab.
   }
   window.dispatchEvent(new Event(CHANGED));
+  return saved;
 }
 
+const read = () => readKey(KEY);
+const write = (items: TrayItem[]) => writeKey(KEY, JSON.stringify(items));
+const readSummary = () => readKey(SUMMARY_KEY);
+
 function subscribe(onChange: () => void) {
-  const onStorage = (e: StorageEvent) => e.key === KEY && onChange();
+  const onStorage = (e: StorageEvent) => (e.key === KEY || e.key === SUMMARY_KEY || e.key === null) && onChange();
   window.addEventListener("storage", onStorage);
   window.addEventListener(CHANGED, onChange);
   return () => {
@@ -67,6 +94,16 @@ interface Tray {
   remove: (id: string, quiet?: boolean) => void;
   move: (id: string, dir: -1 | 1) => void;
   update: (id: string, patch: Partial<Pick<TrayItem, "note" | "included">>) => void;
+  /**
+   * Claude's commentary by slide id, saved in one write (undefined clears a slide's),
+   * and with `summary` given, the deck's summary too (null clears it). Anything
+   * outside the tray's limits is refused before anything is written, since one bad
+   * item would make the whole saved tray unreadable. "unsaved" when the browser
+   * kept it for this tab only.
+   */
+  setCommentary: (byId: Record<string, Commentary | undefined>, summary?: DeckSummary | null) => "saved" | "unsaved" | "refused";
+  /** Claude's executive summary for the deck, or none. */
+  summary?: DeckSummary;
   clear: () => void;
   notify: (text: string) => void;
   openTray: () => void;
@@ -85,6 +122,8 @@ const slides = (n: number) => `${n} ${n === 1 ? "slide" : "slides"}`;
 export function TrayProvider({ children }: { children: React.ReactNode }) {
   const raw = useSyncExternalStore(subscribe, read, () => "");
   const items = useMemo(() => parseTray(raw), [raw]);
+  const rawSummary = useSyncExternalStore(subscribe, readSummary, () => "");
+  const summary = useMemo(() => parseSummary(rawSummary), [rawSummary]);
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [open, setOpen] = useState(false);
@@ -122,15 +161,35 @@ export function TrayProvider({ children }: { children: React.ReactNode }) {
       remove: (id, quiet) => {
         const next = removeItem(parseTray(read()), id);
         write(next);
+        // An empty tray has no summary: slides added again later get a new one.
+        if (!next.length) writeKey(SUMMARY_KEY, "");
         if (!quiet) notify(`Removed from deck. ${slides(next.length)}`);
       },
       move: (id, dir) => change((x) => moveItem(x, id, dir)),
       update: (id, patch) => change((x) => updateItem(x, id, patch)),
-      clear: () => write([]),
+      setCommentary: (byId, next) => {
+        const entries = Object.entries(byId);
+        if (entries.some(([, c]) => c && !CommentarySchema.safeParse(c).success)) return "refused";
+        if (next && !DeckSummarySchema.safeParse(next).success) return "refused";
+        const items = entries.reduce((acc, [id, c]) => updateItem(acc, id, { commentary: c }), parseTray(read()));
+        const saved = write(items);
+        // A summary is only saved with the commentary it was written beside: if the tray couldn't be
+        // stored, a stored summary would come back after a reload next to slides without it.
+        if (next !== undefined) {
+          if (saved) return writeKey(SUMMARY_KEY, next ? JSON.stringify(next) : "") ? "saved" : "unsaved";
+          writeKey(SUMMARY_KEY, "");
+        }
+        return saved ? "saved" : "unsaved";
+      },
+      summary,
+      clear: () => {
+        write([]);
+        writeKey(SUMMARY_KEY, "");
+      },
       notify: (text) => notify(text),
       openTray: () => setOpen(true),
     }),
-    [items, ready, notify, change],
+    [items, summary, ready, notify, change],
   );
 
   // A toast goes after four seconds.

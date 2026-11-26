@@ -9,6 +9,7 @@
 // beyond its shape and size.
 import { z } from "zod";
 import { HOOKUPS, type Hookup } from "@/lib/hookups";
+import { evidenceOf, groundPiece } from "./evidence";
 import type { Preview, SlideId } from "./outline";
 import type { DeckSlide } from "./pptx";
 
@@ -124,6 +125,43 @@ export const PreviewSchema = z.object({
   error: z.boolean().optional(),
 }) satisfies z.ZodType<Preview>;
 
+/** The most Claude's commentary on one slide may hold, so saved commentary always passes the schema. */
+export const COMMENTARY = { headline: 240, text: 600, bullet: 240, bullets: 4, summaryLine: 300, summaryLines: 5 } as const;
+
+/**
+ * Claude's commentary on one slide (Phase 2): a headline that makes the point, one
+ * sentence, and up to four bullets, every figure in them checked against the
+ * slide (src/lib/deck/commentary.ts). Kept beside the app's preview, never
+ * written into it, so clearing it gives the app's wording back.
+ */
+/** A day as YYYY-MM-DD: the only thing a "written on" field may hold, so it can't carry text onto the slide. */
+const Ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+export const CommentarySchema = z.object({
+  headline: text(COMMENTARY.headline),
+  text: text(COMMENTARY.text).optional(),
+  bullets: z.array(text(COMMENTARY.bullet)).max(COMMENTARY.bullets),
+  writtenAt: Ymd,
+  /** The reader's point it was written from, so the page can say when the point has changed since. */
+  forNote: text(300).optional(),
+  /** Where the headline came from: Claude's, or (when Claude's didn't hold up) the reader's point or the card's. */
+  headlineFrom: z.enum(["claude", "note", "card"]).optional(),
+  /** The audience it was written for, as the page names it: "Supplier". */
+  audience: text(40).optional(),
+});
+export type Commentary = z.infer<typeof CommentarySchema>;
+
+/** Claude's executive summary for the deck, with the slides it was written from, in order. */
+export const DeckSummarySchema = z.object({
+  lines: z.array(text(COMMENTARY.summaryLine)).min(1).max(COMMENTARY.summaryLines),
+  writtenAt: Ymd,
+  slideIds: z.array(text(200)).max(TRAY_LIMIT),
+  /** When each of those slides was added, so a slide removed and added again (with newer figures) doesn't match. */
+  addedAt: z.array(text(40)).max(TRAY_LIMIT).optional(),
+  audience: text(40).optional(),
+});
+export type DeckSummary = z.infer<typeof DeckSummarySchema>;
+
 export const TrayItemSchema = z.object({
   /** Stable for the thing added, so adding it twice is caught: see chartItemId and viewItemId. */
   id: text(200),
@@ -138,9 +176,11 @@ export const TrayItemSchema = z.object({
   /** ISO time it was added. */
   addedAt: text(40),
   preview: PreviewSchema,
-  /** The reader's point for this slide. Until Claude writes commentary, it becomes the slide's title. */
+  /** The reader's point for this slide: the slide's title, or with commentary, Claude's brief for the headline. */
   note: text(300).optional(),
   included: z.boolean(),
+  /** Claude's commentary, when the reader asked for it. Trays saved before Phase 2 have none. */
+  commentary: CommentarySchema.optional(),
 });
 
 export type TrayItem = z.infer<typeof TrayItemSchema>;
@@ -193,8 +233,14 @@ export function moveItem(items: TrayItem[], id: string, dir: -1 | 1): TrayItem[]
   return next;
 }
 
-export function updateItem(items: TrayItem[], id: string, patch: Partial<Pick<TrayItem, "note" | "included">>): TrayItem[] {
-  return items.map((x) => (x.id === id ? { ...x, ...patch } : x));
+export function updateItem(items: TrayItem[], id: string, patch: Partial<Pick<TrayItem, "note" | "included" | "commentary">>): TrayItem[] {
+  return items.map((x) => {
+    if (x.id !== id) return x;
+    const next = { ...x, ...patch };
+    // Clearing commentary removes the key, so the saved tray reads as it did before.
+    if ("commentary" in patch && !patch.commentary) delete next.commentary;
+    return next;
+  });
 }
 
 /* ---------- Reading ---------- */
@@ -204,10 +250,97 @@ export function isMock(item: Pick<TrayItem, "preview">, register: Hookup[] = HOO
   return (item.preview.hookups ?? []).some((id) => register.find((h) => h.id === id)?.status === "mock");
 }
 
-/** The slide as it ships: the reader's point, when they wrote one, is its title. */
-export function slidePreview(item: Pick<TrayItem, "preview" | "note">): Preview {
+export const CLAUDE_COMMENTARY = "Commentary written by Claude";
+export const CLAUDE_SUMMARY = "Summary written by Claude";
+
+/** YYYY-MM-DD as "November 25, 2026", the same in every time zone; "" for anything else. */
+export function writtenDate(ymd: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return "";
+  const d = new Date(`${ymd}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+/**
+ * The slide as it ships. With Claude's commentary: its headline (the reader's
+ * point, then the card's, when it doesn't hold up), its sentence (the card's own
+ * when Claude's was dropped) and its bullets as the slide's lines (the card's own
+ * when none held up), marked as Claude's; the figures, chart, table and panels
+ * stay as the app saved them. Every piece is checked against the slide again
+ * here, so commentary from the browser's saved tray can't bring a figure the
+ * slide doesn't show. A two-column slide keeps its columns, which already are
+ * its points. Without commentary: the reader's point, when they wrote one, is
+ * its title.
+ */
+export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commentary">): Preview {
+  const c = item.commentary;
   const note = item.note?.trim();
+  if (c) {
+    const p = item.preview;
+    const ev = evidenceOf(p);
+    const head = groundPiece(c.headline, ev);
+    const text = c.text ? groundPiece(c.text, ev) : "";
+    const bullets = p.groups?.length ? [] : c.bullets.map((b) => groundPiece(b, ev)).filter(Boolean);
+    // A headline that was the reader's point follows the point as it is now.
+    const claudeHead = c.headlineFrom === "note" || c.headlineFrom === "card" ? "" : head;
+    if (claudeHead || text || bullets.length)
+      return {
+        ...p,
+        headline: claudeHead || note || p.headline,
+        ...(text ? { text } : {}),
+        ...(bullets.length ? { lines: bullets } : {}),
+        claude: { label: CLAUDE_COMMENTARY, ...(writtenDate(c.writtenAt) ? { date: writtenDate(c.writtenAt) } : {}) },
+      };
+  }
   return note ? { ...item.preview, headline: note } : item.preview;
+}
+
+/** True when the summary was written from exactly these slides, in this order, as added then. */
+export const summaryMatches = (summary: DeckSummary | undefined, items: TrayItem[]): summary is DeckSummary => {
+  const shipped = items.filter((x) => x.included);
+  if (!summary || summary.slideIds.length !== shipped.length) return false;
+  return shipped.every((x, i) => x.id === summary.slideIds[i] && (!summary.addedAt || summary.addedAt[i] === x.addedAt));
+};
+
+/** The saved summary, or none when it's missing, old or broken. */
+export function parseSummary(raw: string | null | undefined): DeckSummary | undefined {
+  if (!raw) return undefined;
+  try {
+    const r = DeckSummarySchema.safeParse(JSON.parse(raw));
+    return r.success ? r.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * What a "Write commentary" answer does to the tray: every slide sent takes
+ * Claude's new commentary, or loses its old one when Claude's didn't hold up
+ * (the new summary was written from the new set); slides left out keep theirs.
+ * Null when anything in it wouldn't pass the tray's schema, so nothing is half
+ * saved. Pure.
+ */
+export function commentaryUpdate(
+  sent: Pick<TrayItem, "id" | "title" | "commentary" | "addedAt">[],
+  answer: { slides: Record<string, Commentary>; summary?: DeckSummary },
+): { byId: Record<string, Commentary | undefined>; summary?: DeckSummary; cleared: string[] } | null {
+  const byId = Object.fromEntries(sent.map((x) => [x.id, answer.slides[x.id]]));
+  if (Object.values(byId).some((c) => c && !CommentarySchema.safeParse(c).success)) return null;
+  const summary = answer.summary && { ...answer.summary, addedAt: sent.map((x) => x.addedAt) };
+  if (summary && !DeckSummarySchema.safeParse(summary).success) return null;
+  return { byId, ...(summary ? { summary } : {}), cleared: sent.filter((x) => x.commentary && !answer.slides[x.id]).map((x) => x.title) };
+}
+
+/**
+ * The executive summary slide, its lines checked again against the slides it
+ * ships with; none when no line holds up.
+ */
+export function summaryPreview(summary: DeckSummary, items: TrayItem[]): Preview | undefined {
+  const ev = items
+    .filter((x) => x.included)
+    .map((x) => evidenceOf(x.preview))
+    .join("\n");
+  const lines = summary.lines.map((l) => groundPiece(l, ev)).filter(Boolean);
+  return lines.length ? { headline: "Executive summary", lines, claude: { label: CLAUDE_SUMMARY, ...(writtenDate(summary.writtenAt) ? { date: writtenDate(summary.writtenAt) } : {}) }, source: "This deck's slides" } : undefined;
 }
 
 /** The sources slide for a tray: each slide's source and period, mock ones said so. */
@@ -227,17 +360,21 @@ export function traySources(items: TrayItem[], register: Hookup[] = HOOKUPS): Pr
 }
 
 /**
- * The deck a tray ships as: a cover, each included slide in order, then the
- * sources. The same list feeds the PowerPoint export and the printed PDF.
+ * The deck a tray ships as: a cover, Claude's executive summary when one is
+ * given and was written from these slides, each included slide in order, then
+ * the sources. The same list feeds the PowerPoint export and the printed PDF.
  */
 export function trayDeckSlides(
   items: TrayItem[],
-  { title, audience, date }: { title: string; audience: string; date: string },
+  { title, audience, date, summary }: { title: string; audience: string; date: string; summary?: DeckSummary },
   register: Hookup[] = HOOKUPS,
 ): DeckSlide[] {
   const shipped = items.filter((x) => x.included);
+  const mock = shipped.some((x) => isMock(x, register));
+  const sum = summaryMatches(summary, items) ? summaryPreview(summary, items) : undefined;
   return [
     { kind: "cover", mock: false, preview: { headline: title, text: `${audience}, ${date}`, source: "This deck" } },
+    ...(sum ? [{ mock, preview: sum }] : []),
     ...shipped.map((x) => ({ mock: isMock(x, register), preview: slidePreview(x) })),
     { kind: "sources", mock: false, preview: traySources(shipped, register) },
   ];
