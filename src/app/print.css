@@ -148,3 +148,50 @@
     color: #919191;
   }
 }
+
+/*
+ * The deck tray's PDF (Add to deck, docs/design/deck-tray): every slide on its
+ * own 16:9 page, 10 by 5.625 inches as in the FY27 template, no margins. The
+ * review page draws the slides at 960 by 540 px, which is that size at 96 dpi.
+ * Opt in with data-print="deck"; only that element prints.
+ */
+@media print {
+  @page deck {
+    size: 10in 5.625in;
+    margin: 0;
+  }
+
+  body:has([data-print="deck"]) main *:not(:has([data-print="deck"])):not([data-print="deck"], [data-print="deck"] *) {
+    display: none !important;
+  }
+  body:has([data-print="deck"]) main,
+  body:has([data-print="deck"]) main *:has([data-print="deck"]) {
+    display: block !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+  }
+
+  [data-print="deck"] {
+    position: static !important;
+    left: auto !important;
+    width: auto !important;
+  }
+  [data-print="deck"] > section {
+    page: deck;
+    break-after: page;
+    width: 10in;
+    height: 5.625in;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  [data-print="deck"] > section:last-child {
+    break-after: auto;
+  }
+  [data-print="deck"] > section > * {
+    border: 0 !important;
+  }
+}

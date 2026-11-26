@@ -8,6 +8,9 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { CapexBars, GrowthBars, InventoryLines } from "./charts";
 import { Spark } from "./spark";
+import { changeCell, comparisonSlide, formatFigure, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import type { PanelTone } from "@/lib/deck/outline";
+import { VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 
 const at = (points: GroupPoint[], label: string) => points.find((p) => p.label === label);
@@ -25,6 +28,19 @@ const ptChange = (a: number | undefined, b: number | undefined) => {
   return d === undefined ? undefined : Math.round(d * 1000) / 1000;
 };
 
+/** A change as the card's Delta writes it, for a slide: its sign, the shown value, and whether it is good. */
+const slideChange = (v: number | undefined, show: (v: number) => string, invert = false): { change?: string; tone?: PanelTone } =>
+  v === undefined ? {} : { change: `${v > 0 ? "+" : v < 0 ? "\u2212" : ""}${show(v)}`, tone: v === 0 ? "neutral" : v > 0 !== invert ? "good" : "bad" };
+
+/** A company's inventory and margin line: "Inventory 77 days (−16d YoY), margin 4.4%". */
+function inventoryLine(company: CompanySeries, latest: string, yearAgo: string) {
+  const now = at(company.points, latest);
+  const change = dayChange(now?.inventoryDays, at(company.points, yearAgo)?.inventoryDays);
+  return `Inventory ${now?.inventoryDays === undefined ? NA : `${Math.round(now.inventoryDays)} days`}${
+    change !== undefined ? ` (${change >= 0 ? "+" : "\u2212"}${days(change)} YoY)` : ""
+  }, margin ${format("pct", now?.operatingMargin)}`;
+}
+
 const link = "text-ink underline-offset-2 hover:underline";
 
 /** Server component: needs every company's history, so the page streams it in. */
@@ -33,7 +49,7 @@ export async function CycleView() {
   const { labels, latest, groups, supply, phases, stages, avnet, arrow, hyperscalerCapex, hyperscalers, phase } = cycle;
   if (!latest) {
     return (
-      <Panel>
+      <Panel deck={null}>
         <ErrorState title="Company filings could not be loaded right now" source="SEC EDGAR" retryHref="/cycle" />
       </Panel>
     );
@@ -110,6 +126,20 @@ export async function CycleView() {
         title="How we got here"
         subtitle="Supply-chain revenue growth on a year ago, by calendar quarter, with the phase each quarter was in"
         footer={<SourceLine source="SEC filings" asOf={latest} />}
+        deck={seriesSlide({
+          key: "cycle:how-we-got-here",
+          title: "How we got here",
+          text: `${phase ?? "The cycle"}: supply-chain revenue ${growthText(supplyNow?.growth)} on a year ago in ${latest}, from ${growthText(supplyPrior?.growth)} the quarter before.`,
+          unit: "pct",
+          kind: "column",
+          periods: supply.map((p) => p.label),
+          series: [{ name: "Supply-chain revenue growth", values: supply.map((p) => p.growth) }],
+          chartTitle: "Supply-chain revenue growth on a year ago, %",
+          lines: supply.map((p, i) => (phases[i] ? `${p.label}: ${phases[i]}` : "")).slice(-4),
+          source: "SEC filings",
+          period: latest,
+          hookups: ["sec"],
+        })}
       >
         <GrowthBars rows={supply.map((p, i) => ({ label: p.label, growth: p.growth, phase: phases[i] }))} />
       </Panel>
@@ -120,6 +150,22 @@ export async function CycleView() {
           subtitle="Median days of inventory, by calendar quarter"
           footer={<SourceLine source="SEC filings" asOf={latest} />}
           bodyClassName="flex flex-col"
+          deck={seriesSlide({
+            key: "cycle:inventory-in-the-chain",
+            title: "Inventory in the chain",
+            text: `Median days of inventory by calendar quarter. Distributors held ${formatFigure("days", distDays)} in ${latest}.`,
+            unit: "days",
+            periods: labels,
+            series: [
+              { name: "Manufacturers", values: labels.map((l) => at(group("manufacturer").points, l)?.inventoryDays) },
+              { name: "Distributors", values: labels.map((l) => at(dist.points, l)?.inventoryDays) },
+              { name: "Contract manufacturers", values: labels.map((l) => at(group("ems").points, l)?.inventoryDays) },
+            ],
+            chartTitle: "Median inventory, days",
+            source: "SEC filings",
+            period: latest,
+            hookups: ["sec"],
+          })}
         >
           <InventoryLines
             fill
@@ -164,7 +210,6 @@ function Measure({ label, children }: { label: string; children: React.ReactNode
 
 function CompanyLine({ company, latest, yearAgo, marker }: { company: CompanySeries; latest: string; yearAgo: string; marker: string }) {
   const now = at(company.points, latest);
-  const change = dayChange(now?.inventoryDays, at(company.points, yearAgo)?.inventoryDays);
   return (
     <li className="py-1.5">
       <div className="flex items-baseline justify-between gap-2 text-body-sm">
@@ -174,10 +219,7 @@ function CompanyLine({ company, latest, yearAgo, marker }: { company: CompanySer
         </Link>
         <span className="tabular-nums text-ink">{growthText(now?.growth)}</span>
       </div>
-      <p className="mt-0.5 text-caption text-ink-muted">
-        Inventory {now?.inventoryDays === undefined ? NA : `${Math.round(now.inventoryDays)} days`}
-        {change !== undefined && ` (${change >= 0 ? "+" : "−"}${days(change)} YoY)`}, margin {format("pct", now?.operatingMargin)}
-      </p>
+      <p className="mt-0.5 text-caption text-ink-muted">{inventoryLine(company, latest, yearAgo)}</p>
     </li>
   );
 }
@@ -206,6 +248,55 @@ function Chain({
       subtitle={`${latest}. Each stage is its companies taken together: combined revenue growth, median inventory and margin`}
       bodyClassName="p-0"
       footer={<SourceLine source="SEC filings" asOf={latest} />}
+      deck={panelsSlide({
+        key: "cycle:the-chain",
+        title: "The chain, from customers back to equipment",
+        text: `${latest}. Each stage is its companies taken together: combined revenue growth on a year ago, median inventory and margin.`,
+        // The card's own columns, drawn on the slide as the page draws them.
+        panels: stages.map((s) => {
+          const now = at(s.points, latest);
+          return {
+            title: s.name,
+            detail: `${s.detail}. ${now?.reporting ?? 0} of ${s.companies} reported`,
+            metrics: [
+              {
+                label: "Revenue growth YoY",
+                value: growthText(now?.growth),
+                ...slideChange(ptChange(now?.growth, at(s.points, prior)?.growth), pts),
+                period: "on prior qtr",
+                large: true,
+              },
+              {
+                label: "Inventory days",
+                value: now?.inventoryDays === undefined ? NA : String(Math.round(now.inventoryDays)),
+                ...slideChange(dayChange(now?.inventoryDays, at(s.points, yearAgo)?.inventoryDays), days, true),
+                period: "YoY",
+              },
+              { label: "Operating margin", value: format("pct", now?.operatingMargin) },
+            ],
+            ...(s.id === "distributors" && {
+              notesLabel: "Avnet and Arrow",
+              notes: [
+                { c: avnet, marker: VIZ.avnet },
+                { c: arrow, marker: VIZ.arrow },
+              ].map(({ c, marker }) => ({
+                title: c.name.replace(" Electronics", ""),
+                value: growthText(at(c.points, latest)?.growth),
+                text: inventoryLine(c, latest, yearAgo),
+                marker,
+              })),
+            }),
+            spark: {
+              label: `Growth, last ${labels.length} quarters`,
+              values: s.points.slice(-labels.length).flatMap((p) => (p.growth === undefined ? [] : [p.growth])),
+              color: VIZ.arrow,
+            },
+          };
+        }),
+        source: "SEC filings",
+        period: latest,
+        hookups: ["sec"],
+      })}
     >
       <ol className="grid divide-hairline sm:grid-cols-2 xl:grid-cols-5 xl:divide-x">
         {stages.map((s) => {
@@ -275,6 +366,35 @@ function EndDemand({
       subtitle={`What the customers are doing: revenue growth on a year ago, ${latest}`}
       footer={<SourceLine source="SEC filings" asOf={latest} />}
       bodyClassName="space-y-4"
+      deck={panelsSlide({
+        key: "cycle:end-demand",
+        title: "End demand",
+        text: `What the customers are doing: revenue growth on a year ago, ${latest}.`,
+        // The card's two halves: the customer groups ranked with their bars, and the hyperscalers' capex.
+        panels: [
+          {
+            rows: rows.map(({ g, growth }) => ({
+              title: COHORT_LABELS[g.cohort],
+              value: growthText(growth),
+              bar: { share: Math.abs(growth ?? 0) / max, color: VIZ.benchmark },
+            })),
+          },
+          {
+            title: "Hyperscaler capital spending",
+            detail: "Combined capex of the five, by calendar quarter. Blank until all five have reported",
+            bars: {
+              labels: capex.map((c) => c.label),
+              values: capex.map((c) => c.total ?? null),
+              valueLabels: capex.map((c) => (c.total === undefined ? "" : format("usd", c.total))),
+              color: VIZ.benchmark,
+            },
+            pairs: hyperscalers.map((h) => ({ label: h.name, value: growthText(h.yoy) })),
+          },
+        ],
+        source: "SEC filings",
+        period: latest,
+        hookups: ["sec"],
+      })}
     >
       <ul className="space-y-2">
         {rows.map(({ g, growth }) => (
@@ -384,6 +504,32 @@ function Scorecard({
       subtitle={`All ${supplyGroups.length + demandGroups.length} groups, ${latest}. Changes in margin and inventory are on a year ago`}
       bodyClassName="p-0"
       footer={<SourceLine source="SEC filings" asOf={latest} />}
+      deck={tableSlide({
+        key: "cycle:group-scorecard",
+        title: "Group scorecard",
+        text: `All ${supplyGroups.length + demandGroups.length} groups, ${latest}: growth, margin and inventory.`,
+        // The card's columns: growth with its eight quarters, the quarter before in grey, margin and inventory with their changes.
+        columns: ["Group", "Growth YoY", "Last 8 quarters", "Prior qtr", "Op margin", "Margin YoY", "Inv days", "Inv days YoY"],
+        rows: [...supplyGroups, ...demandGroups].map((g) => {
+          const now = at(g.points, latest);
+          const lastYear = at(g.points, yearAgo);
+          return {
+            label: COHORT_LABELS[g.cohort],
+            values: [
+              growthText(now?.growth),
+              { spark: g.points.map((p) => p.growth ?? null), color: VIZ.arrow },
+              { text: growthText(at(g.points, prior)?.growth), muted: true },
+              format("pct", now?.operatingMargin),
+              changeCell(ptChange(now?.operatingMargin, lastYear?.operatingMargin), pts),
+              format("days", now?.inventoryDays),
+              changeCell(dayChange(now?.inventoryDays, lastYear?.inventoryDays), days, true),
+            ],
+          };
+        }),
+        source: "SEC filings",
+        period: latest,
+        hookups: ["sec"],
+      })}
     >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse font-body text-table">
@@ -446,6 +592,7 @@ export function CycleFallback() {
         ))}
       </div>
       <Panel
+        deck={null}
         title="Reading filings"
         subtitle="Rolling up every company's quarterly history from SEC EDGAR. The first load after a refresh can take a minute."
       >

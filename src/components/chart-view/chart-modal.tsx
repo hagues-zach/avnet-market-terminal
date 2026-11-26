@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Download, X } from "lucide-react";
 import { tabHasData, type ChartData } from "@/lib/chart-view/model";
 import { cn } from "@/lib/utils";
+import { AddChartToDeck } from "@/components/deck/add-chart-to-deck";
 import { StackedPanes, tabCsv, ValuesTable } from "./panes";
 import { TabList } from "./tab-list";
 
@@ -108,6 +109,7 @@ function Dialog({ sections, initialSection, onClose }: { sections: ChartSection[
               />
             </div>
           </div>
+          {tab && has && <AddChartToDeck data={data} tab={tab} />}
           <button
             type="button"
             onClick={download}

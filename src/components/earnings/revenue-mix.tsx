@@ -4,6 +4,8 @@ import { Panel } from "@/components/ui/panel";
 import { LoadingBlock } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
 import { NA, format, longDate } from "./format";
+import { panelsSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 
 const TITLE = "Revenue mix";
 const LABEL = "mb-1.5 font-display text-label uppercase text-ink-muted";
@@ -73,6 +75,37 @@ export async function RevenueMix({ company }: { company: string }) {
           ? mix.company.name
           : `${mix.company.name}, ${period}. The bar is revenue, then its share of total revenue and the change on the same period a year earlier.`
       }
+      deck={
+        empty || !mix.breakdowns[0]
+          ? null
+          : panelsSlide({
+              key: `profile:${mix.company.slug}:revenue-mix`,
+              title: `${mix.company.name}: revenue mix`,
+              trayTitle: `${mix.company.name}: Revenue mix`,
+              text: period ? `${period}, from the company's own tags in its latest ${mix.form}.` : undefined,
+              // The card's breakdowns side by side: each item's revenue over its bar, its share and growth; then the largest customers.
+              panels: [
+                ...mix.breakdowns.slice(0, mix.customers.length ? 2 : 3).map((b) => {
+                  const top = Math.max(...b.items.map((i) => i.value));
+                  return {
+                    kicker: b.title,
+                    rows: b.items.slice(0, 10).map((i) => ({
+                      title: i.label,
+                      value: format("usd", i.value),
+                      ...(i.share !== undefined && { note: `${Math.round(i.share * 100)}%` }),
+                      ...(i.yoy !== undefined && { change: format("growth", i.yoy), tone: "plain" as const }),
+                      // Avnet Green only ever represents Avnet; anyone else's bars are grey.
+                      bar: { share: Math.max(0, i.value / top), color: mix.company.slug === "avnet" ? VIZ.avnet : VIZ.other },
+                    })),
+                  };
+                }),
+                ...(mix.customers.length
+                  ? [{ kicker: "Largest customers", rows: mix.customers.slice(0, 10).map((c) => ({ title: c.label, value: `${(c.share * 100).toFixed(0)}% of revenue` })) }]
+                  : []),
+              ],
+              source: `${mix.company.name}'s latest ${mix.form}`,
+            })
+      }
       actions={
         mix.url && (
           <a
@@ -134,7 +167,7 @@ export async function RevenueMix({ company }: { company: string }) {
 
 export function RevenueMixFallback() {
   return (
-    <Panel title={TITLE} subtitle="Reading the latest filing document from SEC EDGAR.">
+    <Panel title={TITLE} subtitle="Reading the latest filing document from SEC EDGAR." deck={null}>
       <LoadingBlock label="Loading the revenue mix…" lines={5} />
     </Panel>
   );

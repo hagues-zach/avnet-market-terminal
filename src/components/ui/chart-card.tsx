@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { CardSlide } from "@/lib/deck/slides";
 import { Panel, SourceLine } from "./panel";
 import { Segmented } from "./tabs";
 
@@ -17,6 +18,7 @@ export function ChartCard({
   table,
   height = 240,
   footerExtra,
+  deck,
   className,
   children,
 }: {
@@ -28,6 +30,8 @@ export function ChartCard({
   /** Chart height in px; the chart should fill it. */
   height?: number;
   footerExtra?: React.ReactNode;
+  /** The slide this card makes, for Add to deck: see Panel. */
+  deck?: CardSlide | null;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -37,6 +41,7 @@ export function ChartCard({
       title={title}
       subtitle={subtitle}
       className={className}
+      deck={deck}
       actions={
         table ? (
           <Segmented

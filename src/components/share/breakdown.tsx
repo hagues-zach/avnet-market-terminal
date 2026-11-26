@@ -9,6 +9,7 @@ import { VIZ } from "@/lib/colors";
 import { Delta } from "@/components/ui/delta";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
+import { tableSlide } from "@/lib/deck/slides";
 
 export interface ShareRow {
   name: string;
@@ -23,7 +24,7 @@ export interface ShareRow {
 
 type View = "segment" | "supplier" | "region";
 
-const VIEWS: Record<View, { label: string; title: string; subtitle: string; name: string; size: string; source: string }> = {
+const VIEWS: Record<View, { label: string; title: string; subtitle: string; name: string; size: string; source: string; hookups: string[] }> = {
   segment: {
     label: "Segment",
     title: "Share by segment",
@@ -31,6 +32,7 @@ const VIEWS: Record<View, { label: string; title: string; subtitle: string; name
     name: "Segment",
     size: "Market size",
     source: "Avnet billings, WSTS and Gartner market sizes, joined through the code map",
+    hookups: ["billings", "wsts", "gartner-forecast", "code-map"],
   },
   supplier: {
     label: "Supplier",
@@ -39,6 +41,7 @@ const VIEWS: Record<View, { label: string; title: string; subtitle: string; name
     name: "Supplier",
     size: "Supplier revenue",
     source: "Avnet billings by manufacturer, suppliers' reported revenue",
+    hookups: ["billings", "sec"],
   },
   region: {
     label: "Region",
@@ -47,6 +50,7 @@ const VIEWS: Record<View, { label: string; title: string; subtitle: string; name
     name: "Region",
     size: "Market size",
     source: "Avnet billings by region, WSTS regional market sizes",
+    hookups: ["billings", "wsts"],
   },
 };
 
@@ -150,6 +154,20 @@ export function ShareBreakdown({
         />
       }
       footer={<SourceLine source={v.source}>{footerLink}</SourceLine>}
+      deck={tableSlide({
+        key: `share:${view}`,
+        title: v.title,
+        text: v.subtitle,
+        columns: [v.name, v.size, "Avnet share", "Change YoY", "Mapping confidence"],
+        rows: [...rows[view]]
+          .sort((a, b) => b.tam - a.tam)
+          .map((r) => ({
+            label: r.name,
+            values: [`$${r.tam.toFixed(r.tam < 10 ? 1 : 0)}B`, `${(r.share * 100).toFixed(1)}%`, `${r.shareChange >= 0 ? "+" : "−"}${pts(r.shareChange)}`, r.confidence],
+          })),
+        source: v.source,
+        hookups: v.hookups,
+      })}
     >
       <DataTable
         key={view}
@@ -163,7 +181,7 @@ export function ShareBreakdown({
         onOrder={setOrder}
       />
       <ChartDrawer
-        data={current?.history ? shareChartData({ view: v.title, name: current.name, history: current.history, periods, source: v.source }) : null}
+        data={current?.history ? shareChartData({ view: v.title, name: current.name, history: current.history, periods, source: v.source, hookups: v.hookups }) : null}
         position={at >= 0 ? `${at + 1} of ${order.length}` : undefined}
         onClose={close}
         onPrev={at > 0 ? () => setSelected(order[at - 1]) : undefined}

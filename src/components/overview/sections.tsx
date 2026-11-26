@@ -9,6 +9,8 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { Chip, DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
+import { formatGrowth, panelsSlide, seriesSlide, toneOf } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { MarketByYear } from "./market-chart";
 
@@ -84,6 +86,16 @@ export function MarketYears({ tam, vintage, supply }: { tam: TamSummary; vintage
       subtitle={`World semiconductor sales, 2019 to the ${tam.latestYear + 1} forecast`}
       actions={<Chip>{vintage}</Chip>}
       footer={<SourceLine source={`${vintage}, published totals`} />}
+      deck={seriesSlide({
+        key: "overview:market-by-year",
+        title: "The market by year",
+        text: `World semiconductor sales were ${bn(tam.tamUsdM, 1)} in ${tam.latestYear}, ${formatGrowth(tam.yoyGrowth)} on ${tam.latestYear - 1}; WSTS forecasts ${bn(tam.forecastNextYearUsdM, 1)} for ${tam.latestYear + 1}.`,
+        unit: "usd",
+        periods: tam.trend.map((p) => (p.isForecast ? `${p.year} forecast` : String(p.year))),
+        series: [{ name: "World market", values: tam.trend.map((p) => p.tamUsdM * 1e6) }],
+        chartTitle: "World semiconductor sales, $",
+        source: `${vintage}, published totals`,
+      })}
     >
       <MarketByYear points={tam.trend.map((p) => ({ year: p.year, usdM: p.tamUsdM, forecast: p.isForecast }))} />
       <dl className="mt-3 grid grid-cols-1 divide-y divide-hairline border-t border-hairline md:grid-cols-3 md:divide-x md:divide-y-0">
@@ -151,6 +163,43 @@ export async function WhatCarried({ tam, marketPrior, vintage }: { tam: TamSumma
       title="What carried the growth"
       subtitle={`${tam.latestYear} sales and growth on ${tam.latestYear - 1}: the devices AI spending lands on, against the rest of the market`}
       actions={<DataChip status={status} />}
+      deck={panelsSlide({
+        key: "overview:what-carried-the-growth",
+        title: "What carried the growth",
+        text: `The devices AI spending lands on sold ${bn(s.ai.usdM, 1)} in ${tam.latestYear}, ${Math.round(s.ai.share * 100)}% of the market, ${formatGrowth(s.ai.growth)} on ${tam.latestYear - 1}; everything else grew ${formatGrowth(s.rest.growth)}.`,
+        // The card as it reads: the two bars and the AI devices, then the market by WSTS category.
+        panels: [
+          {
+            rows: [
+              { label: "DRAM, Flash, MPUs, GPUs and AI accelerators", part: s.ai, color: VIZ.arrow },
+              { label: "Everything else", part: s.rest, color: VIZ.other },
+            ].map(({ label, part, color }) => ({
+              title: label,
+              value: `${bn(part.usdM, 1)}, ${Math.round(part.share * 100)}% of the market`,
+              change: formatGrowth(part.growth),
+              tone: "plain" as const,
+              bar: { share: part.share, color },
+            })),
+            table: {
+              columns: ["Device", `${tam.latestYear} sales`, "Growth"],
+              rows: aiDevices.map((d) => ({ label: d.device, cells: [bn(d.usdM, 1), { change: formatGrowth(d.yoy), tone: "plain" as const }] })),
+            },
+          },
+          {
+            title: "By WSTS category",
+            tag: vintage,
+            table: {
+              columns: ["Category", `${tam.latestYear} sales`, "Growth", "Share"],
+              rows: tam.byProduct.map((p) => ({
+                label: PRODUCT_LABEL[p.product],
+                cells: [bn(p.usdM, 1), { change: formatGrowth(p.yoy), tone: "plain" as const }, `${Math.round((p.usdM / tam.tamUsdM) * 100)}%`],
+              })),
+            },
+          },
+        ],
+        source: `${vintage}; the device split is mock until WSTS detail and Gartner are hooked up`,
+        hookups: ["gartner-forecast"],
+      })}
     >
       <div className="space-y-3">
         <Bar label="DRAM, Flash, MPUs, GPUs and AI accelerators" value={s.ai.usdM} share={s.ai.share} growth={s.ai.growth} ai />
@@ -273,6 +322,22 @@ export function ForecastCard({ vintages, year }: { vintages: { vintage: string; 
       subtitle={forecastDrift(vintages, year)}
       actions={<Chip>WSTS</Chip>}
       footer={<SourceLine source="WSTS forecast releases" />}
+      deck={panelsSlide({
+        key: "overview:forecast-heading",
+        title: "Where the forecast is heading",
+        text: forecastDrift(vintages, year),
+        // The card's bars: each release's forecast, the latest in blue.
+        panels: [
+          {
+            rows: vintages.map((v) => ({
+              title: v.vintage,
+              value: bn(v.value, 1),
+              bar: { share: v.value / Math.max(...vintages.map((x) => x.value)), color: v.vintage === last?.vintage ? VIZ.arrow : VIZ.other },
+            })),
+          },
+        ],
+        source: "WSTS forecast releases",
+      })}
     >
       <Bars items={vintages.map((v) => ({ label: v.vintage, value: v.value }))} highlight={last?.vintage} />
     </Panel>
@@ -287,6 +352,24 @@ export function RegionsCard({ tam, vintage }: { tam: TamSummary; vintage: string
       subtitle={`${tam.latestYear} sales by region, and growth on ${tam.latestYear - 1}`}
       actions={<Chip>{vintage}</Chip>}
       footer={<SourceLine source={vintage} />}
+      deck={panelsSlide({
+        key: "overview:where-the-sales-are",
+        title: "Where the sales are",
+        text: `${tam.latestYear} sales by region, and growth on ${tam.latestYear - 1}.`,
+        // The card's bars: each region's sales and growth.
+        panels: [
+          {
+            rows: rows.map((r) => ({
+              title: REGION_LABEL[r.region],
+              value: bn(r.usdM, 1),
+              change: formatGrowth(r.yoy),
+              tone: toneOf(r.yoy, true),
+              bar: { share: r.usdM / rows[0].usdM, color: VIZ.other },
+            })),
+          },
+        ],
+        source: vintage,
+      })}
     >
       <Bars items={rows.map((r) => ({ label: REGION_LABEL[r.region], value: r.usdM, note: <Delta value={r.yoy} neutral /> }))} />
     </Panel>

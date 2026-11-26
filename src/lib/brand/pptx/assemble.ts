@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import JSZip from "jszip";
 import PptxGenJS from "pptxgenjs";
+import * as XLSX from "xlsx";
 import { plainDashes } from "@/lib/ai/dashes";
 import catalogJson from "@/lib/brand/template/catalog.json";
 import type { Catalog, Layout } from "@/lib/brand/template/read";
@@ -64,7 +65,7 @@ const CT = {
 };
 
 function runXml(r: Run): string {
-  const attrs = [`lang="en-US"`, r.size ? `sz="${Math.round(r.size * 100)}"` : "", r.bold ? `b="1"` : "", r.italic ? `i="1"` : "", `dirty="0"`].filter(Boolean).join(" ");
+  const attrs = [`lang="en-US"`, r.size ? `sz="${Math.round(r.size * 100)}"` : "", r.bold ? `b="1"` : r.bold === false ? `b="0"` : "", r.italic ? `i="1"` : "", `dirty="0"`].filter(Boolean).join(" ");
   const fill = r.color ? `<a:solidFill><a:srgbClr val="${r.color}"/></a:solidFill>` : "";
   return `<a:r><a:rPr ${attrs}>${fill}</a:rPr><a:t>${esc(plainDashes(r.text))}</a:t></a:r>`;
 }
@@ -134,6 +135,44 @@ async function drawScratch(slides: TemplateSlide[]): Promise<{ zip: JSZip; drawn
     }),
   );
   return { zip, drawn };
+}
+
+/* ---------- Chart workbooks ---------- */
+
+const cacheValues = (xml: string) => [...xml.matchAll(/<c:pt idx="(\d+)">\s*<c:v>([\s\S]*?)<\/c:v>/g)].map((m) => ({ i: Number(m[1]), v: m[2] }));
+const unescape = (v: string) => v.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+
+/**
+ * The workbook behind a chart, rebuilt from the chart's own cached values.
+ * pptxgenjs embeds a workbook that PowerPoint, Keynote and Quick Look can't
+ * read, and they drop the chart with it. This one is laid out where the
+ * chart's references point: series names across row 1 from B1, categories down
+ * column A from A2, each series' values in its column.
+ */
+export function chartWorkbook(chartXml: string): Uint8Array {
+  const series = [...chartXml.matchAll(/<c:ser>([\s\S]*?)<\/c:ser>/g)].map((m) => {
+    const ser = m[1];
+    const name = cacheValues(ser.match(/<c:tx>([\s\S]*?)<\/c:tx>/)?.[1] ?? "")[0]?.v ?? "";
+    const cats = cacheValues(ser.match(/<c:cat>([\s\S]*?)<\/c:cat>/)?.[1] ?? "");
+    const vals = cacheValues(ser.match(/<c:val>([\s\S]*?)<\/c:val>/)?.[1] ?? "");
+    return { name: unescape(name), cats, vals };
+  });
+  const cats = series[0]?.cats ?? [];
+  const rows: (string | number | null)[][] = [["", ...series.map((x) => x.name)]];
+  const count = Math.max(cats.length, ...series.map((x) => x.vals.length), 0);
+  for (let r = 0; r < count; r++) {
+    const label = cats.find((c) => c.i === r)?.v;
+    rows.push([
+      label === undefined ? "" : unescape(label),
+      ...series.map((x) => {
+        const v = x.vals.find((p) => p.i === r)?.v;
+        return v === undefined || v === "" ? null : Number(v);
+      }),
+    ]);
+  }
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(rows), "Sheet1");
+  return new Uint8Array(XLSX.write(book, { type: "buffer", bookType: "xlsx" }) as Buffer);
 }
 
 /* ---------- Assembly ---------- */
@@ -222,7 +261,8 @@ export async function buildFromTemplate(slides: TemplateSlide[], meta: { title: 
           let outRels = cRels;
           for (const m of cRels.matchAll(/Target="\.\.\/embeddings\/([^"]+)"/g)) {
             const book = `Microsoft_Excel_Worksheet${chartN}.xlsx`;
-            zip.file(`ppt/embeddings/${book}`, await scratch.file(`ppt/embeddings/${m[1]}`)!.async("uint8array"));
+            // A readable workbook from the chart's own values, in place of the one pptxgenjs embeds.
+            zip.file(`ppt/embeddings/${book}`, chartWorkbook(chartXml));
             outRels = outRels.replace(m[0], `Target="../embeddings/${book}"`);
           }
           zip.file(`ppt/charts/_rels/${name}.rels`, outRels);

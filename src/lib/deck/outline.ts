@@ -404,14 +404,103 @@ export const PRIMER_SEGMENT: Record<string, string> = {
 
 /* ---------- Previews ---------- */
 
+/** A change's colour: good green, bad red, neutral grey (flat), plain black (a change that is neither good nor bad). */
+export type PanelTone = "good" | "bad" | "neutral" | "plain";
+
+/** One row down a panel: a label with its value, and under it what the page shows under it. */
+export interface PanelRow {
+  title: string;
+  /** The label as a card title (bold) rather than body text. */
+  strong?: boolean;
+  /** Right-aligned beside the label: the value (large as a figure), a grey note such as its share, and its change and period. */
+  value?: string;
+  large?: boolean;
+  note?: string;
+  change?: string;
+  tone?: PanelTone;
+  period?: string;
+  /** A bar under the row, 0 to 1 of the panel's width. */
+  bar?: { share: number; color: string };
+  /** Values with a colour marker in a line: "Avnet 10.4%", "Arrow 11.3%"; the strong one bold, the rest grey. */
+  markers?: { text: string; color: string; strong?: boolean }[];
+  /** A sentence under it. */
+  text?: string;
+  /** A small grey line under the bar. */
+  caption?: string;
+  /** A small line chart on the right: a line per series, drawn in order (the last on top). */
+  lines?: { values: (number | null)[]; color: string; width?: number }[];
+}
+
+/**
+ * A table cell: text; text in bold (the leader), grey (a year ago) or after a colour marker;
+ * a change with its arrow, in its tone; or a small bar chart (eight quarters of growth).
+ */
+export type PanelCell =
+  | string
+  | { text: string; bold?: boolean; muted?: boolean; marker?: string }
+  | { change: string; tone?: PanelTone; period?: string }
+  | { spark: (number | null)[]; color?: string };
+
+
+/** One column of a panels slide. */
+export interface Panel {
+  /** Its name, as a card title: "Distributors". */
+  title?: string;
+  /** A colour marker before the title: Avnet's green, Arrow's blue. */
+  marker?: string;
+  /** Or a small capitals label: "TAM, total market". */
+  kicker?: string;
+  /** A short tag in the corner, as a pill: "WSTS Autumn 2025", or "Mock" with mock set (a dashed yellow outline). */
+  tag?: string;
+  tagMock?: boolean;
+  /** One line under the title: "Electronic components distribution. 6 of 6 reported". */
+  detail?: string;
+  /** A large figure and the line under it, which may end in a change: "World semiconductor sales, +22.5% on 2024". */
+  figure?: { value: string; note?: string; change?: string; tone?: PanelTone; period?: string };
+  /**
+   * Measures, each under a hairline: a label in capitals, the value, and its change
+   * ("+1.2 pts", with its arrow drawn from the sign) and the period it is on, muted.
+   */
+  metrics?: { label: string; value: string; change?: string; tone?: PanelTone; period?: string; large?: boolean }[];
+  /** A share bar, 0 to 1, with the line under it. Avnet Green only for Avnet. */
+  bar?: { share: number; color: string; label?: string };
+  /** Short entries with a colour marker: Avnet and Arrow within the distributors. */
+  notes?: { title: string; value?: string; text?: string; marker?: string }[];
+  notesLabel?: string;
+  /** A chevron on the divider to its right, as the funnel draws between its steps. */
+  next?: boolean;
+  /** A lead sentence in larger type, under the title. */
+  lede?: string;
+  /** Paragraphs, each opening with a bold label: "Demand: Orders picked up in Asia." */
+  paragraphs?: { lead?: string; text: string }[];
+  /** Rows down the panel; with rowRules, a hairline between them. */
+  rows?: PanelRow[];
+  rowRules?: boolean;
+  /**
+   * A table as the page draws its tables: column heads in small capitals on a grey band, a hairline
+   * under each row, the first column left and the rest right. A row's label can carry a colour marker.
+   */
+  table?: { columns: string[]; rows: { label: string; marker?: string; cells: PanelCell[] }[] };
+  /** Small columns over periods, each labelled under and its value over it: the hyperscalers' capex by quarter. */
+  bars?: { labels: string[]; values: (number | null)[]; valueLabels?: string[]; color: string };
+  /** Names and values in a grid of three: each hyperscaler's capex growth. */
+  pairs?: { label: string; value: string }[];
+  /** A small bar chart along the foot, the last bar darker: the last eight quarters. */
+  spark?: { label: string; values: number[]; color?: string };
+}
+
 /** What a slide shows: a headline, a sentence, its figures, and where they came from. */
 export type SeriesWho = "avnet" | "arrow" | "company" | "market";
 
 export interface Chart {
   /** bar: horizontal bars (a comparison); column: bars over time; line: a rate over time. */
   kind: "bar" | "column" | "line";
-  format: "usd" | "pct";
-  series: { name: string; who: SeriesWho; points: { label: string; value: number }[] }[];
+  /** usd: dollars; pct: a share or rate; days: a count of days; eps: dollars and cents per share; number: an index or count. */
+  format: "usd" | "pct" | "days" | "eps" | "number";
+  /** What it measures, with the unit where the name doesn't carry it: "Gross margin, % of revenue". */
+  title?: string;
+  /** `color` (a #RRGGBB hex) is the series' colour in the view it came from; without it, `who` picks one. */
+  series: { name: string; who: SeriesWho; color?: string; points: { label: string; value: number }[] }[];
 }
 
 export interface Preview {
@@ -426,6 +515,12 @@ export interface Preview {
   lines?: string[];
   /** Side-by-side lists, each with its heading: talking points beside questions to ask. */
   groups?: { title: string; lines: string[] }[];
+  /**
+   * Side-by-side panels, drawn as the page draws them: the supply chain's stages,
+   * the TAM, SAM and SOM funnel. Each is a column of text, figures, an optional
+   * share bar, notes and a small bar chart along its foot.
+   */
+  panels?: Panel[];
   /** Text Claude wrote earlier and the app cached. */
   claude?: { label: string; date?: string };
   source: string;

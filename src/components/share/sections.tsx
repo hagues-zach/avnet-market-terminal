@@ -14,6 +14,7 @@ import { HookupMarker } from "@/components/ui/hookup-marker";
 import { EmptyState, ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { ShareBreakdown } from "./breakdown";
 import { LabelledLines } from "./line-chart";
+import { panelsSlide, seriesSlide } from "@/lib/deck/slides";
 
 // Avnet's own share figures are MOCK until billings and the code map are hooked
 // up. The Avnet against Arrow and growth comparisons are live SEC data, kept in
@@ -102,6 +103,18 @@ export async function TrendCard() {
       actions={<DataChip status={m.status} />}
       footer={<SourceLine source="Avnet billings ÷ mapped market size" asOf={m.shareTrend[m.shareTrend.length - 1].label} />}
       bodyClassName="flex flex-col"
+      deck={seriesSlide({
+        key: "share:over-time",
+        title: "Avnet's share over time",
+        text: `${latestTrend >= yearAgoTrend ? "Up" : "Down"} ${pts(latestTrend - yearAgoTrend)} on a year ago, across all mapped segments.`,
+        unit: "pct",
+        kind: "line",
+        periods: data.map((d) => d.label),
+        series: [{ name: "Avnet", values: data.map((d) => d.share) }],
+        chartTitle: "Avnet share of the mapped market, %",
+        source: "Avnet billings divided by mapped market size",
+        hookups: ["billings", "wsts", "tam-sam-som", "code-map"],
+      })}
     >
       {/* Fills the height the white-space list beside it sets; the absolute box keeps the chart out of that sizing. */}
       <div className="relative min-h-52 flex-1">
@@ -123,6 +136,24 @@ export async function WhiteSpaceCard() {
       title="White space"
       subtitle="Large markets where Avnet's share is under 5%"
       actions={<DataChip status={m.status} />}
+      deck={panelsSlide({
+        key: "share:white-space",
+        title: "White space: large markets where Avnet's share is under 5%",
+        trayTitle: "White space",
+        // The card's bars: each market's size and Avnet's share of it.
+        panels: [
+          {
+            rows: items.map((s) => ({
+              title: s.segment,
+              value: `$${s.tam}B market,`,
+              note: `${(s.share * 100).toFixed(1)}% share`,
+              bar: { share: s.tam / max, color: VIZ.other },
+            })),
+          },
+        ],
+        source: "TAM, SAM and SOM and the code map",
+        hookups: ["billings", "wsts", "tam-sam-som", "code-map"],
+      })}
       footer={
         <SourceLine source="TAM / SAM / SOM and the code map">
           <Link href="/tam" className="ml-auto text-ink underline-offset-2 hover:underline">
@@ -197,7 +228,7 @@ export async function ArrowCard() {
   const share = peerShare(avnet, arrow);
   if (avnet.error || arrow.error) {
     return (
-      <Panel title="Avnet against Arrow">
+      <Panel title="Avnet against Arrow" deck={null}>
         <ErrorState title="Couldn't load Avnet's or Arrow's filings" source="SEC EDGAR" detail="Try again in a few minutes." />
       </Panel>
     );
@@ -214,6 +245,26 @@ export async function ArrowCard() {
         : undefined
     }
     actions={<DataChip status="live" label="SEC EDGAR" />}
+    deck={
+      share.length > 1
+        ? seriesSlide({
+            key: "share:avnet-against-arrow",
+            title: "Avnet's part of Avnet and Arrow's combined revenue",
+            trayTitle: "Avnet against Arrow, share of combined revenue",
+            text: last ? `Avnet's part is ${(last.avnet * 100).toFixed(1)}%, ${move >= 0 ? "up" : "down"} ${pts(move)} over ${share.length} quarters.` : undefined,
+            unit: "pct",
+            kind: "line",
+            periods: share.map((p) => shortQuarter(p.label)),
+            series: [
+              { name: "Avnet", values: share.map((p) => p.avnet) },
+              { name: "Arrow", values: share.map((p) => p.arrow) },
+            ],
+            chartTitle: "Share of combined revenue, %",
+            source: "10-Q and 10-K revenue",
+            period: last ? fullQuarter(last.label) : undefined,
+          })
+        : null
+    }
     footer={
       <SourceLine source="10-Q and 10-K revenue" asOf={last ? fullQuarter(last.label) : undefined}>
         <Link href="/network/arrow" className="ml-auto text-ink underline-offset-2 hover:underline">
@@ -246,7 +297,7 @@ export async function GrowthCard() {
     points = growthAgainstMakers(avnet, cycle);
   } catch {
     return (
-    <Panel title="Growth against component makers">
+    <Panel title="Growth against component makers" deck={null}>
       <ErrorState title="Couldn't load the cycle data" source="SEC EDGAR" detail="Try again in a few minutes." />
     </Panel>
     );
@@ -262,6 +313,25 @@ export async function GrowthCard() {
     }
     actions={<DataChip status="live" label="SEC EDGAR" />}
     footer={<SourceLine source={`Avnet and ${MAKERS} component makers' reported revenue`} asOf={gap ? fullQuarter(gap.label) : undefined} />}
+    deck={
+      points.some((p) => p.avnet !== undefined)
+        ? seriesSlide({
+            key: "share:growth-against-makers",
+            title: "Avnet's growth against the component makers",
+            text: gap ? `Avnet ${gap.gap >= 0 ? "grew faster than" : "grew slower than"} the makers it sells by ${pts(gap.gap)} in ${shortQuarter(gap.label)}.` : undefined,
+            unit: "pct",
+            kind: "line",
+            periods: points.map((p) => shortQuarter(p.label)),
+            series: [
+              { name: "Avnet", values: points.map((p) => p.avnet) },
+              { name: "Component makers", color: VIZ.benchmark, values: points.map((p) => p.makers) },
+            ],
+            chartTitle: "Revenue growth on a year ago, %",
+            source: `Avnet and ${MAKERS} component makers' reported revenue`,
+            period: gap ? fullQuarter(gap.label) : undefined,
+          })
+        : null
+    }
     >
     {points.some((p) => p.avnet !== undefined) ? (
       <div className="h-56">
@@ -283,7 +353,7 @@ export async function GrowthCard() {
 
 export function CardFallback({ title }: { title: string }) {
   return (
-    <Panel title={title}>
+    <Panel title={title} deck={null}>
     <LoadingBlock label={`Loading ${title.toLowerCase()}…`} lines={6} />
     </Panel>
   );

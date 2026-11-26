@@ -71,11 +71,50 @@ const slides: DeckSlide[] = [
     },
   },
   {
+    mock: false,
+    preview: {
+      headline: "The chain, from customers back to equipment",
+      panels: [
+        {
+          title: "Distributors",
+          detail: "Electronic components distribution. 6 of 6 reported",
+          metrics: [
+            { label: "Revenue growth YoY", value: "+18.1%", change: "+4.0 pts", tone: "good", period: "on prior qtr", large: true },
+            { label: "Inventory days", value: "77", change: "\u221216d", tone: "good", period: "YoY" },
+          ],
+          notes: [{ title: "Avnet", value: "+47.7%", text: "Inventory 77 days (\u221216d YoY), margin 4.4%", marker: "#41C363" }],
+          spark: { label: "Growth, last 8 quarters", values: [-0.1, -0.05, 0.02, 0.18] },
+        },
+        { kicker: "SOM, Avnet", tag: "Mock", tagMock: true, figure: { value: "$16.4B", note: "Avnet billings" }, bar: { share: 0.118, color: "#41C363", label: "11.8% of SAM" } },
+        {
+          title: "By WSTS category",
+          rowRules: true,
+          rows: [
+            {
+              title: "Gross margin",
+              strong: true,
+              markers: [{ text: "Avnet 10.4%", color: "#41C363", strong: true }, { text: "Arrow 11.3%", color: "#4273B8" }],
+              text: "Avnet's gross margin is lower.",
+              lines: [{ values: [1, 3, 2, null, 4], color: "#4273B8" }, { values: [2, 1, 3, 4, 5], color: "#41C363", width: 2 }],
+            },
+          ],
+          table: { columns: ["Category", "Sales", "Growth"], rows: [{ label: "Logic", cells: ["$295.9B", { change: "+39.9%", tone: "plain" }] }] },
+          bars: { labels: ["Q1", "Q2"], values: [1, 2], valueLabels: ["$1B", "$2B"], color: "#919191" },
+          pairs: [{ label: "Microsoft", value: "+103.0%" }],
+        },
+      ],
+      source: "SEC filings",
+    },
+  },
+  {
     kind: "sources",
     mock: false,
     preview: { headline: "Sources", lines: ["Company at a glance: SEC filings, Q2 2026", "Avnet's business: Mock model of Avnet (mock data)"], source: "This deck" },
   },
 ];
+
+const texts0 = (xml: string) => [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join(" ");
+const slideParts0 = (list: string[]) => list.filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p)).sort((a, b) => Number(a.match(/\d+/)![0]) - Number(b.match(/\d+/)![0]));
 
 const dir = mkdtempSync(path.join(tmpdir(), "deck-test-"));
 try {
@@ -99,11 +138,26 @@ try {
     };
     assert.deepEqual(
       slides.map((_, i) => layoutName(i + 1)),
-      ["Cover - Full Image - 1 Line", "Title and Subhead - 1 Line", "Title and Subhead - 2 Line", "Title and Subhead - 1 Line", "2 Column - 1 Line", "Basic - 1 Line"],
+      ["Cover - Full Image - 1 Line", "Title and Subhead - 1 Line", "2-Line Title", "Title and Subhead - 1 Line", "2 Column - 1 Line", "1 Line - Title", "Basic - 1 Line"],
     );
     assert.equal(layoutName(slides.length + 1), "Closing");
+    // A chart with key figures beside it: the side panel's figures are written, and its title is the comparison's.
+    assert.match(texts0(read(slideParts0(list)[1])), /KEY FIGURES[\s\S]*\$1\.48B/, "the key figures beside the chart");
+    assert.match(texts0(read(slideParts0(list)[2])), /Revenue growth on a year ago/, "a comparison chart is titled by what it measures");
     assert.match(read("ppt/slides/slide2.xml"), /<p:ph type="title"\/>[\s\S]*?Microchip grew 38\.0%/, "headlines fill the title placeholder");
     assert.ok(!list.some((p) => /slideLayout(9|42|65|102)\.xml$/.test(p)), "no slash pattern layouts");
+    // Panels are native shapes and text, as the page draws them: no picture, no chart.
+    const panelsXml = read(slideParts0(list)[5]);
+    const panelsText = texts0(panelsXml);
+    for (const want of ["Distributors", "REVENUE GROWTH YOY", "+18.1%", "\u2191 +4.0 pts", "on prior qtr", "\u2193 \u221216d", "Inventory 77 days", "GROWTH, LAST 8 QUARTERS", "SOM, AVNET", "$16.4B", "11.8% of SAM", "Mock"])
+      assert.ok(panelsText.includes(want), `the panels slide shows ${want}: ${panelsText}`);
+    assert.ok(!/<p:pic>|<c:chart/.test(panelsXml), "panels drawn natively");
+    for (const want of ["Gross margin", "Avnet 10.4%", "Avnet&apos;s gross margin is lower.", "CATEGORY", "Logic", "\u2191 +39.9%", "$2B", "Q2", "Microsoft", "+103.0%"])
+      assert.ok(panelsText.includes(want), `the panels slide shows ${want}`);
+    assert.ok((panelsXml.match(/prst="line"/g) ?? []).length >= 7, "the row's line chart as native strokes");
+    assert.match(panelsXml, /flipV="1"/, "rising strokes flipped");
+    assert.match(panelsXml, /prst="roundRect"[\s\S]*?prstDash val="dash"/, "the Mock tag a dashed pill");
+    assert.ok((panelsXml.match(/prst="rect"/g) ?? []).length >= 6, "the spark's bars, the share bar and the marker");
 
     const text = (xml: string) => [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((m) => m[1]).join(" ");
     const texts = slideParts.slice(0, slides.length).map((p) => text(read(p)));

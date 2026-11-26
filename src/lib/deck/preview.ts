@@ -347,6 +347,21 @@ export async function previewsFor(s: Start, { writeTalking = true } = {}): Promi
   return Object.fromEntries(done);
 }
 
+/**
+ * One slide's preview on its own, for Add to deck. Undefined when this start
+ * can't make it. Talking points are only read from what's saved, never written here.
+ */
+export async function previewFor(id: SlideId, s: Start): Promise<Preview | undefined> {
+  if (!available(id, s)) return undefined;
+  let companyAnswer: Promise<Answer> | undefined;
+  const company = () => (companyAnswer ??= answer(`How is ${s.company!.name} doing?`));
+  try {
+    return await build(id, s, company, false);
+  } catch {
+    return failed(id);
+  }
+}
+
 /** The talking points slide on its own, written by Claude on a miss; undefined when the deck has no such slide. */
 export function talkingPreview(s: Start): Promise<Preview> | undefined {
   if (!available("talking", s)) return undefined;

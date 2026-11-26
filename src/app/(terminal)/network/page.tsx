@@ -1,8 +1,9 @@
 import { Suspense } from "react";
+import { tableSlide } from "@/lib/deck/slides";
 import Link from "next/link";
 import { getPeerRows } from "@/lib/data/live/earnings";
 import { getEarningsCalendar } from "@/lib/data/live/earnings-calendar";
-import { COHORT_LABELS, COMPANIES, ROLES, ROLE_LABELS, comparability, comparableValue, isUsFiler, roleOf, type Role } from "@/lib/data/live/earnings-model";
+import { COHORT_LABELS, COMPANIES, ROLES, ROLE_LABELS, ROLE_SINGULAR, comparability, comparableValue, isUsFiler, roleOf, type Role } from "@/lib/data/live/earnings-model";
 import { PRIVATE_COMPANIES } from "@/lib/data/live/private-companies";
 import { CaveatMark } from "@/components/ui/caveat-mark";
 import { BetaChip } from "@/components/ui/chip";
@@ -37,6 +38,22 @@ async function Directory({ role }: { role: Role | "all" }) {
       title="Companies"
       subtitle={`${shown.length + unlisted.length} companies, largest first, each with its most recent reported period`}
       bodyClassName="p-0 pt-3"
+      deck={tableSlide({
+        key: `network:companies-${role}`,
+        title: role === "all" ? "The companies around Avnet" : `${ROLE_LABELS[role]} around Avnet`,
+        text: `${shown.length + unlisted.length} companies, largest first; the slide shows the largest sixteen, each on its most recent reported period.`,
+        columns: ["Company", "Relationship", "Period", "Revenue", "Growth YoY"],
+        rows: shown.map((r) => ({
+          label: r.company.name,
+          values: [
+            ROLE_SINGULAR[roleOf(r.company)],
+            r.latest?.fiscalLabel ?? NA,
+            r.latest?.values.revenue === undefined ? NA : format("usd", r.latest.values.revenue),
+            r.latest?.values.revenueYoY === undefined ? NA : format("growth", r.latest.values.revenueYoY),
+          ],
+        })),
+        source: "SEC filings, GAAP as reported",
+      })}
     >
       <div className="overflow-x-auto" role="region" aria-label="Companies" tabIndex={0}>
         <table className="w-full min-w-[820px] border-collapse font-body text-table">
@@ -134,7 +151,7 @@ async function Directory({ role }: { role: Role | "all" }) {
 
 function DirectoryFallback() {
   return (
-    <Panel title="Companies" subtitle="Reading each company's filings from SEC EDGAR. The first load after a restart can take a minute.">
+    <Panel title="Companies" subtitle="Reading each company's filings from SEC EDGAR. The first load after a restart can take a minute." deck={null}>
       <LoadingBlock label="Loading the company directory…" lines={8} />
     </Panel>
   );

@@ -4,6 +4,8 @@ import { groupMedian, groupOf } from "@/lib/earnings/season";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { GroupPicker } from "./group-picker";
 import { GroupTable, type GroupRow } from "./group-table";
+import { format } from "./format";
+import { tableSlide } from "@/lib/deck/slides";
 
 const MEDIAN_METRICS = ["revenueYoY", "grossMargin", "operatingMargin", "inventoryDays", "fcfMargin"] as const;
 const CAVEAT_METRICS = ["revenue", "revenueYoY", "grossMargin", "operatingMargin", "inventoryDays", "fcfMargin"] as const;
@@ -32,6 +34,30 @@ export async function peerRows(group: Cohort | "all"): Promise<{ rows: GroupRow[
   return { rows, median };
 }
 
+/** The slide a peer table makes: the largest sixteen companies by revenue, each on its latest quarter. */
+export function peersSlide(key: string, title: string, rows: GroupRow[], median: Partial<Record<keyof Quarter["values"], number>>) {
+  return tableSlide({
+    key,
+    title,
+    text: `Each company on its most recent filed quarter, largest first. Median revenue growth ${format("growth", median.revenueYoY)}, operating margin ${format("pct", median.operatingMargin)}.`,
+    columns: ["Company", "Quarter", "Revenue", "Growth YoY", "Gross margin", "Op margin", "Inv days"],
+    rows: [...rows]
+      .sort((a, b) => (b.latest?.values.revenue ?? -Infinity) - (a.latest?.values.revenue ?? -Infinity))
+      .map((r) => ({
+        label: r.name,
+        values: [
+          r.latest?.fiscalLabel ?? "n/a",
+          format("usd", r.latest?.values.revenue),
+          format("growth", r.latest?.values.revenueYoY),
+          format("pct", r.latest?.values.grossMargin),
+          format("pct", r.latest?.values.operatingMargin),
+          format("days", r.latest?.values.inventoryDays),
+        ],
+      })),
+    source: "SEC filings, GAAP as reported",
+  });
+}
+
 /** The profile's Peers section: the company against its group (or another, or all), each on its latest filed quarter. */
 export async function PeerSection({ company, own, group }: { company: string; own: Cohort; group: Cohort | "all" }) {
   const { rows, median } = await peerRows(group);
@@ -42,6 +68,7 @@ export async function PeerSection({ company, own, group }: { company: string; ow
       actions={<GroupPicker own={own} group={group} />}
       bodyClassName="p-0"
       footer={<SourceLine source="SEC filings, GAAP as reported" />}
+      deck={peersSlide(`profile:${company}:peers-${group}`, group === "all" ? "Every company, latest quarter" : `${COHORT_LABELS[group]}, latest quarter`, rows, median)}
     >
       <GroupTable rows={rows} current={company} showGroup={group === "all"} median={median} />
     </Panel>

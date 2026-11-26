@@ -5,6 +5,8 @@ import type { Topic, TopicFacet } from "@/lib/news/briefing";
 import { Panel } from "@/components/ui/panel";
 import { Segmented } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/states";
+import { panelsSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 
 const LIMIT = 6;
@@ -31,6 +33,19 @@ export function Topics({
       title="Topics this week"
       subtitle="Stories in the last 7 days. Select one to filter the feed"
       className="xl:col-span-4"
+      deck={
+        list.length
+          ? panelsSlide({
+              key: `news:topics-${facet}`,
+              title: `What the news is about this week, by ${facet === "segments" ? "segment" : "end market"}`,
+              trayTitle: "Topics this week",
+              text: "Stories in the last 7 days.",
+              // The card's bars: each topic's story count.
+              panels: [{ rows: list.map((t) => ({ title: t.name, value: String(t.count), bar: { share: t.count / max, color: VIZ.benchmark } })) }],
+              source: "Market News feeds",
+            })
+          : null
+      }
       actions={
         <Segmented
           label="Group topics by"

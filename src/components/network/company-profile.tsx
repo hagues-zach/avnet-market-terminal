@@ -29,6 +29,7 @@ import { BetaChip, Chip, DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { EmptyState, LoadingBlock } from "@/components/ui/states";
 import { RevenueSwitch } from "./revenue-switch";
+import { figuresSlide, linesSlide, tableSlide } from "@/lib/deck/slides";
 import { format, longDate } from "@/components/earnings/format";
 
 const DAY = 86_400_000;
@@ -169,7 +170,22 @@ export async function ProfileKeyFacts({ company }: { company: Company }) {
     { label: "Cohort", value: COHORT_LABELS[company.cohort] },
   ];
   return (
-    <Panel title="Key facts">
+    <Panel
+      title="Key facts"
+      deck={tableSlide({
+        key: `profile:${company.slug}:key-facts`,
+        title: `${company.name}: key facts`,
+        columns: [],
+        rows: [
+          { label: "Next earnings", values: [next ? `${next.status === "due" ? "Expected around " : ""}${longDate(next.date)} (estimate)` : "Not known"] },
+          { label: "Latest filing", values: [filing ? `${filing.form}, ${longDate(filing.filed)}` : "Not found"] },
+          ...(q ? [{ label: company.cadence === "half" ? "Latest half" : "Latest quarter", values: [`${q.fiscalLabel}, ended ${longDate(q.end)}`] }] : []),
+          { label: "Role", values: [ROLE_SINGULAR[roleOf(company)]] },
+          { label: "Cohort", values: [COHORT_LABELS[company.cohort]] },
+        ],
+        source: sourceOf(company).filings,
+      })}
+    >
       <dl className="divide-y divide-hairline">
         {rows.map((r) => (
           <div key={r.label} className="grid grid-cols-[7rem_1fr] gap-3 py-2 first:pt-0 last:pb-0">
@@ -191,7 +207,7 @@ export async function ProfileOverview({ company }: { company: Company }) {
   const q = quarters[quarters.length - 1];
   if (!q) {
     return (
-      <Panel title="Overview">
+      <Panel title="Overview" deck={null}>
         <EmptyState title={`${company.name}'s figures couldn't be loaded from ${sourceOf(company).short} right now.`} body={earnings.error} />
       </Panel>
     );
@@ -231,9 +247,19 @@ export async function ProfileOverview({ company }: { company: Company }) {
           delta={invDelta === undefined || invDelta === 0 ? undefined : { value: invDelta, display: `${Math.abs(invDelta)}`, period: "YoY", invert: true }}
         />
       </div>
-      <RevenueSwitch quarters={quarters} color={color} footer={footer} period={company.cadence === "half" ? "half" : "quarter"} />
+      <RevenueSwitch quarters={quarters} color={color} footer={footer} period={company.cadence === "half" ? "half" : "quarter"} company={{ slug: company.slug, name: company.name }} />
       {lines.length > 0 && (
-        <Panel title="In brief" subtitle="Plain facts from the filings, for opening a conversation">
+        <Panel
+          title="In brief"
+          subtitle="Plain facts from the filings, for opening a conversation"
+          deck={linesSlide({
+            key: `profile:${company.slug}:in-brief`,
+            title: `${company.name} in brief`,
+            text: "Plain facts from the filings, for opening a conversation.",
+            lines,
+            source: sourceOf(company).filings,
+          })}
+        >
           <ul className="list-disc space-y-1 pl-5 text-body text-ink marker:text-ink-muted">
             {lines.map((line) => (
               <li key={line}>{line}</li>
@@ -254,7 +280,17 @@ export async function ProfileInBrief({ company }: { company: Company }) {
   const lines = earnings.quarters.length ? glance(earnings, mix) : [];
   if (!lines.length) return null;
   return (
-    <Panel title="In brief" subtitle="Plain facts from the filings, for opening a conversation">
+    <Panel
+      title="In brief"
+      subtitle="Plain facts from the filings, for opening a conversation"
+      deck={linesSlide({
+        key: `profile:${company.slug}:in-brief`,
+        title: `${company.name} in brief`,
+        text: "Plain facts from the filings, for opening a conversation.",
+        lines,
+        source: sourceOf(company).filings,
+      })}
+    >
       <ul className="list-disc space-y-1 pl-5 text-body text-ink marker:text-ink-muted">
         {lines.map((line) => (
           <li key={line}>{line}</li>
@@ -285,6 +321,18 @@ export async function ProfileCommentary({ company }: { company: Company }) {
       title="Management commentary"
       subtitle={c.filed ? `From the earnings press release filed ${longDate(c.filed)}` : "From the latest earnings press release"}
       actions={c.digest ? <Chip>Written by Claude</Chip> : undefined}
+      deck={
+        c.digest
+          ? linesSlide({
+              key: `profile:${company.slug}:commentary`,
+              title: `What ${company.name}'s management said`,
+              text: c.digest.headline,
+              lines: [...covered.map((t) => `${t.label}: ${c.digest![t.key]}`), ...c.digest.takeaways.map((t) => `To raise: ${t}`)],
+              source: c.filed ? `${company.name}'s earnings press release, filed ${longDate(c.filed)}` : `${company.name}'s latest earnings press release`,
+              claude: "Written by Claude from the press release",
+            })
+          : null
+      }
       footer={
         <>
           <span>
@@ -347,6 +395,18 @@ export async function ProfileDistribution({ company }: { company: Company }) {
     <Panel
       title="Distribution"
       subtitle={`${carriers.length} of ${tracked} tracked line cards list it`}
+      deck={
+        carriers.length
+          ? tableSlide({
+              key: `profile:${company.slug}:distribution`,
+              title: `Who carries ${company.name}`,
+              text: `${carriers.length} of ${tracked} tracked distributor line cards list ${company.name}. A listing isn't proof of a franchise agreement.`,
+              columns: ["Distributor", "Listed as of"],
+              rows: carriers.map((c) => ({ label: c.name, values: [longDate(c.date)] })),
+              source: "Distributor line cards",
+            })
+          : null
+      }
       footer={
         <>
           <span>
@@ -402,6 +462,16 @@ export async function ProfileNews({ company }: { company: Company }) {
     <Panel
       title="In the news"
       subtitle={`Stories and filings that name ${company.name}`}
+      deck={
+        articles.length
+          ? linesSlide({
+              key: `profile:${company.slug}:news`,
+              title: `${company.name} in the news`,
+              lines: articles.slice(0, 8).map((a) => `${a.title} (${a.outlet}, ${short(a.publishedAt)})`),
+              source: "Market News feed",
+            })
+          : null
+      }
       footer={
         <Link href="/news" className={`ml-auto ${linkClass}`}>
           Market News
@@ -454,7 +524,18 @@ export async function avnetBusiness(company: Company) {
 export async function ProfileAvnetBusiness({ company }: { company: Company }) {
   const { supplier, rows, hookups, status } = await avnetBusiness(company);
   return (
-    <Panel title="Avnet business" subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`} actions={<DataChip status={status} />}>
+    <Panel
+      title="Avnet business"
+      subtitle={supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`}
+      actions={<DataChip status={status} />}
+      deck={figuresSlide({
+        key: `profile:${company.slug}:avnet-business`,
+        title: supplier ? `${company.name} as a supplier to Avnet` : `${company.name} as an Avnet customer`,
+        figures: rows.map((r) => ({ label: r.label, value: r.value })),
+        source: status === "mock" ? "Mock model of Avnet" : "Avnet data",
+        hookups,
+      })}
+    >
       <dl className="divide-y divide-hairline">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline justify-between gap-3 py-2 first:pt-0">
@@ -472,7 +553,7 @@ export async function ProfileAvnetBusiness({ company }: { company: Company }) {
 
 export function ProfileFallback({ title }: { title: string }) {
   return (
-    <Panel title={title}>
+    <Panel title={title} deck={null}>
       <LoadingBlock label={`Loading ${title.toLowerCase()}…`} />
     </Panel>
   );

@@ -60,6 +60,8 @@ export interface ChartData {
   takeaways: Record<string, string | null>;
   source: string;
   asOf?: string;
+  /** The data hookups it reads (src/lib/hookups.ts), so a slide made from it can say it is mock. */
+  hookups?: string[];
 }
 
 const ORDER = [VIZ.arrow, VIZ.orange, VIZ.blueLight, VIZ.yellow] as const;

@@ -13,6 +13,7 @@ import { HookupMarker } from "@/components/ui/hookup-marker";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/ui/states";
 import { BillingsBookingsChart, BookToBillChart, Key, SegmentRevenueChart } from "./charts";
 import { RegionTable } from "./region-table";
+import { formatGrowth, panelsSlide, seriesSlide, tableSlide, toneOf } from "@/lib/deck/slides";
 
 // Avnet's own numbers come from src/lib/avnet (mock until AVNET_DATA points at
 // Avnet's tables). "What Avnet reports" is live SEC data, kept in its own section.
@@ -64,6 +65,22 @@ export async function DemandRow() {
           subtitle={`${quarter}: billings ${fmtM(latest.billings)}, bookings ${fmtM(latest.bookings)}, up ${Math.round(bookingsGrowth * 100)}% on a year ago`}
           actions={<Key items={[{ label: "Billings", color: VIZ.avnet }, { label: "Bookings", color: VIZ.avnet2 }]} />}
           footer={<SourceLine source="Avnet billings and bookings by fiscal quarter" asOf={quarter} />}
+          deck={seriesSlide({
+            key: "performance:billings-and-bookings",
+            title: "Avnet billings and bookings",
+            text: `${quarter}: billings ${fmtM(latest.billings)}, bookings ${fmtM(latest.bookings)}, up ${Math.round(bookingsGrowth * 100)}% on a year ago.`,
+            unit: "usd",
+            kind: "line",
+            periods: m.performance.map((p) => p.quarter),
+            series: [
+              { name: "Billings", color: VIZ.avnet, values: m.performance.map((p) => p.billings * 1e6) },
+              { name: "Bookings", color: VIZ.avnet2, values: m.performance.map((p) => p.bookings * 1e6) },
+            ],
+            chartTitle: "By fiscal quarter, $",
+            source: m.status === "mock" ? "Mock model of Avnet" : "Avnet billings and bookings",
+            period: quarter,
+            hookups: ["billings", "bookings"],
+          })}
         >
           <div className="h-64">
             <BillingsBookingsChart data={m.performance.map((p) => ({ quarter: p.quarter, billings: p.billings, bookings: p.bookings }))} />
@@ -74,6 +91,19 @@ export async function DemandRow() {
           title="Book-to-bill"
           subtitle={quartersAboveOne ? `Orders have run ahead of billings for ${quartersAboveOne} quarters` : "Orders are running behind billings"}
           footer={<SourceLine source="Bookings ÷ billings" asOf={quarter} />}
+          deck={seriesSlide({
+            key: "performance:book-to-bill",
+            title: "Avnet book-to-bill",
+            text: quartersAboveOne ? `Orders have run ahead of billings for ${quartersAboveOne} quarters.` : "Orders are running behind billings.",
+            unit: "number",
+            kind: "line",
+            periods: m.performance.map((p) => p.quarter),
+            series: [{ name: "Book-to-bill", color: VIZ.avnet, values: m.performance.map((p) => p.bookToBill) }],
+            chartTitle: "Bookings divided by billings",
+            source: m.status === "mock" ? "Mock model of Avnet" : "Avnet bookings and billings",
+            period: quarter,
+            hookups: ["billings", "bookings"],
+          })}
         >
           <div className="h-64">
             <BookToBillChart data={m.performance.map((p) => ({ quarter: p.quarter, bookToBill: p.bookToBill }))} />
@@ -99,6 +129,19 @@ export async function RegionCard() {
         subtitle={`${fastest.region} is growing fastest, ${Math.round(fastest.growth * 100)}% on a year ago`}
         bodyClassName="px-0 pb-0"
         footer={<SourceLine source="Avnet billings, bookings and backlog by region, in US dollars at constant rates" asOf={quarter} />}
+        deck={tableSlide({
+          key: "performance:by-region",
+          title: "Avnet by region",
+          text: `${fastest.region} is growing fastest, ${Math.round(fastest.growth * 100)}% on a year ago.`,
+          columns: ["Region", "Billings", "Share", "Growth YoY", "Book-to-bill", "Backlog"],
+          rows: rows.map((r) => ({
+            label: r.region,
+            values: [fmtM(r.billings), `${Math.round(r.share * 100)}%`, { change: formatGrowth(r.growth), tone: toneOf(r.growth) }, r.bookToBill.toFixed(2), fmtM(r.backlog)],
+          })),
+          source: m.status === "mock" ? "Mock model of Avnet" : "Avnet billings, bookings and backlog by region",
+          period: quarter,
+          hookups: ["billings", "bookings", "backlog", "fx-rates"],
+        })}
       >
         <RegionTable rows={rows} />
       </Panel>
@@ -143,6 +186,24 @@ export async function SupplierCard() {
       subtitle={`The top ${named.length} suppliers make up ${Math.round(topShare * 100)}% of billings. Names withheld in mock`}
       actions={<DataChip status={m.status} />}
       footer={<SourceLine source="Avnet billings by manufacturer, last 12 months" />}
+      deck={panelsSlide({
+        key: "performance:supplier-concentration",
+        title: "Avnet supplier concentration",
+        text: `The top ${named.length} suppliers make up ${Math.round(topShare * 100)}% of billings.`,
+        // The card's bars: each supplier's billings and growth, Avnet green, the remainder grey.
+        panels: [
+          {
+            rows: m.suppliers.map((x) => ({
+              title: x.name,
+              value: fmtM(x.billings),
+              ...(x.growth !== undefined && { change: formatGrowth(x.growth), tone: toneOf(x.growth), period: "YoY" }),
+              bar: { share: x.billings / Math.max(...m.suppliers.map((y) => y.billings)), color: x.revenue === 0 ? VIZ.other : VIZ.avnet },
+            })),
+          },
+        ],
+        source: m.status === "mock" ? "Mock model of Avnet; names withheld" : "Avnet billings by manufacturer",
+        hookups: ["billings"],
+      })}
     >
       <BarRows items={m.suppliers.map((s) => ({ label: s.name, value: s.billings, display: fmtM(s.billings), growth: s.growth, grey: s.revenue === 0 }))} />
     </Panel>
@@ -157,7 +218,7 @@ export async function ReportedCard() {
   const total = earnings.quarters.filter((q) => q.values.revenue !== undefined).slice(-8);
   if (!total.length) {
     return (
-      <Panel title="What Avnet reports">
+      <Panel title="What Avnet reports" deck={null}>
         <ErrorState title="Couldn't load Avnet's filings" source="SEC EDGAR" detail={earnings.error ?? "Try again in a few minutes."} />
       </Panel>
     );
@@ -187,6 +248,22 @@ export async function ReportedCard() {
       title="What Avnet reports"
       subtitle={`Reported revenue was ${fmtM(reported)} in ${last.fiscalLabel}. Mock billings above are ${Math.abs(Math.round(gap * 100))}% ${gap >= 0 ? "lower" : "higher"}`}
       actions={<DataChip status="live" label="SEC EDGAR" />}
+      deck={
+        data.length > 1
+          ? seriesSlide({
+              key: "performance:what-avnet-reports",
+              title: "What Avnet reports",
+              text: `Reported revenue was ${fmtM(reported)} in ${last.fiscalLabel}.`,
+              unit: "usd",
+              kind: "line",
+              periods: labels,
+              series: series.map((x) => ({ name: x.name === "Revenue" ? "Avnet revenue" : x.name, color: x.color, values: data.map((r) => (typeof r[x.key] === "number" ? (r[x.key] as number) * 1e6 : undefined)) })),
+              chartTitle: segments.length ? "Segment revenue, $" : "Revenue, $",
+              source: segments.length ? "Segment revenue, 10-Q and 10-K" : "Revenue, 10-Q and 10-K",
+              period: fullQuarter(last.calendarLabel),
+            })
+          : null
+      }
       footer={
         <SourceLine source={segments.length ? "Segment revenue, 10-Q and 10-K" : "Revenue, 10-Q and 10-K"} asOf={fullQuarter(last.calendarLabel)}>
           <Link href="/network/avnet" className="ml-auto text-ink underline-offset-2 hover:underline">
@@ -212,7 +289,7 @@ export async function ReportedCard() {
 
 export function ReportedFallback() {
   return (
-    <Panel title="What Avnet reports">
+    <Panel title="What Avnet reports" deck={null}>
       <LoadingBlock label="Loading Avnet's filings…" lines={6} />
     </Panel>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { linesSlide } from "@/lib/deck/slides";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { AuthorProfile } from "@/lib/news/authors";
 import { articleSlug, type LiveArticle } from "@/lib/data/live/shared";
@@ -41,7 +42,7 @@ export async function AuthorPanel({
 }) {
   const p = await profile;
   return (
-    <Panel title="About the author">
+    <Panel title="About the author" deck={null}>
       <p className="text-body font-semibold text-ink">{name}</p>
       <p className="text-caption text-ink-muted">{p?.title ? `${p.title}, ${outlet}` : outlet}</p>
       {p?.bio && <p className="mt-2 text-body-sm leading-relaxed text-ink">{p.bio}</p>}
@@ -71,7 +72,7 @@ export async function AuthorPanel({
 
 export function AuthorPanelFallback() {
   return (
-    <Panel title="About the author">
+    <Panel title="About the author" deck={null}>
       <LoadingBlock label="Looking up the author…" lines={3} />
     </Panel>
   );
@@ -81,7 +82,7 @@ export function TopicsPanel({ article }: { article: LiveArticle }) {
   const topics = [...new Set([...article.segments, ...article.endMarkets, ...article.regions])];
   if (!topics.length) return null;
   return (
-    <Panel title="Topics">
+    <Panel title="Topics" deck={null}>
       <div className="flex flex-wrap gap-1.5">
         {topics.map((t) => (
           <Chip key={t}>{t}</Chip>
@@ -94,7 +95,15 @@ export function TopicsPanel({ article }: { article: LiveArticle }) {
 export function MoreStoriesPanel({ stories, fetchedAt }: { stories: LiveArticle[]; fetchedAt: string }) {
   if (!stories.length) return null;
   return (
-    <Panel title="More stories">
+    <Panel
+      title="More stories"
+      deck={linesSlide({
+        key: `news:more-${stories[0].id}`,
+        title: "More stories",
+        lines: stories.slice(0, 10).map((a) => `${a.title} (${a.outlet})`),
+        source: "Market News feeds",
+      })}
+    >
       <ul className="space-y-3">
         {stories.map((a) => (
           <StoryLink key={a.id} article={a} fetchedAt={fetchedAt} />

@@ -6,7 +6,7 @@ import { getNextRelease } from "@/lib/data/live/earnings-calendar";
 import type { CompanyEarnings, Metric, Quarter } from "@/lib/data/live/earnings-model";
 import { getSegmentHistory, type MemberSeries, type SeriesPoint } from "@/lib/data/live/segment-history";
 import { getMoves } from "@/lib/line-cards/moves";
-import { scorecard, strengths, talkingPoint, tally, verdict, type ScoreRow, type Side } from "@/lib/competitive/compare";
+import { gapText, scorecard, strengths, talkingPoint, tally, verdict, type ScoreRow, type Side } from "@/lib/competitive/compare";
 import { NA, format, longDate } from "@/components/earnings/format";
 import { Chip } from "@/components/ui/chip";
 import { Panel, SourceLine } from "@/components/ui/panel";
@@ -15,6 +15,9 @@ import { PairLines, type PairRow, type Unit } from "./charts";
 import { PairSpark } from "./pair-spark";
 import { ScorecardTable } from "./scorecard-table";
 import { scorecardChartData } from "@/lib/chart-view/scorecard";
+import { linesSlide, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { VIZ } from "@/lib/colors";
+import { AddCardToDeck } from "@/components/deck/add-card-to-deck";
 import { cn } from "@/lib/utils";
 
 // Which of each company's segments is its components distribution business: the
@@ -62,7 +65,7 @@ export async function Overview() {
   const { latest } = pair;
   if (!latest) {
     return (
-      <Panel>
+      <Panel deck={null}>
         <ErrorState title="The two companies' filings could not be loaded right now" source="SEC EDGAR" retryHref="/competitive" />
       </Panel>
     );
@@ -97,6 +100,26 @@ export async function Overview() {
         subtitle={`${latest}. Avnet leads on ${count.avnet} and Arrow on ${count.arrow} of the ${count.counted} measures where higher or lower is clearly better`}
         bodyClassName="p-0"
         footer={<SourceLine source="SEC filings, GAAP as reported" asOf={latest} />}
+        deck={tableSlide({
+          key: "competitive:scorecard",
+          title: "Avnet against Arrow: the scorecard",
+          trayTitle: "Avnet vs Arrow: Scorecard",
+          text: verdict(rows, latest),
+          columns: ["Measure", "Avnet", "Arrow", "Gap", "Leads", "Gap a year ago"],
+          // The card's table: the leader's value in bold, who leads with their marker, the gap a year ago in grey.
+          rows: rows.map((r) => ({
+            label: r.label,
+            values: [
+              { text: format(r.kind, r.avnet), bold: r.leads === "Avnet" },
+              { text: format(r.kind, r.arrow), bold: r.leads === "Arrow" },
+              r.caveat ? NA : gapText(r, r.gap),
+              r.leads ? { text: r.leads, marker: r.leads === "Avnet" ? VIZ.avnet : VIZ.arrow } : { text: NA, muted: true },
+              { text: r.caveat ? NA : gapText(r, r.gapYearAgo), muted: true },
+            ],
+          })),
+          source: "SEC filings, GAAP as reported",
+          period: latest,
+        })}
       >
         <ScorecardTable rows={rows} latest={latest} charts={charts} />
       </Panel>
@@ -114,7 +137,42 @@ const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal
 function Strengths({ side, rows, pair }: { side: Side; rows: ScoreRow[]; pair: Pair }) {
   const list = strengths(rows, side);
   return (
-    <Panel title={`Where ${side} is stronger`} subtitle="Biggest edge first, with a sentence to use in a conversation">
+    <Panel
+      title={`Where ${side} is stronger`}
+      subtitle="Biggest edge first, with a sentence to use in a conversation"
+      deck={
+        list.length
+          ? panelsSlide({
+              key: `competitive:${side.toLowerCase()}-stronger`,
+              title: `Where ${side} is stronger`,
+              text: "Biggest edge first, with a sentence to use in a conversation.",
+              // The card's rows: the measure, both companies' values, the sentence, and both over eight quarters.
+              panels: [
+                {
+                  rowRules: true,
+                  rows: list.slice(0, 6).map((r) => {
+                    const s = series(pair, r.metric);
+                    return {
+                      title: r.label,
+                      strong: true,
+                      markers: [
+                        { text: `Avnet ${format(r.kind, r.avnet)}`, color: VIZ.avnet, strong: side === "Avnet" },
+                        { text: `Arrow ${format(r.kind, r.arrow)}`, color: VIZ.arrow, strong: side === "Arrow" },
+                      ],
+                      text: talkingPoint(r),
+                      lines: [
+                        { values: s.map((p) => p.arrow ?? null), color: VIZ.arrow, width: 1.5 },
+                        { values: s.map((p) => p.avnet ?? null), color: VIZ.avnet, width: 2 },
+                      ],
+                    };
+                  }),
+                },
+              ],
+              source: "SEC filings, GAAP as reported",
+            })
+          : null
+      }
+    >
       {list.length === 0 ? (
         <EmptyState title={`${side} doesn't lead on any measure this quarter`} />
       ) : (
@@ -196,6 +254,30 @@ export async function ManagementSaid() {
     <Panel
       title="What Arrow's management said last quarter"
       subtitle="Set beside what Avnet's said. Written by Claude from each company's latest earnings release; check the release before quoting it"
+      deck={
+        arrow.digest || avnet.digest
+          ? panelsSlide({
+              key: "competitive:management-said",
+              title: "What Arrow's and Avnet's management said last quarter",
+              // The card's two columns: each company's headline, then demand, inventory, lead times and pricing.
+              panels: [
+                { c: arrow, label: "Arrow", marker: VIZ.arrow },
+                { c: avnet, label: "And Avnet", marker: VIZ.avnet },
+              ].map(({ c, label, marker }) => ({
+                title: label,
+                marker,
+                ...(c.digest
+                  ? {
+                      lede: c.digest.headline,
+                      paragraphs: TOPICS.map(([key, name]) => ({ lead: name, text: c.digest![key] ?? "Not covered in the release." })),
+                    }
+                  : { paragraphs: [{ text: c.message ?? "The latest earnings release could not be read." }] }),
+              })),
+              source: "Each company's latest earnings release",
+              claude: "Written by Claude from each company's latest earnings release",
+            })
+          : null
+      }
     >
       <div className="grid gap-6 md:grid-cols-2 md:divide-x md:divide-hairline [&>*:last-child]:md:pl-6">
         <CommentaryColumn c={arrow} label="Arrow" />
@@ -218,6 +300,18 @@ export async function Moves() {
       className="xl:col-span-5"
       title="Franchise moves, last 12 months"
       subtitle="Agreements Avnet and Arrow announced or ended, from news headlines"
+      deck={
+        ours.length
+          ? linesSlide({
+              key: "competitive:franchise-moves",
+              title: "Franchise moves, last 12 months",
+              text: `${ours.length} agreements Avnet and Arrow announced or ended, from news headlines.`,
+              lines: ours.slice(0, MOVE_LIMIT).map((m) => `${m.supplier ?? "Supplier not named"}: ${m.distributor.name}${m.ended ? ", ended" : ""}, ${longDate(m.date.slice(0, 10))}`),
+              source: "News headlines",
+              hookups: ["news"],
+            })
+          : null
+      }
       footer={
         <>
           <span>{ours.length} found</span>
@@ -284,6 +378,28 @@ export async function Components() {
       subtitle={`${names.avnet} against ${names.arrow}, the like-for-like businesses`}
       footer={<SourceLine source="Segment figures in 10-Q and 10-K filings" asOf={latest} />}
       bodyClassName="flex flex-col gap-4"
+      deck={
+        latest
+          ? seriesSlide({
+              key: "competitive:components",
+              title: "Components against components",
+              text: `${names.avnet} against ${names.arrow}, the like-for-like businesses.`,
+              unit: "usd",
+              kind: "line",
+              periods: labels,
+              series: [
+                { name: names.avnet, values: rows((p) => p?.revenue).map((r) => r.avnet) },
+                { name: names.arrow, values: rows((p) => p?.revenue).map((r) => r.arrow) },
+              ],
+              chartTitle: "Segment revenue, $",
+              lines: [
+                `Segment operating margin, ${latest}: Avnet ${format("pct", at(compA, latest)?.operatingMargin)}, Arrow ${format("pct", at(compB, latest)?.operatingMargin)}`,
+              ],
+              source: "Segment figures in 10-Q and 10-K filings",
+              period: latest,
+            })
+          : null
+      }
     >
       {!latest ? (
         <ErrorState title="Segment detail could not be read from the filings" source="SEC EDGAR" detail={sa.error ?? sb.error} />
@@ -339,14 +455,66 @@ export async function MoreMeasures() {
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
           {TRENDS.map((t) => (
             <div key={t.metric}>
-              <h3 className="font-display text-card-title text-ink">{t.title}</h3>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-display text-card-title text-ink">{t.title}</h3>
+                <AddCardToDeck
+                  title={t.title}
+                  deck={(() => {
+                    const s = series(pair, t.metric);
+                    const last = s[s.length - 1];
+                    return seriesSlide({
+                      key: `competitive:trend-${t.metric}`,
+                      title: `Avnet vs Arrow: ${t.title}`,
+                      text: last ? `${last.label}: Avnet ${format(t.unit, last.avnet)}, Arrow ${format(t.unit, last.arrow)}.` : undefined,
+                      unit: t.unit === "growth" ? "pct" : t.unit === "days" ? "days" : "pct",
+                      periods: s.map((p) => p.label),
+                      series: [
+                        { name: "Avnet", values: s.map((p) => p.avnet) },
+                        { name: "Arrow", values: s.map((p) => p.arrow) },
+                      ],
+                      chartTitle: t.unit === "days" ? `${t.title}` : `${t.title}, %`,
+                      source: "SEC filings, GAAP as reported",
+                      period: last?.label,
+                    });
+                  })()}
+                />
+              </div>
               <PairLines rows={series(pair, t.metric)} unit={t.unit} height={160} />
             </div>
           ))}
         </div>
         {rl && (
           <div className="overflow-x-auto">
-            <h3 className="mb-1 font-display text-card-title text-ink">Regional mix, {rl}</h3>
+            <div className="mb-1 flex items-start justify-between gap-2">
+              <h3 className="font-display text-card-title text-ink">Regional mix, {rl}</h3>
+              <AddCardToDeck
+                title={`Regional mix, ${rl}`}
+                deck={tableSlide({
+                  key: "competitive:regional-mix",
+                  title: `Avnet vs Arrow: regional mix, ${rl}`,
+                  text: `Revenue by region for Avnet and Arrow, ${rl}.`,
+                  columns: ["Region", "Avnet revenue", "Share", "Growth YoY", "Arrow revenue", "Share", "Growth YoY"],
+                  rows: REGIONS.map((r) => {
+                    const x = at(region(sa.regions, r), rl);
+                    const y = at(region(sb.regions, r), rl);
+                    return {
+                      label: r,
+                      // Shares in grey, as the card shows them.
+                      values: [
+                        format("usd", x?.revenue),
+                        { text: share(x?.revenue !== undefined && totals.avnet ? x.revenue / totals.avnet : undefined), muted: true },
+                        x?.yoy === undefined ? NA : format("growth", x.yoy),
+                        format("usd", y?.revenue),
+                        { text: share(y?.revenue !== undefined && totals.arrow ? y.revenue / totals.arrow : undefined), muted: true },
+                        y?.yoy === undefined ? NA : format("growth", y.yoy),
+                      ],
+                    };
+                  }),
+                  source: "Segment figures in 10-Q and 10-K filings",
+                  period: rl,
+                })}
+              />
+            </div>
             <table className="w-full min-w-[640px] border-collapse font-body text-table">
               <caption className="sr-only">Revenue by region for Avnet and Arrow, {rl}</caption>
               <thead className="bg-surface-sunken">
@@ -411,7 +579,7 @@ export function OverviewFallback() {
   return (
     <div className="space-y-6">
       <Skeleton className="h-7 w-2/3" />
-      <Panel title="Scorecard" subtitle="Reading both companies' filings from SEC EDGAR. The first load can take a minute.">
+      <Panel title="Scorecard" subtitle="Reading both companies' filings from SEC EDGAR. The first load can take a minute." deck={null}>
         <LoadingBlock label="Loading the comparison…" lines={8} />
       </Panel>
     </div>
@@ -420,7 +588,7 @@ export function OverviewFallback() {
 
 export function SectionFallback({ title, className }: { title: string; className?: string }) {
   return (
-    <Panel title={title} className={className}>
+    <Panel title={title} className={className} deck={null}>
       <LoadingBlock label={`Loading ${title.toLowerCase()}…`} lines={5} />
     </Panel>
   );

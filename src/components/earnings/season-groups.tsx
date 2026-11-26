@@ -7,6 +7,7 @@ import { seasonQuarter } from "@/lib/earnings/season";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { Delta } from "@/components/ui/delta";
 import { NA, format } from "./format";
+import { changeCell, tableSlide } from "@/lib/deck/slides";
 
 const TH = "h-control whitespace-nowrap px-3 font-display text-label font-normal uppercase text-ink-muted";
 const days = (v: number) => {
@@ -29,6 +30,25 @@ export async function SeasonByGroup() {
       subtitle={`${quarter} against ${prior}. Growth is the median company's revenue on a year ago; a group's name opens it in the leaderboard`}
       bodyClassName="p-0"
       footer={<SourceLine source="SEC filings, GAAP as reported" />}
+      deck={tableSlide({
+        key: "earnings:season-by-group",
+        title: `The ${quarter} season by group`,
+        text: `${quarter} against ${prior}. Growth is the median company's revenue on a year ago.`,
+        columns: ["Group", "Filed", `Median growth, ${quarter}`, prior, "Growing", "Inventory days, YoY"],
+        rows: groups.map((g) => ({
+          label: COHORT_LABELS[g.cohort],
+          // The quarter before in grey and the inventory change in its colour (fewer days is good), as the card shows them.
+          values: [
+            `${g.filed} of ${g.total}`,
+            g.filed ? format("growth", g.medianGrowth) : { text: "none filed", muted: true },
+            { text: format("growth", g.priorMedianGrowth), muted: true },
+            g.shareGrowing === undefined ? NA : `${Math.round(g.shareGrowing * 100)}%`,
+            changeCell(g.inventoryDaysChange, days, true),
+          ],
+        })),
+        source: "SEC filings, GAAP as reported",
+        period: quarter,
+      })}
     >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] border-collapse font-body text-table">

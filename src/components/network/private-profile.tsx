@@ -8,6 +8,7 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { EmptyState } from "@/components/ui/states";
 import { format, longDate } from "@/components/earnings/format";
+import { figuresSlide, tableSlide } from "@/lib/deck/slides";
 
 // A competitor with no public filings: what is known about it from published
 // rankings and its line card, in place of the earnings-driven sections.
@@ -22,6 +23,17 @@ export function PrivateOverview({ company }: { company: PrivateCompany }) {
       title="Overview"
       subtitle={company.summary}
       footer={sales ? <SourceLine source={sales.source} /> : <SourceLine source="No public filings" />}
+      deck={figuresSlide({
+        key: `profile:${company.slug}:overview`,
+        title: company.name,
+        text: company.summary,
+        figures: sales ? [{ label: `${sales.year} sales, worldwide`, value: format("usd", sales.value) }] : [],
+        lines: [
+          sales ? `A published estimate, not a filing${sales.note ? `: ${sales.note}` : ""}` : `${company.name} doesn't publish its sales`,
+          `Owner: ${company.owner}. Headquarters: ${company.hq}`,
+        ],
+        source: sales?.source ?? "No public filings",
+      })}
     >
       {sales ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -62,7 +74,21 @@ export function PrivateKeyFacts({ company }: { company: PrivateCompany }) {
     { label: "Role", value: "Competitor" },
   ];
   return (
-    <Panel title="Key facts">
+    <Panel
+      title="Key facts"
+      deck={tableSlide({
+        key: `profile:${company.slug}:key-facts`,
+        title: `${company.name}: key facts`,
+        columns: [],
+        rows: [
+          { label: "Owner", values: [company.owner] },
+          { label: "Headquarters", values: [company.hq] },
+          { label: "Filings", values: ["None; private"] },
+          { label: "Role", values: ["Competitor"] },
+        ],
+        source: "Published rankings",
+      })}
+    >
       <dl className="divide-y divide-hairline">
         {rows.map((r) => (
           <div key={r.label} className="grid grid-cols-[7rem_1fr] gap-3 py-2 first:pt-0 last:pb-0">
@@ -88,7 +114,7 @@ export async function PrivateLineCard({ company }: { company: PrivateCompany }) 
   if (!card) {
     const missing = cards.missing.find((m) => m.slug === company.lineCard);
     return (
-      <Panel title="Line card" footer={footer}>
+      <Panel title="Line card" footer={footer} deck={null}>
         <EmptyState
           title={`${company.name}'s line card isn't in the tracker yet`}
           body={missing && !missing.collectable ? "Its site blocks automated collection, so it comes in through the import form." : undefined}
@@ -100,7 +126,21 @@ export async function PrivateLineCard({ company }: { company: PrivateCompany }) 
     ? cards.overlap.find((o) => [o.a, o.b].includes(card.slug) && [o.a, o.b].includes(HOME_DISTRIBUTOR))?.shared
     : undefined;
   return (
-    <Panel title="Line card" subtitle={`As of ${longDate(card.date)}, ${card.method === "collected" ? "from its public page" : "imported"}`} footer={footer}>
+    <Panel
+      title="Line card"
+      subtitle={`As of ${longDate(card.date)}, ${card.method === "collected" ? "from its public page" : "imported"}`}
+      footer={footer}
+      deck={figuresSlide({
+        key: `profile:${company.slug}:line-card`,
+        title: `${company.name}'s line card`,
+        text: `As of ${longDate(card.date)}, ${card.method === "collected" ? "from its public page" : "imported"}.`,
+        figures: [
+          { label: "Suppliers", value: card.count.toLocaleString("en-US") },
+          { label: "Shared with Avnet", value: shared === undefined ? "Not known" : shared.toLocaleString("en-US") },
+        ],
+        source: "Distributor line cards",
+      })}
+    >
       <div className="grid grid-cols-2 gap-3">
         <KpiTile label="Suppliers" value={card.count.toLocaleString("en-US")} />
         <KpiTile label="Shared with Avnet" value={shared === undefined ? "Not known" : shared.toLocaleString("en-US")} />

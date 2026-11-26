@@ -26,7 +26,7 @@ const VIEWS: { value: View; label: string; href: string }[] = [
 
 function Fallback({ title }: { title: string }) {
   return (
-    <Panel title={title}>
+    <Panel title={title} deck={null}>
       <LoadingBlock label="Reading every company's filings…" lines={6} />
     </Panel>
   );
