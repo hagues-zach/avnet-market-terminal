@@ -12,7 +12,6 @@ import { PRIVATE_COMPANIES, type PrivateCompany } from "@/lib/data/live/private-
 import { isHidden } from "@/lib/visibility";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
-import { AddViewToDeck } from "@/components/deck/add-view-to-deck";
 import { ButtonLink } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { RevenueMix, RevenueMixFallback } from "@/components/earnings/revenue-mix";
@@ -131,7 +130,6 @@ export default async function CompanyProfilePage({
         breadcrumb={[{ label: "Companies", href: role === "avnet" ? "/network" : `/network?role=${role}` }, { label: company.name }]}
         actions={
           <>
-            <AddViewToDeck slide="company" company={company.slug} label={`${company.name} at a glance`} />
             {role !== "avnet" && <ButtonLink href={`/tools/deck?company=${company.slug}&from=profile`}>Build a pitch</ButtonLink>}
             {role !== "avnet" && !isHidden("/tools/qbr") && (
               <ButtonLink href={`/tools/qbr?company=${company.slug}`} variant="primary">
