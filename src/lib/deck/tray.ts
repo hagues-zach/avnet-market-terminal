@@ -162,6 +162,14 @@ export const DeckSummarySchema = z.object({
 });
 export type DeckSummary = z.infer<typeof DeckSummarySchema>;
 
+/** A section title (Phase 3): at most six words, drawn small above the slide's headline. */
+export const SECTION = { chars: 60, words: 6 } as const;
+/** True for a section title that fits: some text, at most six words and 60 characters. Pure. */
+export const sectionOk = (s: string) => {
+  const n = s.split(/\s+/).filter(Boolean).length;
+  return n > 0 && n <= SECTION.words && s.length <= SECTION.chars;
+};
+
 export const TrayItemSchema = z.object({
   /** Stable for the thing added, so adding it twice is caught: see chartItemId and viewItemId. */
   id: text(200),
@@ -181,6 +189,8 @@ export const TrayItemSchema = z.object({
   included: z.boolean(),
   /** Claude's commentary, when the reader asked for it. Trays saved before Phase 2 have none. */
   commentary: CommentarySchema.optional(),
+  /** A section title from Claude's suggested order, when the reader applied it (Phase 3). */
+  section: text(SECTION.chars).refine(sectionOk).optional(),
 });
 
 export type TrayItem = z.infer<typeof TrayItemSchema>;
@@ -233,14 +243,49 @@ export function moveItem(items: TrayItem[], id: string, dir: -1 | 1): TrayItem[]
   return next;
 }
 
-export function updateItem(items: TrayItem[], id: string, patch: Partial<Pick<TrayItem, "note" | "included" | "commentary">>): TrayItem[] {
+export function updateItem(items: TrayItem[], id: string, patch: Partial<Pick<TrayItem, "note" | "included" | "commentary" | "section">>): TrayItem[] {
   return items.map((x) => {
     if (x.id !== id) return x;
     const next = { ...x, ...patch };
-    // Clearing commentary removes the key, so the saved tray reads as it did before.
+    // Clearing commentary or a section removes the key, so the saved tray reads as it did before.
     if ("commentary" in patch && !patch.commentary) delete next.commentary;
+    if ("section" in patch && !patch.section) delete next.section;
     return next;
   });
+}
+
+/**
+ * The tray with its included slides put in `order` (Claude's suggestion), the
+ * left-out slides keeping their places. Null when `order` isn't exactly the
+ * included slides, each once: the tray changed since the suggestion was made,
+ * and nothing is moved. Pure.
+ */
+export function applyOrder(items: TrayItem[], order: readonly string[]): TrayItem[] | null {
+  const included = items.filter((x) => x.included);
+  const byId = new Map(included.map((x) => [x.id, x]));
+  if (order.length !== included.length || new Set(order).size !== order.length || !order.every((id) => byId.has(id))) return null;
+  let k = 0;
+  return items.map((x) => (x.included ? byId.get(order[k++])! : x));
+}
+
+/**
+ * Claude's suggested order applied to the tray (Phase 3): the included slides in
+ * `order`, any section titles they had removed (they headed runs in the old
+ * order), and with `sections`, Claude's new titles on, those that fit. Null when
+ * `order` isn't exactly the included slides. Pure.
+ */
+export function applyStoryline(items: TrayItem[], order: readonly string[], sections?: Record<string, string>): TrayItem[] | null {
+  const next = applyOrder(items, order);
+  if (!next) return null;
+  const ok = Object.fromEntries(Object.entries(sections ?? {}).filter(([, t]) => typeof t === "string" && sectionOk(t)));
+  return next.reduce((acc, x) => (x.included ? updateItem(acc, x.id, { section: ok[x.id] }) : acc), next);
+}
+
+/** The tray in exactly this order of ids (Undo puts an order back with it); null unless it's every item, each once. Pure. */
+export function setOrder(items: TrayItem[], ids: readonly string[]): TrayItem[] | null {
+  const byId = new Map(items.map((x) => [x.id, x]));
+  if (ids.length !== items.length || new Set(ids).size !== ids.length || !ids.every((id) => byId.has(id))) return null;
+  return ids.map((id) => byId.get(id)!);
 }
 
 /* ---------- Reading ---------- */
@@ -271,7 +316,31 @@ export function writtenDate(ymd: string): string {
  * its points. Without commentary: the reader's point, when they wrote one, is
  * its title.
  */
-export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commentary">): Preview {
+export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commentary" | "section">, deckEvidence?: string): Preview {
+  return withSection(commentaryPreview(item), item, deckEvidence);
+}
+
+/** The evidence of every included slide, for checking a section title, which speaks for a run of slides. Pure. */
+export const deckEvidenceOf = (items: Pick<TrayItem, "preview" | "included">[]) =>
+  items
+    .filter((x) => x.included)
+    .map((x) => evidenceOf(x.preview))
+    .join("\n");
+
+/**
+ * The slide with its section title, when the reader applied one: checked again
+ * as it's built, against the deck's slides (or, without them, the slide's own),
+ * so a title from the browser's saved tray can't bring a figure the deck doesn't show.
+ */
+function withSection(p: Preview, item: Pick<TrayItem, "preview" | "section">, deckEvidence?: string): Preview {
+  const raw = item.section?.trim();
+  if (!raw) return p;
+  const section = groundPiece(raw, deckEvidence ?? evidenceOf(item.preview));
+  return section && sectionOk(section) ? { ...p, section } : p;
+}
+
+function commentaryPreview(item: Pick<TrayItem, "preview" | "note" | "commentary">): Preview {
+
   const c = item.commentary;
   const note = item.note?.trim();
   if (c) {
@@ -372,10 +441,11 @@ export function trayDeckSlides(
   const shipped = items.filter((x) => x.included);
   const mock = shipped.some((x) => isMock(x, register));
   const sum = summaryMatches(summary, items) ? summaryPreview(summary, items) : undefined;
+  const deckEv = deckEvidenceOf(shipped);
   return [
     { kind: "cover", mock: false, preview: { headline: title, text: `${audience}, ${date}`, source: "This deck" } },
     ...(sum ? [{ mock, preview: sum }] : []),
-    ...shipped.map((x) => ({ mock: isMock(x, register), preview: slidePreview(x) })),
+    ...shipped.map((x) => ({ mock: isMock(x, register), preview: slidePreview(x, deckEv) })),
     { kind: "sources", mock: false, preview: traySources(shipped, register) },
   ];
 }

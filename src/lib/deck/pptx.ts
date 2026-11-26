@@ -250,6 +250,13 @@ function addClaude(slide: PptxGenJS.Slide, claude: Preview["claude"], y: number)
   slide.addText(`${t(claude.label)}${claude.date ? `, ${t(claude.date)}` : ""}. Check before quoting.`, { x: LEFT, y, w: 8, h: 0.18, fontFace: BODY, fontSize: 8, italic: true, color: MUTED, margin: 0 });
 }
 
+/** The section title the reader applied (Phase 3): small capitals above the headline, in the template's top margin. */
+export const SECTION_LABEL = { y: 0.1, h: 0.18, size: 8 } as const;
+function addSection(slide: PptxGenJS.Slide, section: string | undefined) {
+  if (!section) return;
+  slide.addText(t(section).toUpperCase(), { x: LEFT, y: SECTION_LABEL.y, w: 7.2, h: SECTION_LABEL.h, fontFace: BODY, fontSize: SECTION_LABEL.size, bold: true, color: MUTED, charSpacing: 1, margin: 0, valign: "bottom" });
+}
+
 /** Rough height of a sentence set at `size` points across `w` inches (Arial averages half an em). */
 const textHeight = (s: string, size: number, w: number) => (Math.ceil((s.length * size * 0.5) / (w * 72)) * size * 1.25) / 72;
 
@@ -284,6 +291,7 @@ function talking(d: DeckSlide): TemplateSlide {
     layout: l.n,
     fill: { title: [t(p.headline)], "10": column(a), ...(b ? { "15": column(b) } : {}) },
     draw: (s) => {
+      addSection(s, p.section);
       addClaude(s, p.claude, FOOT_Y - 0.24);
       addFooter(s, p, d.mock);
     },
@@ -306,6 +314,7 @@ function textSlide(d: DeckSlide): TemplateSlide {
     layout: l.n,
     fill: { title: [t(p.headline)], "10": paras },
     draw: (s) => {
+      addSection(s, p.section);
       addClaude(s, p.claude, FOOT_Y - 0.24);
       addFooter(s, p, d.mock);
     },
@@ -335,6 +344,7 @@ function content(d: DeckSlide): TemplateSlide {
     // The takeaway in black: the layout's subhead style is bold green, which DESIGN.md keeps off white.
     fill: { title: [t(p.headline)], ...(sentence && sub ? { "11": [{ text: sentence, size: 14, bold: false, color: INK }] } : {}) },
     draw: (s, pptx) => {
+      addSection(s, p.section);
       addClaude(s, p.claude, claudeAt);
       if (plan.kind === "panels" && p.panels) {
         // Claude's bullets, when there are any, in a strip under the panels.

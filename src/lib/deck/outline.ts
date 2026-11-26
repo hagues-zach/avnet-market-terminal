@@ -544,6 +544,8 @@ export interface Preview {
   panels?: Panel[];
   /** Text Claude wrote earlier and the app cached. */
   claude?: { label: string; date?: string };
+  /** A section title the reader applied from Claude's suggested order, drawn small above the headline. */
+  section?: string;
   source: string;
   period?: string;
   /** Mock sources to show in the marker under the preview (defaults to the slide's). */
