@@ -13,7 +13,7 @@ import { Delta } from "@/components/ui/delta";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { CategoryTable } from "./category-table";
-import { formatGrowth, linesSlide, panelsSlide, seriesSlide, tableSlide, toneOf } from "@/lib/deck/slides";
+import { formatGrowth, panelsSlide, tableSlide, toneOf, usdShort } from "@/lib/deck/slides";
 import type { Panel as SlidePanel } from "@/lib/deck/outline";
 import { TrendMini } from "./trend-mini";
 
@@ -25,6 +25,30 @@ const cycleData = cache(getCycle);
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 /* ---------- The funnel ---------- */
+
+type TrendKey = "tamUsdM" | "samUsdM" | "somUsdM";
+
+/** A step's growth a year from the first year of the trend to the latest. */
+function cagrOf(t: TamSummary, key: TrendKey): number {
+  const first = t.trend[0];
+  const latest = t.trend.find((p) => p.year === t.latestYear)!;
+  return (latest[key] / first[key]) ** (1 / (t.latestYear - first.year)) - 1;
+}
+
+/** The step's trend under it on the slide, as the TrendRow chart below the funnel shows it. */
+function trendBars(t: TamSummary, key: TrendKey, color: string): Pick<SlidePanel, "detail" | "bars"> {
+  const latest = t.trend.find((p) => p.year === t.latestYear)!;
+  return {
+    detail: `${formatUsdMillions(latest[key])} in ${t.latestYear}, ${pct(cagrOf(t, key))} a year since ${t.trend[0].year}`,
+    bars: {
+      labels: t.trend.map((p) => (p.isForecast ? `${p.year}F` : String(p.year))),
+      values: t.trend.map((p) => p[key] * 1e6),
+      valueLabels: t.trend.map((p) => usdShort(p[key] * 1e6)),
+      color,
+      forecast: t.trend.map((p) => Boolean(p.isForecast)),
+    },
+  };
+}
 
 function Step({
   label,
@@ -80,7 +104,8 @@ export function FunnelCard({ t, vintage }: { t: TamSummary; vintage: string }) {
           key: "tam:opportunity",
           title: `The opportunity in ${t.latestYear}`,
           text: "The world market, the part sold through distribution, and the part Avnet bills.",
-          // The funnel's three steps, drawn on the slide as the page draws them.
+          // The funnel's three steps, drawn on the slide as the page draws them,
+          // each with its trend from the chart row under the funnel: one slide for both.
           panels: [
             {
               kicker: "TAM, total market",
@@ -94,6 +119,7 @@ export function FunnelCard({ t, vintage }: { t: TamSummary; vintage: string }) {
                 period: `on ${t.latestYear - 1}`,
               },
               bar: { share: 1, color: VIZ.benchmark, label: `${formatUsdMillions(t.forecastNextYearUsdM)} forecast for ${t.latestYear + 1}` },
+              ...trendBars(t, "tamUsdM", VIZ.benchmark),
             },
             {
               kicker: "SAM, served by distribution",
@@ -102,6 +128,7 @@ export function FunnelCard({ t, vintage }: { t: TamSummary; vintage: string }) {
               tagMock: true,
               figure: { value: formatUsdMillions(t.samUsdM), note: "The part of the market sold through distributors" },
               bar: { share: samShare, color: VIZ.benchmark, label: `${pct(samShare)} of TAM` },
+              ...trendBars(t, "samUsdM", VIZ.benchmark),
             },
             {
               kicker: "SOM, Avnet",
@@ -109,10 +136,11 @@ export function FunnelCard({ t, vintage }: { t: TamSummary; vintage: string }) {
               tagMock: true,
               figure: { value: formatUsdMillions(t.somUsdM), note: "Avnet billings in the served market" },
               bar: { share: t.somShareOfSam, color: VIZ.avnet, label: `${pct(t.somShareOfSam)} of SAM` },
+              ...trendBars(t, "somUsdM", VIZ.avnet),
             },
           ],
           source: `${vintage}; SAM and SOM modelled (mock)`,
-          period: String(t.latestYear),
+          period: `${t.trend[0].year} to ${t.trend[t.trend.length - 1].year}${t.trend[t.trend.length - 1].isForecast ? "F" : ""}`,
           hookups: ["billings", "code-map", "tam-sam-som"],
         })}
       >
@@ -176,18 +204,8 @@ export function TrendRow({ t, vintage }: { t: TamSummary; vintage: string }) {
             subtitle={`${formatUsdMillions(latest[s.key])} in ${t.latestYear}, ${pct(cagr)} a year since ${first}`}
             actions={s.chip}
             footer={<SourceLine source={s.source} />}
-            deck={seriesSlide({
-              key: `tam:trend-${s.name.toLowerCase()}`,
-              title: s.title,
-              text: `${formatUsdMillions(latest[s.key])} in ${t.latestYear}, ${pct(cagr)} a year since ${first}.`,
-              unit: "usd",
-              kind: "line",
-              periods: t.trend.map((p) => (p.isForecast ? `${p.year}F` : String(p.year))),
-              series: [{ name: s.name, color: s.color, values: t.trend.map((p) => p[s.key] * 1e6) }],
-              chartTitle: `${s.title}, $`,
-              source: s.source,
-              hookups: s.key === "tamUsdM" ? undefined : s.key === "samUsdM" ? ["tam-sam-som"] : ["billings"],
-            })}
+            // On the opportunity slide with the funnel (FunnelCard), not a slide of its own.
+            deck={null}
           >
             <div className="h-40">
               <TrendMini
@@ -425,16 +443,7 @@ export function MethodCard({ vintage }: { vintage: string }) {
   return (
     <Panel
       title="Method"
-      deck={linesSlide({
-        key: "tam:method",
-        title: "How TAM, SAM and SOM are measured",
-        lines: [
-          `TAM and its splits by product, region and end market are published figures: ${vintage} for the market and its forecast, SIA 2024 for the end-market mix`,
-          "SAM is the part of the market sold through distributors, modelled at 18% of TAM in line with the ECIA channel size",
-          "SOM is Avnet's billings in that market. SAM and SOM are mock until Avnet billings are joined to the WSTS categories through the code map",
-        ],
-        source: `${vintage}; SIA 2024`,
-      })}
+      deck={null}
     >
       <div className="max-w-prose space-y-2 text-body-sm text-ink">
         <p>

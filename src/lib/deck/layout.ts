@@ -210,7 +210,13 @@ const changeRuns = (change: string | undefined, tone: PanelTone | undefined, per
   change ? [{ text: panelChange(change), size, color: PANEL_TONE[tone ?? "neutral"] }, ...(period ? [{ text: ` ${period}`, size, color: PANEL_INK.muted }] : [])] : [];
 
 /** Panels at scale k (1 is full size), and how far the tallest runs past the box. */
-function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h: number }, k: number): { items: PanelItem[]; over: number } {
+function placeAt(
+  panels: Panel[],
+  box: { x: number; y: number; w: number; h: number },
+  k: number,
+  /** Where every panel's small columns start, so they sit level across the row. */
+  barsAt?: number,
+): { items: PanelItem[]; over: number; barsY: number[] } {
   const z = (n: number) => n * k;
   const n = Math.max(1, panels.length);
   const gap = PANEL_GAP;
@@ -245,6 +251,10 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
     (p.metrics ?? []).every((m) => !m.large || !m.change || m.value.length * large * 0.6 + 6 + `${m.change} ${m.period ?? ""}`.length * ch * 0.52 <= w * 72),
   );
   const detailH = Math.max(0, ...panels.map((p) => (p.detail ? tall(p.detail, z(8)) : 0)));
+  // The line under each figure takes the tallest one's height, so what follows it (the share bar, the
+  // small columns) starts level across the row, as the page's grid lines them up.
+  const figureNote = (f: NonNullable<Panel["figure"]>) => `${f.note ?? ""} ${f.change ?? ""} ${f.period ?? ""}`;
+  const noteH = Math.max(0, ...panels.map((p) => (p.figure && (p.figure.note || p.figure.change) ? tall(figureNote(p.figure), z(9.5)) : 0)));
   const sparkH = panels.some((p) => p.spark && p.spark.values.length > 1) ? z(0.52) : 0;
 
   const items: PanelItem[] = [];
@@ -253,6 +263,7 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
   const caps = (s: string, x: number, y: number, cw = w) => text(x, y, cw, label / 72 + 0.04, [{ text: s.toUpperCase(), size: label, bold: true, color: PANEL_INK.muted }], { spaced: true });
   const rule = (x: number, y: number, width = 0.75) => items.push({ kind: "line", x, y, w, h: 0, color: PANEL_INK.line, width });
   let over = -Infinity;
+  const barsY: number[] = [];
 
   panels.forEach((p, i) => {
     const x = box.x + i * (w + gap);
@@ -292,10 +303,9 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
       text(x, y, w, (figureSize * 1.15) / 72, [{ text: p.figure.value, size: figureSize, bold: true }]);
       y += figureSize / 72 + z(0.12);
       if (p.figure.note || p.figure.change) {
-        const h = tall(`${p.figure.note ?? ""} ${p.figure.change ?? ""} ${p.figure.period ?? ""}`, z(9.5));
-        text(x, y, w, h, [...(p.figure.note ? [{ text: p.figure.note + (p.figure.change ? " " : ""), size: z(9.5) }] : []), ...changeRuns(p.figure.change, p.figure.tone, p.figure.period, z(8.5))]);
-        y += h + z(0.04);
+        text(x, y, w, noteH, [...(p.figure.note ? [{ text: p.figure.note + (p.figure.change ? " " : ""), size: z(9.5) }] : []), ...changeRuns(p.figure.change, p.figure.tone, p.figure.period, z(8.5))]);
       }
+      if (noteH) y += noteH + z(0.04);
       if (p.next) {
         // The funnel's chevron on the divider, level with the figure, as on the page.
         const cy = box.y + (p.kicker ? z(0.24) : 0) + figureSize / 144;
@@ -487,6 +497,8 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
       y += z(0.1);
     }
     if (p.bars && p.bars.values.some((v) => v !== null)) {
+      y = Math.max(y, barsAt ?? y);
+      barsY.push(y);
       const vals = p.bars.values;
       const max = Math.max(...vals.map((v) => v ?? 0)) || 1;
       const gapB = z(0.06);
@@ -497,7 +509,8 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
         const bx = x + k * (bw + gapB);
         if (v !== null) {
           const bh = Math.max(0.01, (v / max) * chartH);
-          items.push({ kind: "rect", x: bx, y: base - bh, w: bw, h: bh, color: p.bars!.color });
+          // A forecast bar is lighter, as the page draws a forecast dotted.
+          items.push({ kind: "rect", x: bx, y: base - bh, w: bw, h: bh, color: p.bars!.color, ...(p.bars!.forecast?.[k] ? { opacity: 0.4 } : {}) });
           const vl = p.bars!.valueLabels?.[k];
           if (vl) text(bx - 0.1, base - bh - z(0.15), bw + 0.2, z(0.14), [{ text: vl, size: z(6.5), color: PANEL_INK.muted }], { align: "center", valign: "bottom" });
         }
@@ -537,7 +550,7 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
       over = Math.max(over, top + sparkH - bottom);
     } else over = Math.max(over, y - bottom);
   });
-  return { items, over };
+  return { items, barsY, over };
 }
 
 /**
@@ -548,6 +561,11 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
  * grows to fill the body (to no more than 150%).
  */
 export function layoutPanels(panels: Panel[], box: { x: number; y: number; w: number; h: number }): PanelItem[] {
+  // Placed once to find where each panel's small columns fall, then again with them all at the lowest.
+  const placePanels = (ps: Panel[], b: typeof box, k: number) => {
+    const first = placeAt(ps, b, k);
+    return first.barsY.length > 1 && new Set(first.barsY).size > 1 ? placeAt(ps, b, k, Math.max(...first.barsY)) : first;
+  };
   let k = 1;
   let r = placePanels(panels, box, k);
   for (let i = 0; i < 4 && r.over > 0.005 && k > 0.7; i++) {

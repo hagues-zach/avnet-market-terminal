@@ -482,7 +482,8 @@ export interface Panel {
    */
   table?: { columns: string[]; rows: { label: string; marker?: string; cells: PanelCell[] }[] };
   /** Small columns over periods, each labelled under and its value over it: the hyperscalers' capex by quarter. */
-  bars?: { labels: string[]; values: (number | null)[]; valueLabels?: string[]; color: string };
+  /** `forecast` marks forecast periods, drawn as lighter bars as the page draws a forecast dotted. */
+  bars?: { labels: string[]; values: (number | null)[]; valueLabels?: string[]; color: string; forecast?: boolean[] };
   /** Names and values in a grid of three: each hyperscaler's capex growth. */
   pairs?: { label: string; value: string }[];
   /** A small bar chart along the foot, the last bar darker: the last eight quarters. */

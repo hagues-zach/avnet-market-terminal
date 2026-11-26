@@ -208,4 +208,28 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   assert.ok(para && para.kind === "text" && para.runs[0].bold && !para.runs[1].bold, "the paragraph's label in bold");
 }
 
+// A panel's bars: a forecast period is drawn lighter, the actual years solid.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4 };
+  const items = layoutPanels([{ title: "TAM", bars: { labels: ["2024", "2025", "2026F"], values: [1, 2, 3], color: "#808080", forecast: [false, false, true] } }], box);
+  const rects = items.filter((it) => it.kind === "rect");
+  assert.equal(rects.length, 3, "a bar per period");
+  assert.deepEqual(rects.map((r) => (r.kind === "rect" ? r.opacity ?? 1 : 0)), [1, 1, 0.4], "only the forecast bar is lighter");
+}
+
+// Columns of figures with small columns under them (the TAM funnel): whatever wraps above, the
+// share bars and the small columns start level across the row.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4.2 };
+  const bars = { labels: ["2024", "2025"], values: [1, 2], color: "#808080" };
+  const step = (note: string): Panel => ({ kicker: "Step", figure: { value: "$1.0B", note }, bar: { share: 0.5, color: "#808080", label: "Half" }, bars });
+  const items = layoutPanels([step("Short"), step("A much longer line under the figure that wraps onto a second line in a third of the slide"), step("Short")], box);
+  const tops = (pick: (h: number) => boolean) => {
+    const rects = items.filter((it): it is Extract<typeof it, { kind: "rect" }> => it.kind === "rect" && pick(it.h));
+    return [0, 1, 2].map((col) => Math.min(...rects.filter((r) => r.x >= box.x + col * 3 - 0.01 && r.x < box.x + (col + 1) * 3 - 0.2).map((r) => r.y + r.h)));
+  };
+  const bases = tops((h) => h > 0.15);
+  assert.ok(bases.every((b) => Math.abs(b - bases[0]) < 1e-9), `small columns share a baseline: ${bases}`);
+}
+
 console.log("layout.test.ts: ok");

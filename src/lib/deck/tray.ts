@@ -99,7 +99,7 @@ export const PreviewSchema = z.object({
             rows: z.array(z.object({ label: text(80), marker: Hex.optional(), cells: z.array(PanelCellSchema).max(7) })).max(16),
           })
           .optional(),
-        bars: z.object({ labels: z.array(text(20)).max(12), values: z.array(z.number().nullable()).max(12), valueLabels: z.array(text(20)).max(12).optional(), color: Hex }).optional(),
+        bars: z.object({ labels: z.array(text(20)).max(12), values: z.array(z.number().nullable()).max(12), valueLabels: z.array(text(20)).max(12).optional(), color: Hex, forecast: z.array(z.boolean()).max(12).optional() }).optional(),
         pairs: z.array(z.object({ label: text(40), value: text(30) })).max(12).optional(),
         spark: z.object({ label: text(60), values: z.array(z.number()).max(16), color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional() }).optional(),
       }),

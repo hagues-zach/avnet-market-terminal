@@ -322,7 +322,7 @@ export function panelsSlide(b: SlideBase & { panels: Panel[] }): CardSlide {
         columns: x.table.columns.slice(0, 8).map((c) => cut(c, 40)!),
         rows: x.table.rows.slice(0, 16).map((r) => ({ ...r, label: cut(r.label, 80)!, cells: r.cells.slice(0, 7).map(cleanCell) })),
       },
-      bars: x.bars && { ...x.bars, labels: x.bars.labels.slice(-12), values: x.bars.values.slice(-12).map((v) => (v !== null && Number.isFinite(v) ? v : null)), valueLabels: x.bars.valueLabels?.slice(-12) },
+      bars: x.bars && { ...x.bars, labels: x.bars.labels.slice(-12), values: x.bars.values.slice(-12).map((v) => (v !== null && Number.isFinite(v) ? v : null)), valueLabels: x.bars.valueLabels?.slice(-12), forecast: x.bars.forecast?.slice(-12) },
       pairs: x.pairs?.slice(0, 12),
     }),
   );
