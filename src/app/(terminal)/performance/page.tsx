@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
-import { AddViewToDeck } from "@/components/deck/add-view-to-deck";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { DemandRow, PerformanceKpis, RegionCard, ReportedCard, ReportedFallback, SupplierCard } from "@/components/performance/sections";
 
@@ -15,7 +14,6 @@ export default function PerformancePage() {
       <PageTitle
         title="Performance Tracker"
         subtitle="Avnet billings, bookings and backlog by quarter, region and supplier"
-        actions={<AddViewToDeck slide="performance" label="Avnet's business" />}
       />
       <PerformanceKpis />
       <DemandRow />
