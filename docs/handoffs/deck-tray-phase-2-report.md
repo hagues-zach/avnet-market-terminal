@@ -33,11 +33,29 @@ Tests: 70 test files pass (`npx tsx scripts/test.ts`), plus `tsc --noEmit` and `
 
 The security review (the `security-review` skill) found nothing at confidence 7 or above.
 
+## Live run (2026-11-26)
+
+The key rejected on 2026-11-25 had expired. With a new key, commentary ran live on 2026-11-26.
+
+- **The live eval** (`--live`, one real call per deck):
+
+  | Deck | Slides written | Dropped | Median headline words | Long | Empty | Cost |
+  |---|---|---|---|---|---|---|
+  | TAM funnel | 1/1 | 0 | 11 | 0 | 0 | $0.008 |
+  | Ranked bar chart | 1/1 | 0 | 10 | 0 | 1 | $0.007 |
+  | Growth against margin scatter | 1/1 | 0 | 13 | 0 | 0 | $0.008 |
+  | News story | 1/1 | 0 | 14 | 0 | 0 | $0.007 |
+  | Mixed six-slide deck | 6/6 | 0 | 10 | 0 | 0 | $0.021 |
+
+  No pieces were dropped by grounding, and no headline fell back. The one empty flag is a two-line summary on the one-slide ranked bar deck, where the eval looks for at least three lines. That's reasonable for one slide. The whole run cost about $0.05, roughly a cent per slide.
+- **On the review page**: Write commentary on a five-slide tray (three mock Performance Tracker cards and two from Arrow's profile) came back in about 11 seconds. All five headlines were Claude's own. The mock slides said they were mock, and the figures checked matched the slides. A few lines were weak but grounded, for example "Our closest competitor is growing fast, so we should watch share closely", and Farnell listed beside the regions.
+- **Structured output with a per-deck `z.enum` of slide ids** works against the real API.
+- **Environment gotcha**: Next.js and `--env-file` don't replace a variable already set in the shell. An expired `ANTHROPIC_API_KEY` in `~/.zshrc` hid the new key in `.env.local`. The local `dev` launch config now unsets the shell's key, and the eval command above should be run with `env -u ANTHROPIC_API_KEY` while that shell key exists.
+
 ## Not verified
 
-- **Commentary has never run live.** On 2026-11-25 the API rejected the local key with "The Claude API key was rejected". The prompt, the real grounding drop rate, headline quality, latency and cost are all unmeasured. The live eval (`--live`) hasn't been run.
-- **Not seen in a browser.** I didn't start a dev server, so there are no screenshots. Your global rules flag dev servers in an unattended auto-mode run, and I relied on tests instead. The new controls, the panel bullet strip on screen, the skeleton and focus moves are checked only by type checks and code review.
-- **Structured output with a per-deck `z.enum` of slide ids**, through `zodOutputFormat`, is untested against the real API. The repo's other calls use fixed schemas.
+- **Not exported.** The PowerPoint and PDF with live commentary haven't been opened. The panel bullet strip has only been seen in the on-screen preview.
+- **Write again, Clear and Undo** haven't been clicked in the browser. They're covered by tests.
 - **The PowerPoint strip height** is estimated from character counts, the same as the existing layout code. Long bullets could wrap differently in PowerPoint than on screen.
 
 ## Open questions for you
@@ -58,10 +76,11 @@ The security review (the `security-review` skill) found nothing at confidence 7 
 
 ## Suggested next steps
 
-1. Get a working key into `.env.local`, then run `npx tsx --env-file=.env.local scripts/deck-commentary-eval.ts --live` and read the drop and empty-section report. Tune the prompt if headlines fall back often.
-2. Open `/tools/deck/tray` with a mixed tray: write commentary, rewrite one slide, clear it, ship a PowerPoint and a PDF, and check the strip under the panels. Clear the tray in localStorage afterwards.
-3. Move QBR Prep's talking points onto the sign- and unit-aware check in `evidence.ts`.
-4. Phase 3 (left out of scope here):
+1. Remove the expired `ANTHROPIC_API_KEY` from `~/.zshrc`, so `.env.local` is used everywhere.
+2. On `/tools/deck/tray`, rewrite one slide, clear it, ship a PowerPoint and a PDF, and check the strip under the panels. Clear the tray in localStorage afterwards.
+3. Tighten the prompt against filler lines ("we should watch share closely") once there's more live output to judge.
+4. Move QBR Prep's talking points onto the sign- and unit-aware check in `evidence.ts`.
+5. Phase 3 (left out of scope here):
    - Claude suggests the storyline order.
    - Speaker notes. Claude's bullets would suit them, especially for two-column slides.
    - A server-side tray, so the summary and commentary aren't browser-only and the cap can be per user.

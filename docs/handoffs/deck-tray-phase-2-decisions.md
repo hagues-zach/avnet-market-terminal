@@ -6,7 +6,7 @@ One line per decision, with the option not taken. Review findings I rejected are
 
 - Branched `claude/deck-commentary` from `origin/main`, which has PR #69 merged. The PR targets `main`. Not taken: stacking on `claude/deck-tray`. Its two later commits (dropping title-level Add to deck on the company profile and the Performance Tracker) aren't in `main` and aren't in this branch.
 - Auto mode was on and this is a new task, which your global rules say to flag before continuing. You asked for an unattended run, so I went ahead and kept the risky part out: no dev server unless it was needed, tests first. Not taken: stopping to ask.
-- One live check on 2026-11-25: `aiConfigured()` is true, and one minimal call returned "The Claude API key was rejected." Everything is built and tested against a fake client. The live eval was not run. Commentary has never run live.
+- One live check on 2026-11-25: `aiConfigured()` is true, and one minimal call returned "The Claude API key was rejected." Everything is built and tested against a fake client. The live eval was not run then. Update 2026-11-26: that key had expired. With a new key the live eval and the review page both ran; see the report's Live run section.
 
 ## Commentary module (`src/lib/deck/commentary.ts`)
 
