@@ -21,7 +21,7 @@ export function Button({
   variant = "secondary",
   className,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; ref?: React.Ref<HTMLButtonElement> }) {
   return <button type="button" className={cn(BASE, VARIANTS[variant], className)} {...props} />;
 }
 

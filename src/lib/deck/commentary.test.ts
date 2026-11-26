@@ -13,7 +13,9 @@ import { buildDeck } from "./pptx";
 import { fakeClient, goodAnswer, growthMargin, marginTrend, newsStory, rankedBars, shareTiles, tamFunnel } from "./commentary.fixtures";
 import {
   CLAUDE_COMMENTARY,
+  commentaryUpdate,
   CommentarySchema,
+  parseSummary,
   parseTray,
   slidePreview,
   summaryMatches,
@@ -290,6 +292,38 @@ async function main() {
   assert.equal(movedDeck[1].preview.headline, "Executive summary");
   assert.ok(!movedDeck[1].preview.lines!.some((l) => l.includes("$28.1B")), "the line with Arrow's old figure is gone");
   assert.equal(movedDeck[1].preview.lines!.length, summary.lines.filter((l) => !l.includes("$28.1B")).length);
+
+  /* ---------- What the review page saves ---------- */
+
+  // Who wrote the headline, and for which audience, is recorded.
+  assert.equal(first.slides[id].headlineFrom, "claude");
+  assert.equal(first.slides[id].audience, "Supplier");
+  assert.equal(first.summary?.audience, "Supplier");
+  // A headline that was the reader's point follows the point as it is now.
+  const fromNote = { ...marginTrend(), note: "Fixed typo in my point", commentary: { headline: "Fxied typo in my point", headlineFrom: "note" as const, bullets: ["Both rose each quarter."], writtenAt: DAY } };
+  assert.equal(slidePreview(fromNote).headline, "Fixed typo in my point");
+  assert.equal(slidePreview({ ...fromNote, note: undefined }).headline, marginTrend().preview.headline, "then the card's");
+
+  // A Write commentary answer: sent slides take it, a skipped slide loses its old commentary (and is named), slides left out keep theirs.
+  const sent = withC.slice(0, 3);
+  const plan = commentaryUpdate(sent, { slides: { [sent[0].id]: first.slides[sent[0].id], [sent[2].id]: first.slides[sent[2].id] }, summary })!;
+  assert.deepEqual(Object.keys(plan.byId), sent.map((x) => x.id));
+  assert.equal(plan.byId[sent[1].id], undefined);
+  assert.deepEqual(plan.cleared, [sent[1].title]);
+  assert.deepEqual(plan.summary?.addedAt, sent.map((x) => x.addedAt), "the summary records when each slide was added");
+  assert.equal(commentaryUpdate(sent, { slides: { [sent[0].id]: { headline: "x".repeat(999), bullets: [], writtenAt: DAY } } }), null, "nothing half saved");
+  assert.equal(commentaryUpdate(sent, { slides: {}, summary: { ...summary, writtenAt: "not a date" } }), null);
+
+  // A slide removed and added again (newer figures) doesn't match the summary written before.
+  const stamped = { ...summary, addedAt: withC.filter((x) => x.included).map((x) => x.addedAt) };
+  assert.ok(summaryMatches(stamped, withC));
+  assert.equal(summaryMatches(stamped, withC.map((x, i) => (i === 2 ? { ...x, addedAt: "2027-01-02T00:00:00.000Z" } : x))), false);
+
+  // The saved summary: read back, or none when broken.
+  assert.deepEqual(parseSummary(JSON.stringify(stamped)), stamped);
+  assert.equal(parseSummary("{oops"), undefined);
+  assert.equal(parseSummary(JSON.stringify({ lines: [], writtenAt: DAY, slideIds: [] })), undefined);
+  assert.equal(parseSummary(null), undefined);
 
   /* ---------- The PowerPoint says who wrote it ---------- */
 

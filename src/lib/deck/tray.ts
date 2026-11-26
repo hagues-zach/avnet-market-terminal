@@ -144,6 +144,10 @@ export const CommentarySchema = z.object({
   writtenAt: Ymd,
   /** The reader's point it was written from, so the page can say when the point has changed since. */
   forNote: text(300).optional(),
+  /** Where the headline came from: Claude's, or (when Claude's didn't hold up) the reader's point or the card's. */
+  headlineFrom: z.enum(["claude", "note", "card"]).optional(),
+  /** The audience it was written for, as the page names it: "Supplier". */
+  audience: text(40).optional(),
 });
 export type Commentary = z.infer<typeof CommentarySchema>;
 
@@ -152,6 +156,9 @@ export const DeckSummarySchema = z.object({
   lines: z.array(text(COMMENTARY.summaryLine)).min(1).max(COMMENTARY.summaryLines),
   writtenAt: Ymd,
   slideIds: z.array(text(200)).max(TRAY_LIMIT),
+  /** When each of those slides was added, so a slide removed and added again (with newer figures) doesn't match. */
+  addedAt: z.array(text(40)).max(TRAY_LIMIT).optional(),
+  audience: text(40).optional(),
 });
 export type DeckSummary = z.infer<typeof DeckSummarySchema>;
 
@@ -273,10 +280,12 @@ export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commenta
     const head = groundPiece(c.headline, ev);
     const text = c.text ? groundPiece(c.text, ev) : "";
     const bullets = p.groups?.length ? [] : c.bullets.map((b) => groundPiece(b, ev)).filter(Boolean);
-    if (head || text || bullets.length)
+    // A headline that was the reader's point follows the point as it is now.
+    const claudeHead = c.headlineFrom === "note" || c.headlineFrom === "card" ? "" : head;
+    if (claudeHead || text || bullets.length)
       return {
         ...p,
-        headline: head || note || p.headline,
+        headline: claudeHead || note || p.headline,
         ...(text ? { text } : {}),
         ...(bullets.length ? { lines: bullets } : {}),
         claude: { label: CLAUDE_COMMENTARY, ...(writtenDate(c.writtenAt) ? { date: writtenDate(c.writtenAt) } : {}) },
@@ -285,11 +294,41 @@ export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commenta
   return note ? { ...item.preview, headline: note } : item.preview;
 }
 
-/** True when the summary was written from exactly these slides, in this order. */
+/** True when the summary was written from exactly these slides, in this order, as added then. */
 export const summaryMatches = (summary: DeckSummary | undefined, items: TrayItem[]): summary is DeckSummary => {
-  const ids = items.filter((x) => x.included).map((x) => x.id);
-  return Boolean(summary) && summary!.slideIds.length === ids.length && summary!.slideIds.every((id, i) => id === ids[i]);
+  const shipped = items.filter((x) => x.included);
+  if (!summary || summary.slideIds.length !== shipped.length) return false;
+  return shipped.every((x, i) => x.id === summary.slideIds[i] && (!summary.addedAt || summary.addedAt[i] === x.addedAt));
 };
+
+/** The saved summary, or none when it's missing, old or broken. */
+export function parseSummary(raw: string | null | undefined): DeckSummary | undefined {
+  if (!raw) return undefined;
+  try {
+    const r = DeckSummarySchema.safeParse(JSON.parse(raw));
+    return r.success ? r.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * What a "Write commentary" answer does to the tray: every slide sent takes
+ * Claude's new commentary, or loses its old one when Claude's didn't hold up
+ * (the new summary was written from the new set); slides left out keep theirs.
+ * Null when anything in it wouldn't pass the tray's schema, so nothing is half
+ * saved. Pure.
+ */
+export function commentaryUpdate(
+  sent: Pick<TrayItem, "id" | "title" | "commentary" | "addedAt">[],
+  answer: { slides: Record<string, Commentary>; summary?: DeckSummary },
+): { byId: Record<string, Commentary | undefined>; summary?: DeckSummary; cleared: string[] } | null {
+  const byId = Object.fromEntries(sent.map((x) => [x.id, answer.slides[x.id]]));
+  if (Object.values(byId).some((c) => c && !CommentarySchema.safeParse(c).success)) return null;
+  const summary = answer.summary && { ...answer.summary, addedAt: sent.map((x) => x.addedAt) };
+  if (summary && !DeckSummarySchema.safeParse(summary).success) return null;
+  return { byId, ...(summary ? { summary } : {}), cleared: sent.filter((x) => x.commentary && !answer.slides[x.id]).map((x) => x.title) };
+}
 
 /**
  * The executive summary slide, its lines checked again against the slides it

@@ -42,8 +42,20 @@ One line per decision, with the option not taken. Review findings I rejected are
 
 - The browser has its own write route, `/api/deck/tray/commentary`. Its handler is `src/lib/deck/commentary-route.ts`, so tests can pass in a fake writer and store. It validates the tray through the same schema as the export and takes the same 1 MB cap.
 
+- **Write commentary** runs on the slides included at the moment it's clicked. Each of those takes Claude's new commentary. A slide Claude's answer dropped loses its earlier commentary, since the new summary was written without it, and the message names it. Slides left out keep theirs. Not taken: keeping old commentary beside a new summary it doesn't match.
+- Commentary and the summary record the audience they were written for. If the reader switches audience, the page says so beside each one and still ships it. Not taken: refusing to ship it. The figures are still checked, and the wording is the reader's call.
+- A headline that fell back to the reader's point records that (`headlineFrom`), so it follows the point if the reader edits it later.
+- The summary records when each slide was added. A slide removed and added again with newer figures makes it stale. The summary is also cleared when the tray empties.
+- Saving reports `saved`, `unsaved` (the browser kept it for this tab only) or `refused`. The summary is only stored if the tray it belongs with was stored too.
+- **Clear all** uses the destructive button style and offers **Undo** in the status line. Not taken: a confirm dialog, which adds a step every time when Undo covers the mistake.
+- When the server says Claude is off, **Write commentary** stays disabled until the page reloads, with the message saying why.
+- There's one live region for commentary, always mounted. A slide's message shows under that slide and is announced once, from the region.
+
 ## Review findings rejected
 
 - Milestone 1, finding 10 (the scatter's labelled points and medians are in the evidence even though the slide doesn't print the values): kept. They are the app's own figures for the dots the slide labels, and the medians are printed in the slide's sentence. Leaving them out would stop Claude from saying where Avnet sits, which is the point of the slide.
 - Milestone 1, prompt injection through the reader's note steering wording without figures: accepted as a limit. The note is the reader's own brief for their own deck. The tag escaping and the system prompt keep it from acting as instructions, and its figures can't get through.
 - Milestone 2, missing test that the preview and the PowerPoint place the panel-bullet strip at the same height: partly addressed. Both now take the height from one function (`bulletsHeight`), and the preview sets the strip with the PowerPoint's line height and spacing, clipped to that height. There's no pixel-level comparison test, because the preview is a React component and the test suite has no DOM.
+- Milestone 3 UI audit, finding 10b (a skeleton over the preview while one slide is written again): not done. The status line says Claude is writing, the slide's row and preview carry `aria-busy`, and the old wording stays readable until the new one arrives.
+- Milestone 3 UI audit, finding 11a (the summary goes stale when a slide's commentary is written again or cleared): rejected. The summary is grounded in the slides' figures, not their commentary, and it's checked against those figures every time it's built. Rewording a slide doesn't make it wrong.
+- Milestone 3 UI audit, the LoadingBlock's extra `role="status"`: fixed differently. The commentary skeleton is now its own `aria-hidden` shape, and the one status line describes it.

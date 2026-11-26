@@ -140,6 +140,8 @@ export function toCommentary(input: DeckInput, out: DeckOutput, writtenAt: strin
     const note = item.note?.trim();
     slides[s.id] = {
       headline: cutWords(head || note || item.preview.headline, COMMENTARY.headline),
+      headlineFrom: head ? "claude" : note ? "note" : "card",
+      audience: cutWords(input.audience, 40),
       ...(text ? { text: cutWords(text, COMMENTARY.text) } : {}),
       bullets,
       writtenAt,
@@ -152,7 +154,7 @@ export function toCommentary(input: DeckInput, out: DeckOutput, writtenAt: strin
     .filter(Boolean)
     .slice(0, COMMENTARY.summaryLines)
     .map((l) => cutWords(l, COMMENTARY.summaryLine));
-  return { slides, ...(lines.length ? { summary: { lines, writtenAt, slideIds: shipped.map((x) => x.id) } } : {}) };
+  return { slides, ...(lines.length ? { summary: { lines, writtenAt, slideIds: shipped.map((x) => x.id), audience: cutWords(input.audience, 40) } } : {}) };
 }
 
 /* ---------- The call ---------- */
