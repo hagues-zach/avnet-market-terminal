@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
-import { AddViewToDeck } from "@/components/deck/add-view-to-deck";
 import {
   BreakdownCard,
   CardFallback,
@@ -24,7 +23,6 @@ export default function MarketSharePage() {
       <PageTitle
         title="Market Share"
         subtitle="Avnet billings divided by the market, by segment, supplier and region"
-        actions={<AddViewToDeck slide="share" label="Avnet's share of the segment" />}
       />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">

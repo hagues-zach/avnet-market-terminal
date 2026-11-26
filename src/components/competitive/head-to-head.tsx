@@ -18,6 +18,7 @@ import { scorecardChartData } from "@/lib/chart-view/scorecard";
 import { linesSlide, panelsSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
 import { VIZ } from "@/lib/colors";
 import { AddCardToDeck } from "@/components/deck/add-card-to-deck";
+import { SummaryAction } from "@/components/deck/summary-action";
 import { cn } from "@/lib/utils";
 
 // Which of each company's segments is its components distribution business: the
@@ -433,6 +434,78 @@ const REGIONS = ["Americas", "EMEA", "Asia"] as const;
 const regionOf = (key: string) => (/Americas/.test(key) ? "Americas" : /EMEA|Europe/.test(key) ? "EMEA" : /Asia/.test(key) ? "Asia" : undefined);
 const share = (v: number | undefined) => (v === undefined ? NA : `${Math.round(v * 100)}%`);
 
+/**
+ * The folded section as one slide, as the page lays it out: the four trends down the left, each
+ * with both companies' latest value and their lines over eight quarters (Avnet green, Arrow blue),
+ * beside the regional mix for the latest quarter.
+ */
+function trendsSlide(
+  pair: Pair,
+  rl: string | undefined,
+  ra: MemberSeries[],
+  rb: MemberSeries[],
+  totals: { avnet?: number; arrow?: number },
+) {
+  const region = (list: MemberSeries[], name: string) => list.find((s) => regionOf(s.key) === name);
+  const rows = TRENDS.map((t) => {
+    const s = series(pair, t.metric);
+    const last = s[s.length - 1];
+    // "77 days", as the chart labels its line ends.
+    const val = (v: number | undefined) => (v === undefined ? NA : `${format(t.unit, v)}${t.unit === "days" ? " days" : ""}`);
+    return {
+      title: t.title,
+      strong: true,
+      markers: [
+        { text: `Avnet ${val(last?.avnet)}`, color: VIZ.avnet, strong: true },
+        { text: `Arrow ${val(last?.arrow)}`, color: VIZ.arrow },
+      ],
+      // Arrow first, so Avnet's line is drawn on top, as on the page.
+      lines: [
+        { values: s.map((p) => p.arrow ?? null), color: VIZ.arrow },
+        { values: s.map((p) => p.avnet ?? null), color: VIZ.avnet, width: 2 },
+      ],
+    };
+  });
+  const s0 = series(pair, "revenueYoY");
+  const span = s0.length ? `${s0[0].label} to ${s0[s0.length - 1].label}` : undefined;
+  return panelsSlide({
+    key: "competitive:trends-and-regional-mix",
+    title: "Avnet vs Arrow: trends and regional mix",
+    text: `Growth, margins and inventory over eight quarters${span ? `, ${span}` : ""}; revenue by region${rl ? ` in ${rl}` : ""}.`,
+    trayTitle: "Trends and regional mix",
+    panels: [
+      { title: "Eight quarters", rows, rowRules: true },
+      ...(rl
+        ? [
+            {
+              title: `Regional mix, ${rl}`,
+              table: {
+                columns: ["Region", "Avnet", "Share", "Growth", "Arrow", "Share", "Growth"],
+                rows: REGIONS.map((r) => {
+                  const x = at(region(ra, r), rl);
+                  const y = at(region(rb, r), rl);
+                  return {
+                    label: r,
+                    cells: [
+                      format("usd", x?.revenue),
+                      { text: share(x?.revenue !== undefined && totals.avnet ? x.revenue / totals.avnet : undefined), muted: true },
+                      x?.yoy === undefined ? NA : format("growth", x.yoy),
+                      format("usd", y?.revenue),
+                      { text: share(y?.revenue !== undefined && totals.arrow ? y.revenue / totals.arrow : undefined), muted: true },
+                      y?.yoy === undefined ? NA : format("growth", y.yoy),
+                    ],
+                  };
+                }),
+              },
+            },
+          ]
+        : []),
+    ],
+    source: "SEC filings, GAAP as reported; segment figures in 10-Q and 10-K filings",
+    period: rl,
+  });
+}
+
 /** Server component: trends and regions, folded under the comparison. */
 export async function MoreMeasures() {
   const [pair, sa, sb] = await Promise.all([loadPair(), getSegmentHistory("avnet"), getSegmentHistory("arrow")]);
@@ -450,71 +523,23 @@ export async function MoreMeasures() {
         <span className="ml-auto truncate pl-3 text-caption text-ink-muted">
           Growth, margins and inventory over eight quarters; revenue by region
         </span>
+        {/* One slide for the whole section: the four trends beside the regional mix. */}
+        <SummaryAction>
+          <AddCardToDeck title="Trends and regional mix" deck={trendsSlide(pair, rl, sa.regions, sb.regions, totals)} />
+        </SummaryAction>
       </summary>
       <div className="space-y-6 border-t border-hairline p-4">
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
           {TRENDS.map((t) => (
             <div key={t.metric}>
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-display text-card-title text-ink">{t.title}</h3>
-                <AddCardToDeck
-                  title={t.title}
-                  deck={(() => {
-                    const s = series(pair, t.metric);
-                    const last = s[s.length - 1];
-                    return seriesSlide({
-                      key: `competitive:trend-${t.metric}`,
-                      title: `Avnet vs Arrow: ${t.title}`,
-                      text: last ? `${last.label}: Avnet ${format(t.unit, last.avnet)}, Arrow ${format(t.unit, last.arrow)}.` : undefined,
-                      unit: t.unit === "growth" ? "pct" : t.unit === "days" ? "days" : "pct",
-                      periods: s.map((p) => p.label),
-                      series: [
-                        { name: "Avnet", values: s.map((p) => p.avnet) },
-                        { name: "Arrow", values: s.map((p) => p.arrow) },
-                      ],
-                      chartTitle: t.unit === "days" ? `${t.title}` : `${t.title}, %`,
-                      source: "SEC filings, GAAP as reported",
-                      period: last?.label,
-                    });
-                  })()}
-                />
-              </div>
+              <h3 className="font-display text-card-title text-ink">{t.title}</h3>
               <PairLines rows={series(pair, t.metric)} unit={t.unit} height={160} />
             </div>
           ))}
         </div>
         {rl && (
           <div className="overflow-x-auto">
-            <div className="mb-1 flex items-start justify-between gap-2">
-              <h3 className="font-display text-card-title text-ink">Regional mix, {rl}</h3>
-              <AddCardToDeck
-                title={`Regional mix, ${rl}`}
-                deck={tableSlide({
-                  key: "competitive:regional-mix",
-                  title: `Avnet vs Arrow: regional mix, ${rl}`,
-                  text: `Revenue by region for Avnet and Arrow, ${rl}.`,
-                  columns: ["Region", "Avnet revenue", "Share", "Growth YoY", "Arrow revenue", "Share", "Growth YoY"],
-                  rows: REGIONS.map((r) => {
-                    const x = at(region(sa.regions, r), rl);
-                    const y = at(region(sb.regions, r), rl);
-                    return {
-                      label: r,
-                      // Shares in grey, as the card shows them.
-                      values: [
-                        format("usd", x?.revenue),
-                        { text: share(x?.revenue !== undefined && totals.avnet ? x.revenue / totals.avnet : undefined), muted: true },
-                        x?.yoy === undefined ? NA : format("growth", x.yoy),
-                        format("usd", y?.revenue),
-                        { text: share(y?.revenue !== undefined && totals.arrow ? y.revenue / totals.arrow : undefined), muted: true },
-                        y?.yoy === undefined ? NA : format("growth", y.yoy),
-                      ],
-                    };
-                  }),
-                  source: "Segment figures in 10-Q and 10-K filings",
-                  period: rl,
-                })}
-              />
-            </div>
+            <h3 className="mb-1 font-display text-card-title text-ink">Regional mix, {rl}</h3>
             <table className="w-full min-w-[640px] border-collapse font-body text-table">
               <caption className="sr-only">Revenue by region for Avnet and Arrow, {rl}</caption>
               <thead className="bg-surface-sunken">

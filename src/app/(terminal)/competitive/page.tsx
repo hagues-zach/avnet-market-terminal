@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { PageBody } from "@/components/layout/page-body";
 import { PageTitle } from "@/components/ui/page-title";
-import { AddViewToDeck } from "@/components/deck/add-view-to-deck";
 import { ButtonLink } from "@/components/ui/button";
 import { DataChip } from "@/components/ui/chip";
 import { isHidden } from "@/lib/visibility";
@@ -20,7 +19,6 @@ export default function CompetitivePage() {
         actions={
           <>
             <DataChip status="live" label="SEC filings" />
-            <AddViewToDeck slide="arrow" label="Avnet against Arrow" />
             <ButtonLink href="/network/arrow">Open Arrow&apos;s profile</ButtonLink>
           </>
         }

@@ -446,7 +446,9 @@ function placeAt(
       });
     }
     if (p.rows?.length) {
-      const linesW = p.rows.some((r) => r.lines?.length) ? z(1.15) : 0;
+      // Rows that are only a name, markers and a pair of lines (the trends) give the lines half the panel.
+      const linesOnly = p.rows.every((r) => !r.value && !r.text && !r.bar && !r.caption);
+      const linesW = p.rows.some((r) => r.lines?.length) ? (linesOnly ? Math.max(z(1.15), w * 0.48) : z(1.15)) : 0;
       const tw = w - (linesW ? linesW + z(0.2) : 0);
       p.rows.forEach((r, j) => {
         if (j && p.rowRules) {
@@ -475,8 +477,13 @@ function placeAt(
         if (r.markers?.length) {
           let mx = x;
           for (const m of r.markers) {
-            items.push({ kind: "rect", x: mx, y: y + z(0.045), w: z(0.09), h: z(0.09), color: m.color });
             const mw = (m.text.length * z(9.5) * (m.strong ? 0.62 : 0.56)) / 72 + 0.1;
+            // A marker that would run into the lines beside it starts a line of its own.
+            if (mx > x && mx + z(0.14) + mw > x + tw) {
+              mx = x;
+              y += z(0.22);
+            }
+            items.push({ kind: "rect", x: mx, y: y + z(0.045), w: z(0.09), h: z(0.09), color: m.color });
             text(mx + z(0.14), y + z(0.01), mw, z(0.19), [{ text: m.text, size: z(9.5), bold: Boolean(m.strong), color: m.strong ? undefined : PANEL_INK.muted }]);
             mx += z(0.14) + mw + z(0.2);
           }

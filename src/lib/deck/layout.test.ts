@@ -272,4 +272,24 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   assert.ok(barLabelWidth(bar(0.05)) < wide, "a short label takes less room");
 }
 
+// Trend rows: the lines take half the panel, and markers that don't fit beside them wrap, never under them.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4 };
+  const rows = ["Revenue growth YoY", "Inventory days"].map((title) => ({
+    title,
+    strong: true,
+    markers: [
+      { text: "Avnet 77 days", color: "#41C363", strong: true },
+      { text: "Arrow 70 days", color: "#4273B8" },
+    ],
+    lines: [{ values: [1, 2, 3, 4], color: "#4273B8" }],
+  }));
+  const items = layoutPanels([{ title: "Eight quarters", rows }, { title: "Other", paragraphs: [{ text: "x" }] }], box);
+  const segs = items.filter((it) => it.kind === "seg");
+  const left = Math.min(...segs.map((sg) => (sg.kind === "seg" ? Math.min(sg.x1, sg.x2) : Infinity)));
+  const marks = items.filter((it): it is Extract<typeof it, { kind: "text" }> => it.kind === "text" && /^(Avnet|Arrow) /.test(it.runs[0].text));
+  assert.ok(left - box.x > 1.5 && left < box.x + 4.5, `lines take the right of the panel: from ${left}`);
+  for (const m of marks) assert.ok(m.x + m.w <= left, `${m.runs[0].text} ends before the lines: ${m.x + m.w} vs ${left}`);
+}
+
 console.log("layout.test.ts: ok");
