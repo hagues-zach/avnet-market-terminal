@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { usdShort } from "@/lib/deck/slides";
-import { AREA, chartTitle, layoutPanels, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
+import { AREA, barLabelWidth, chartTitle, layoutPanels, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
 import type { Chart, Panel, Preview } from "@/lib/deck/outline";
 import { AVNET, VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
@@ -74,7 +74,7 @@ export function PreviewChart({ c, plan }: { c: Chart; plan?: Pick<SlidePlan, "la
     return (
       <div className="flex h-full flex-col" role="img" aria-label={described}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} layout="vertical" margin={{ top: 0, right: px(44), bottom: 0, left: 0 }} barCategoryGap="30%">
+          <BarChart data={rows} layout="vertical" margin={{ top: 0, right: px(barLabelWidth(c) * 72), bottom: 0, left: 0 }} barCategoryGap="30%">
             <XAxis type="number" hide domain={[0, "dataMax"]} />
             <YAxis type="category" dataKey="name" width={px(Math.min(150, 8 + 5.6 * Math.max(...rows.map((r) => r.name.length))))} tick={{ ...tick, fontSize: px(11), fill: INK }} axisLine={false} tickLine={false} />
             <Bar dataKey="value" maxBarSize={px(40)} isAnimationActive={false}>
@@ -254,7 +254,13 @@ function Panels({ panels }: { panels: Panel[] }) {
         if (it.kind === "seg") return null;
         const at: CSSProperties = { position: "absolute", left: inch(it.x), top: inch(it.y), width: inch(it.w), height: inch(it.h) };
         if (it.kind === "line")
-          return <div key={i} style={{ ...at, ...(it.w ? { height: 0, borderTop: `${it.width}pt solid ${it.color}` } : { width: 0, borderLeft: `${it.width}pt solid ${it.color}` }) }} />;
+          return (
+            <div
+              key={i}
+              style={{ ...at, ...(it.w ? { height: 0, borderTop: `${it.width}pt ${it.dashed ? "dashed" : "solid"} ${it.color}` } : { width: 0, borderLeft: `${it.width}pt ${it.dashed ? "dashed" : "solid"} ${it.color}` }) }}
+            />
+          );
+        if (it.kind === "dot") return <div key={i} style={{ ...at, borderRadius: "50%", background: it.color, opacity: it.opacity }} />;
         if (it.kind === "rect") return <div key={i} style={{ ...at, background: it.color, opacity: it.opacity }} />;
         if (it.kind === "pill") return <div key={i} style={{ ...at, borderRadius: 999, border: `0.75pt ${it.dashed ? "dashed" : "solid"} ${it.color}`, background: "#FFFFFF" }} />;
         return (

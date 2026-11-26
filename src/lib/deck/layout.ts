@@ -18,7 +18,8 @@
 //   table when there are too many or they compare things.
 
 import { AVNET, VIZ } from "@/lib/colors";
-import type { Chart, Panel, PanelTone, Preview, SeriesWho } from "./outline";
+import { formatFigure } from "./slides";
+import type { ScatterAxis, Chart, Panel, PanelTone, Preview, SeriesWho } from "./outline";
 
 /** The slide in inches: the FY27 template's 10 by 5.625. */
 export const SLIDE = { w: 10, h: 5.625 } as const;
@@ -82,6 +83,19 @@ export function niceRange(values: number[]): { min: number; max: number } | unde
   // Don't cross zero for data that doesn't.
   return { min: lo >= 0 && min < 0 ? 0 : min, max: hi <= 0 && max > 0 ? 0 : max };
 }
+
+/**
+ * The room, in inches, a comparison's value labels take beside the longest bar: the widest label
+ * at 12pt bold (Arial runs about 0.62 em a character in bold), with a little air. Both the
+ * preview and the PowerPoint keep this clear, so "+379.3%" isn't cut at the edge.
+ */
+export function barLabelWidth(c: Chart): number {
+  const longest = Math.max(0, ...c.series.map((s) => formatFigure(c.format, s.points[0]?.value).length));
+  return (longest * 12 * 0.62) / 72 + 0.12;
+}
+
+/** The width, in inches, of a comparison's company names at 11pt, as the category axis sets them. */
+export const barNameWidth = (c: Chart): number => (Math.max(0, ...c.series.map((s) => s.name.length)) * 11 * 0.55) / 72 + 0.2;
 
 /** What the chart measures: its own title, or for a one-period comparison the period's label ("Revenue growth on a year ago"). */
 export const chartTitle = (c: Chart): string | undefined => c.title ?? (c.kind === "bar" ? c.series[0]?.points[0]?.label : undefined);
@@ -196,7 +210,9 @@ export type PanelItem =
   | { kind: "text"; x: number; y: number; w: number; h: number; runs: PanelRun[]; align?: "left" | "center" | "right"; valign?: "top" | "middle" | "bottom"; spaced?: boolean; fill?: string }
   | { kind: "rect"; x: number; y: number; w: number; h: number; color: string; opacity?: number }
   /** A hairline: horizontal when h is 0, vertical when w is 0. Width in points. */
-  | { kind: "line"; x: number; y: number; w: number; h: number; color: string; width: number }
+  | { kind: "line"; x: number; y: number; w: number; h: number; color: string; width: number; dashed?: boolean }
+  /** A filled circle in its box: a scatter's dot. */
+  | { kind: "dot"; x: number; y: number; w: number; h: number; color: string; opacity?: number }
   /** A chip: a rounded outline, dashed on Mock. */
   | { kind: "pill"; x: number; y: number; w: number; h: number; color: string; dashed: boolean }
   /** A straight stroke from one point to another, for small line charts. Width in points. */
@@ -209,8 +225,89 @@ const PANEL_TONE = { good: PANEL_INK.good, bad: PANEL_INK.bad, neutral: PANEL_IN
 const changeRuns = (change: string | undefined, tone: PanelTone | undefined, period: string | undefined, size: number): PanelRun[] =>
   change ? [{ text: panelChange(change), size, color: PANEL_TONE[tone ?? "neutral"] }, ...(period ? [{ text: ` ${period}`, size, color: PANEL_INK.muted }] : [])] : [];
 
+/** Ticks for an axis: a round step, four or so across the range, inside it. */
+function axisTicks(min: number, max: number): number[] {
+  const raw = (max - min || Math.abs(max) || 1) / 4;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
+  const out: number[] = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) out.push(Number(v.toPrecision(12)));
+  return out;
+}
+
+const axisText = (format: ScatterAxis["format"], v: number) => {
+  const p = Math.round(v * 100);
+  return format === "growth" && p > 0 ? `+${p}%` : p < 0 ? `\u2212${-p}%` : `${p}%`;
+};
+
+/**
+ * A scatter in its box, as the page draws it: the value axis's ticks on the left with light gridlines,
+ * the other axis's ticks along the foot with its name, dashed medians, the crowd in light grey and the
+ * strong points (Avnet, Arrow) on top in their colours with their names. Returns where it ends.
+ */
+function placeScatter(s: NonNullable<Panel["scatter"]>, box: { x: number; y: number; w: number; h: number }, z: (n: number) => number, items: PanelItem[]): number {
+  const tick = z(7);
+  const text = (x: number, y: number, w: number, h: number, runs: PanelRun[], o: Partial<Extract<PanelItem, { kind: "text" }>> = {}) =>
+    items.push({ kind: "text", x, y, w, h, runs, ...o });
+  const labelH = z(0.18);
+  const gutter = z(0.5);
+  const noteH = s.note ? z(0.18) : 0;
+  const plot = { x: box.x + gutter, y: box.y + labelH, w: box.w - gutter - z(0.1), h: Math.max(z(1.2), box.h - labelH - z(0.2) - z(0.2) - noteH) };
+  const xs = (v: number) => plot.x + ((v - s.x.min) / (s.x.max - s.x.min || 1)) * plot.w;
+  const ys = (v: number) => plot.y + plot.h - ((v - s.y.min) / (s.y.max - s.y.min || 1)) * plot.h;
+  const caps = (t: string, x: number, y: number, w: number, align: "left" | "right" = "left") =>
+    text(x, y, w, z(0.14), [{ text: t.toUpperCase(), size: z(6.5), bold: true, color: PANEL_INK.muted }], { spaced: true, align });
+
+  caps(s.y.label, box.x, box.y, box.w * 0.6);
+  for (const v of axisTicks(s.y.min, s.y.max)) {
+    const at = ys(v);
+    items.push({ kind: "line", x: plot.x, y: at, w: plot.w, h: 0, color: PANEL_INK.line, width: 0.5 });
+    text(box.x, at - z(0.07), gutter - z(0.08), z(0.14), [{ text: axisText(s.y.format, v), size: tick, color: PANEL_INK.muted }], { align: "right", valign: "middle" });
+  }
+  items.push({ kind: "line", x: plot.x, y: plot.y + plot.h, w: plot.w, h: 0, color: PANEL_INK.muted, width: 0.75 });
+  for (const v of axisTicks(s.x.min, s.x.max)) {
+    text(xs(v) - z(0.3), plot.y + plot.h + z(0.03), z(0.6), z(0.14), [{ text: axisText(s.x.format, v), size: tick, color: PANEL_INK.muted }], { align: "center" });
+  }
+  caps(s.x.label, plot.x, plot.y + plot.h + z(0.2), plot.w, "right");
+
+  const within = (v: number, lo: number, hi: number) => v >= lo && v <= hi;
+  if (s.medians?.x !== undefined && within(s.medians.x, s.x.min, s.x.max))
+    items.push({ kind: "line", x: xs(s.medians.x), y: plot.y, w: 0, h: plot.h, color: PANEL_INK.muted, width: 0.75, dashed: true });
+  if (s.medians?.y !== undefined && within(s.medians.y, s.y.min, s.y.max))
+    items.push({ kind: "line", x: plot.x, y: ys(s.medians.y), w: plot.w, h: 0, color: PANEL_INK.muted, width: 0.75, dashed: true });
+
+  // The crowd first, then the strong points on top with their names.
+  const d = z(0.1);
+  const pts = [...s.points].sort((a, b) => Number(Boolean(a.strong)) - Number(Boolean(b.strong)));
+  for (const pt of pts) {
+    const cx = xs(pt.x);
+    const cy = ys(pt.y);
+    const size = pt.strong ? d * 1.3 : d;
+    items.push({ kind: "dot", x: cx - size / 2, y: cy - size / 2, w: size, h: size, color: pt.color, ...(pt.strong ? {} : { opacity: 0.6 }) });
+    if (pt.strong && pt.label) {
+      const right = cx < plot.x + plot.w - z(0.7);
+      text(right ? cx + size : cx - size - z(0.7), cy - z(0.08), z(0.7), z(0.16), [{ text: pt.label, size: z(8), bold: true, color: pt.color }], {
+        align: right ? "left" : "right",
+        valign: "middle",
+      });
+    }
+  }
+  let end = plot.y + plot.h + z(0.2) + z(0.16);
+  if (s.note) {
+    text(box.x, end + z(0.02), box.w, z(0.16), [{ text: s.note, size: z(7.5), color: PANEL_INK.muted }]);
+    end += noteH;
+  }
+  return end;
+}
+
 /** Panels at scale k (1 is full size), and how far the tallest runs past the box. */
-function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h: number }, k: number): { items: PanelItem[]; over: number } {
+function placeAt(
+  panels: Panel[],
+  box: { x: number; y: number; w: number; h: number },
+  k: number,
+  /** Where every panel's small columns start, so they sit level across the row. */
+  barsAt?: number,
+): { items: PanelItem[]; over: number; barsY: number[] } {
   const z = (n: number) => n * k;
   const n = Math.max(1, panels.length);
   const gap = PANEL_GAP;
@@ -245,6 +342,10 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
     (p.metrics ?? []).every((m) => !m.large || !m.change || m.value.length * large * 0.6 + 6 + `${m.change} ${m.period ?? ""}`.length * ch * 0.52 <= w * 72),
   );
   const detailH = Math.max(0, ...panels.map((p) => (p.detail ? tall(p.detail, z(8)) : 0)));
+  // The line under each figure takes the tallest one's height, so what follows it (the share bar, the
+  // small columns) starts level across the row, as the page's grid lines them up.
+  const figureNote = (f: NonNullable<Panel["figure"]>) => `${f.note ?? ""} ${f.change ?? ""} ${f.period ?? ""}`;
+  const noteH = Math.max(0, ...panels.map((p) => (p.figure && (p.figure.note || p.figure.change) ? tall(figureNote(p.figure), z(9.5)) : 0)));
   const sparkH = panels.some((p) => p.spark && p.spark.values.length > 1) ? z(0.52) : 0;
 
   const items: PanelItem[] = [];
@@ -253,6 +354,7 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
   const caps = (s: string, x: number, y: number, cw = w) => text(x, y, cw, label / 72 + 0.04, [{ text: s.toUpperCase(), size: label, bold: true, color: PANEL_INK.muted }], { spaced: true });
   const rule = (x: number, y: number, width = 0.75) => items.push({ kind: "line", x, y, w, h: 0, color: PANEL_INK.line, width });
   let over = -Infinity;
+  const barsY: number[] = [];
 
   panels.forEach((p, i) => {
     const x = box.x + i * (w + gap);
@@ -292,10 +394,9 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
       text(x, y, w, (figureSize * 1.15) / 72, [{ text: p.figure.value, size: figureSize, bold: true }]);
       y += figureSize / 72 + z(0.12);
       if (p.figure.note || p.figure.change) {
-        const h = tall(`${p.figure.note ?? ""} ${p.figure.change ?? ""} ${p.figure.period ?? ""}`, z(9.5));
-        text(x, y, w, h, [...(p.figure.note ? [{ text: p.figure.note + (p.figure.change ? " " : ""), size: z(9.5) }] : []), ...changeRuns(p.figure.change, p.figure.tone, p.figure.period, z(8.5))]);
-        y += h + z(0.04);
+        text(x, y, w, noteH, [...(p.figure.note ? [{ text: p.figure.note + (p.figure.change ? " " : ""), size: z(9.5) }] : []), ...changeRuns(p.figure.change, p.figure.tone, p.figure.period, z(8.5))]);
       }
+      if (noteH) y += noteH + z(0.04);
       if (p.next) {
         // The funnel's chevron on the divider, level with the figure, as on the page.
         const cy = box.y + (p.kicker ? z(0.24) : 0) + figureSize / 144;
@@ -345,7 +446,9 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
       });
     }
     if (p.rows?.length) {
-      const linesW = p.rows.some((r) => r.lines?.length) ? z(1.15) : 0;
+      // Rows that are only a name, markers and a pair of lines (the trends) give the lines half the panel.
+      const linesOnly = p.rows.every((r) => !r.value && !r.text && !r.bar && !r.caption);
+      const linesW = p.rows.some((r) => r.lines?.length) ? (linesOnly ? Math.max(z(1.15), w * 0.48) : z(1.15)) : 0;
       const tw = w - (linesW ? linesW + z(0.2) : 0);
       p.rows.forEach((r, j) => {
         if (j && p.rowRules) {
@@ -374,8 +477,13 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
         if (r.markers?.length) {
           let mx = x;
           for (const m of r.markers) {
-            items.push({ kind: "rect", x: mx, y: y + z(0.045), w: z(0.09), h: z(0.09), color: m.color });
             const mw = (m.text.length * z(9.5) * (m.strong ? 0.62 : 0.56)) / 72 + 0.1;
+            // A marker that would run into the lines beside it starts a line of its own.
+            if (mx > x && mx + z(0.14) + mw > x + tw) {
+              mx = x;
+              y += z(0.22);
+            }
+            items.push({ kind: "rect", x: mx, y: y + z(0.045), w: z(0.09), h: z(0.09), color: m.color });
             text(mx + z(0.14), y + z(0.01), mw, z(0.19), [{ text: m.text, size: z(9.5), bold: Boolean(m.strong), color: m.strong ? undefined : PANEL_INK.muted }]);
             mx += z(0.14) + mw + z(0.2);
           }
@@ -487,17 +595,25 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
       y += z(0.1);
     }
     if (p.bars && p.bars.values.some((v) => v !== null)) {
+      y = Math.max(y, barsAt ?? y);
+      barsY.push(y);
       const vals = p.bars.values;
       const max = Math.max(...vals.map((v) => v ?? 0)) || 1;
       const gapB = z(0.06);
       const bw = (w - gapB * (vals.length - 1)) / vals.length;
-      const chartH = z(0.7);
+      // When the columns end the panel, they grow into the room left under them (to no more than
+      // 2.2 inches), so they don't sit small over an empty foot; every panel starts them level
+      // (barsAt), so they grow to the same height across the row.
+      const last = !p.pairs?.length && !(sparkH && p.spark && p.spark.values.length > 1);
+      const room = bottom - y - z(0.16) - z(0.22) - z(0.12);
+      const chartH = last ? Math.min(z(2.2), Math.max(z(0.7), room)) : z(0.7);
       const base = y + z(0.16) + chartH;
       vals.forEach((v, k) => {
         const bx = x + k * (bw + gapB);
         if (v !== null) {
           const bh = Math.max(0.01, (v / max) * chartH);
-          items.push({ kind: "rect", x: bx, y: base - bh, w: bw, h: bh, color: p.bars!.color });
+          // A forecast bar is lighter, as the page draws a forecast dotted.
+          items.push({ kind: "rect", x: bx, y: base - bh, w: bw, h: bh, color: p.bars!.color, ...(p.bars!.forecast?.[k] ? { opacity: 0.4 } : {}) });
           const vl = p.bars!.valueLabels?.[k];
           if (vl) text(bx - 0.1, base - bh - z(0.15), bw + 0.2, z(0.14), [{ text: vl, size: z(6.5), color: PANEL_INK.muted }], { align: "center", valign: "bottom" });
         }
@@ -516,6 +632,9 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
         text(cx + cw * 0.5, cy, cw * 0.5, z(0.17), [{ text: pr.value, size: z(8), color: PANEL_INK.muted }], { align: "right" });
       });
       y += Math.ceil(p.pairs.length / per) * z(0.18) + z(0.04);
+    }
+    if (p.scatter && p.scatter.points.length) {
+      y = placeScatter(p.scatter, { x, y: y + z(0.04), w, h: bottom - y - z(0.04) }, z, items);
     }
     if (sparkH && p.spark && p.spark.values.length > 1) {
       // Along the foot, as on the page: bars around a zero line, negatives below it, the latest solid.
@@ -537,7 +656,7 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
       over = Math.max(over, top + sparkH - bottom);
     } else over = Math.max(over, y - bottom);
   });
-  return { items, over };
+  return { items, barsY, over };
 }
 
 /**
@@ -548,6 +667,11 @@ function placePanels(panels: Panel[], box: { x: number; y: number; w: number; h:
  * grows to fill the body (to no more than 150%).
  */
 export function layoutPanels(panels: Panel[], box: { x: number; y: number; w: number; h: number }): PanelItem[] {
+  // Placed once to find where each panel's small columns fall, then again with them all at the lowest.
+  const placePanels = (ps: Panel[], b: typeof box, k: number) => {
+    const first = placeAt(ps, b, k);
+    return first.barsY.length > 1 && new Set(first.barsY).size > 1 ? placeAt(ps, b, k, Math.max(...first.barsY)) : first;
+  };
   let k = 1;
   let r = placePanels(panels, box, k);
   for (let i = 0; i < 4 && r.over > 0.005 && k > 0.7; i++) {

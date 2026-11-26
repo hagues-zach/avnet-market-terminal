@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { X } from "lucide-react";
-import { addItem, moveItem, parseTray, removeItem, TRAY_LIMIT, updateItem, type TrayItem } from "@/lib/deck/tray";
+import { addItem, moveItem, parseTray, removeItem, TRAY_LIMIT, TrayItemSchema, updateItem, type TrayItem } from "@/lib/deck/tray";
 import { MiniTray } from "./mini-tray";
 
 // The deck tray (docs/design/deck-tray): slides collected with Add to deck, kept
@@ -101,8 +101,16 @@ export function TrayProvider({ children }: { children: React.ReactNode }) {
       ready,
       has: (id) => items.some((x) => x.id === id),
       add: (item) => {
+        // Checked as the tray reads it back: a slide outside its limits would be saved, then
+        // silently dropped on the next read, so the button would never say "In deck".
+        const checked = TrayItemSchema.safeParse({ ...item, addedAt: new Date().toISOString(), included: true });
+        if (!checked.success) {
+          console.error("Add to deck: the slide doesn't fit the tray", item.id, checked.error.issues);
+          notify("Couldn't add that slide to the deck.");
+          return false;
+        }
         const now = parseTray(read());
-        const r = addItem(now, { ...item, addedAt: new Date().toISOString(), included: true });
+        const r = addItem(now, checked.data);
         if (!r.added) {
           notify(r.reason === "full" ? `The deck holds ${TRAY_LIMIT} slides. Remove one to add another.` : "Already in your deck.", true);
           return false;

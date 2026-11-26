@@ -11,8 +11,9 @@ import { format } from "./format";
 import { GroupTable } from "./group-table";
 import { GrowthMarginChart, RankChart } from "./leaderboard-charts";
 import { peerRows, peersSlide } from "./peer-section";
-import { comparisonSlide, panelsSlide, tableSlide } from "@/lib/deck/slides";
-import { VIZ } from "@/lib/colors";
+import { comparisonSlide, panelsSlide } from "@/lib/deck/slides";
+import { VIZ, companyColor } from "@/lib/colors";
+import { scatterWindow } from "@/lib/chart-view/scatter";
 
 const UNIT: Record<(typeof MEASURES)[Measure]["kind"], Unit> = { growth: "growth", pct: "pct", days: "days", usd: "usd" };
 const href = (measure: Measure, group: Cohort | "all") =>
@@ -111,14 +112,7 @@ export async function LeaderboardView({ measure, group }: { measure: Measure; gr
             <Panel
               title="Growth against margin"
               subtitle="Revenue growth on a year ago, against operating margin. Dashed lines are the medians"
-              deck={tableSlide({
-                key: `earnings:growth-against-margin-${group}`,
-                title: `Growth against margin: ${scope}`,
-                text: `Revenue growth on a year ago against operating margin. Medians: growth ${format("growth", medianOf(growthRank))}, margin ${format("pct", marginMedian)}.`,
-                columns: ["Company", "Growth YoY", "Op margin"],
-                rows: growthRank.map((r) => ({ label: r.company.name, values: [format("growth", r.growth), format("pct", r.margin)] })),
-                source: "SEC filings, GAAP as reported",
-              })}
+              deck={growthMarginSlide(group, scope, growthRank, medianOf(growthRank), marginMedian)}
             >
               <GrowthMarginChart points={growthRank.map((r) => ({ slug: r.company.slug, name: r.company.name, value: r.value, growth: r.growth, margin: r.margin }))} medianGrowth={medianOf(growthRank)} medianMargin={marginMedian} />
             </Panel>
@@ -200,4 +194,45 @@ export async function LeaderboardView({ measure, group }: { measure: Measure; gr
       </Panel>
     </div>
   );
+}
+
+/**
+ * The scatter's slide, as the card draws it: a dot per company on the same axes (the middle 90%,
+ * Avnet and Arrow always in), Avnet and Arrow in their colours and named, dashed lines at the medians.
+ */
+function growthMarginSlide(
+  group: string,
+  scope: string,
+  ranked: { company: { slug: string; name: string }; growth?: number; margin?: number }[],
+  medianGrowth: number | undefined,
+  medianMargin: number | undefined,
+) {
+  const all = ranked.flatMap((r) =>
+    r.growth !== undefined && r.margin !== undefined ? [{ slug: r.company.slug, name: r.company.name, growth: r.growth, margin: r.margin }] : [],
+  );
+  if (!all.length) return null;
+  const { shown, x, y, off } = scatterWindow(all);
+  const strong = (slug: string) => slug === "avnet" || slug === "arrow";
+  return panelsSlide({
+    key: `earnings:growth-against-margin-${group}`,
+    title: `Growth against margin: ${scope}`,
+    text: `Revenue growth on a year ago against operating margin. Medians: growth ${format("growth", medianGrowth)}, margin ${format("pct", medianMargin)}.`,
+    panels: [
+      {
+        scatter: {
+          x: { label: "Revenue growth on a year ago", format: "growth", min: x[0], max: x[1] },
+          y: { label: "Operating margin", format: "pct", min: y[0], max: y[1] },
+          points: shown.map((p) => ({
+            x: p.growth,
+            y: p.margin,
+            color: strong(p.slug) ? companyColor(p.slug) : VIZ.benchmark,
+            ...(strong(p.slug) ? { strong: true, label: p.slug === "avnet" ? "Avnet" : "Arrow" } : {}),
+          })),
+          medians: { x: medianGrowth, y: medianMargin },
+          note: off > 0 ? `${off} ${off === 1 ? "company is" : "companies are"} off the scale. Dashed lines are the medians.` : "Dashed lines are the medians.",
+        },
+      },
+    ],
+    source: "SEC filings, GAAP as reported",
+  });
 }

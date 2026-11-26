@@ -1,6 +1,6 @@
 // How a slide uses its space. Run with: npx tsx src/lib/deck/layout.test.ts
 import assert from "node:assert/strict";
-import { chartFromFacts, layoutPanels, niceRange, planSlide, readFigure, withChart } from "./layout";
+import { barLabelWidth, chartFromFacts, layoutPanels, niceRange, planSlide, readFigure, withChart } from "./layout";
 import type { Panel, Preview } from "./outline";
 
 const quarters = ["CY24 Q4", "CY25 Q1", "CY25 Q2", "CY25 Q3", "CY25 Q4", "CY26 Q1", "CY26 Q2", "CY26 Q3"];
@@ -206,6 +206,90 @@ assert.equal(chartFromFacts({ headline: "x", columns: ["", "A", "B"], facts: [{ 
   assert.ok(marker && title && marker.kind === "rect" && title.kind === "text" && marker.x < title.x, "the marker before the title");
   const para = items.find((it) => it.kind === "text" && it.runs[0].text === "Demand: ");
   assert.ok(para && para.kind === "text" && para.runs[0].bold && !para.runs[1].bold, "the paragraph's label in bold");
+}
+
+// A panel's bars: a forecast period is drawn lighter, the actual years solid.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4 };
+  const items = layoutPanels([{ title: "TAM", bars: { labels: ["2024", "2025", "2026F"], values: [1, 2, 3], color: "#808080", forecast: [false, false, true] } }], box);
+  const rects = items.filter((it) => it.kind === "rect");
+  assert.equal(rects.length, 3, "a bar per period");
+  assert.deepEqual(rects.map((r) => (r.kind === "rect" ? r.opacity ?? 1 : 0)), [1, 1, 0.4], "only the forecast bar is lighter");
+}
+
+// Columns of figures with small columns under them (the TAM funnel): whatever wraps above, the
+// share bars and the small columns start level across the row.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4.2 };
+  const bars = { labels: ["2024", "2025"], values: [1, 2], color: "#808080" };
+  const step = (note: string): Panel => ({ kicker: "Step", figure: { value: "$1.0B", note }, bar: { share: 0.5, color: "#808080", label: "Half" }, bars });
+  const items = layoutPanels([step("Short"), step("A much longer line under the figure that wraps onto a second line in a third of the slide"), step("Short")], box);
+  const tops = (pick: (h: number) => boolean) => {
+    const rects = items.filter((it): it is Extract<typeof it, { kind: "rect" }> => it.kind === "rect" && pick(it.h));
+    return [0, 1, 2].map((col) => Math.min(...rects.filter((r) => r.x >= box.x + col * 3 - 0.01 && r.x < box.x + (col + 1) * 3 - 0.2).map((r) => r.y + r.h)));
+  };
+  const bases = tops((h) => h > 0.15);
+  assert.ok(bases.every((b) => Math.abs(b - bases[0]) < 1e-9), `small columns share a baseline: ${bases}`);
+  // With room under them, the columns grow into it: the baseline sits near the foot of the box.
+  assert.ok(box.y + box.h - bases[0] < 0.6, `the columns fill the foot: baseline ${bases[0]}, box ends ${box.y + box.h}`);
+}
+
+// A scatter: a dot per point inside the plot, the strong one named, the medians dashed.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4.2 };
+  const items = layoutPanels(
+    [
+      {
+        scatter: {
+          x: { label: "Growth", format: "growth", min: 0, max: 1 },
+          y: { label: "Margin", format: "pct", min: 0, max: 0.5 },
+          points: [
+            { x: 0, y: 0, color: "#808080" },
+            { x: 1, y: 0.5, color: "#808080" },
+            { x: 0.5, y: 0.25, color: "#4DB848", strong: true, label: "Avnet" },
+          ],
+          medians: { x: 0.3, y: 0.2 },
+        },
+      },
+    ],
+    box,
+  );
+  const dots = items.filter((it) => it.kind === "dot");
+  assert.equal(dots.length, 3, "a dot per point");
+  for (const d of dots) assert.ok(d.x >= box.x && d.x + d.w <= box.x + box.w + 0.1 && d.y >= box.y && d.y + d.h <= box.y + box.h + 0.1, "dots inside the box");
+  const [lo, hi] = [dots[0], dots[1]];
+  assert.ok(hi.x > lo.x && hi.y < lo.y, "higher values to the right and up");
+  assert.ok(items.some((it) => it.kind === "text" && it.runs[0].text === "Avnet"), "the strong point named");
+  assert.equal(items.filter((it) => it.kind === "line" && it.dashed).length, 2, "both medians dashed");
+  assert.ok(items.some((it) => it.kind === "text" && it.runs[0].text === "+50%"), "growth ticks signed");
+}
+
+// A comparison's labels get the room their widest value needs, not a fixed gap.
+{
+  const bar = (v: number) => ({ kind: "bar" as const, format: "pct" as const, series: [{ name: "Micron", who: "market" as const, points: [{ label: "Growth", value: v }] }] });
+  const wide = barLabelWidth(bar(3.793));
+  assert.ok(wide > 44 / 72, `"379.3%" gets more than the old 44pt: ${wide}`);
+  assert.ok(barLabelWidth(bar(0.05)) < wide, "a short label takes less room");
+}
+
+// Trend rows: the lines take half the panel, and markers that don't fit beside them wrap, never under them.
+{
+  const box = { x: 0.5, y: 1.5, w: 9, h: 4 };
+  const rows = ["Revenue growth YoY", "Inventory days"].map((title) => ({
+    title,
+    strong: true,
+    markers: [
+      { text: "Avnet 77 days", color: "#41C363", strong: true },
+      { text: "Arrow 70 days", color: "#4273B8" },
+    ],
+    lines: [{ values: [1, 2, 3, 4], color: "#4273B8" }],
+  }));
+  const items = layoutPanels([{ title: "Eight quarters", rows }, { title: "Other", paragraphs: [{ text: "x" }] }], box);
+  const segs = items.filter((it) => it.kind === "seg");
+  const left = Math.min(...segs.map((sg) => (sg.kind === "seg" ? Math.min(sg.x1, sg.x2) : Infinity)));
+  const marks = items.filter((it): it is Extract<typeof it, { kind: "text" }> => it.kind === "text" && /^(Avnet|Arrow) /.test(it.runs[0].text));
+  assert.ok(left - box.x > 1.5 && left < box.x + 4.5, `lines take the right of the panel: from ${left}`);
+  for (const m of marks) assert.ok(m.x + m.w <= left, `${m.runs[0].text} ends before the lines: ${m.x + m.w} vs ${left}`);
 }
 
 console.log("layout.test.ts: ok");

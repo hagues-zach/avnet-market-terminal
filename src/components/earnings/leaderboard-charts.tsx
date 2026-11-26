@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceLine, Responsiv
 import { useRouter } from "next/navigation";
 import { CHART, VIZ, companyColor } from "@/lib/colors";
 import { formatAxis, formatValue, type Unit } from "@/lib/chart-view/model";
+import { scatterWindow } from "@/lib/chart-view/scatter";
 
 // The leaderboard's two charts. Avnet is green and Arrow dark blue on every
 // chart; every other company is grey, so the two stand out in a crowd. One y-axis.
@@ -54,15 +55,7 @@ export function RankChart({ points, unit, median }: { points: RankPoint[]; unit:
 export function GrowthMarginChart({ points, medianGrowth, medianMargin }: { points: RankPoint[]; medianGrowth?: number; medianMargin?: number }) {
   const router = useRouter();
   const all = points.filter((p): p is RankPoint & { growth: number; margin: number } => p.growth !== undefined && p.margin !== undefined);
-  // A few extreme companies would squash the rest into a corner, so the axes fit
-  // the middle 90% of companies; Avnet and Arrow always stay on the chart.
-  const gx = span(all.map((p) => p.growth));
-  const my = span(all.map((p) => p.margin));
-  const inside = (p: { growth: number; margin: number }) => p.growth >= gx[0] && p.growth <= gx[1] && p.margin >= my[0] && p.margin <= my[1];
-  const data = all.filter((p) => inside(p) || p.slug === "avnet" || p.slug === "arrow");
-  const off = all.length - data.length;
-  const x: [number, number] = [Math.min(gx[0], ...data.map((p) => p.growth)), Math.max(gx[1], ...data.map((p) => p.growth))];
-  const y: [number, number] = [Math.min(my[0], ...data.map((p) => p.margin)), Math.max(my[1], ...data.map((p) => p.margin))];
+  const { shown: data, x, y, off } = scatterWindow(all);
   // Draw the grey crowd first, then Arrow and Avnet on top.
   const order = (s: string) => (s === "avnet" ? 2 : s === "arrow" ? 1 : 0);
   const sorted = [...data].sort((a, b) => order(a.slug) - order(b.slug));
@@ -105,15 +98,4 @@ export function GrowthMarginChart({ points, medianGrowth, medianMargin }: { poin
     )}
     </div>
   );
-}
-
-/** The 5th to 95th percentile of the values, padded a little, rounded out to whole percentage points. */
-function span(values: number[]): [number, number] {
-  if (!values.length) return [0, 1];
-  const s = [...values].sort((a, b) => a - b);
-  const at = (p: number) => s[Math.min(s.length - 1, Math.max(0, Math.round(p * (s.length - 1))))];
-  const lo = at(0.05);
-  const hi = at(0.95);
-  const pad = (hi - lo) * 0.08 || 0.01;
-  return [Math.floor((lo - pad) * 100) / 100, Math.ceil((hi + pad) * 100) / 100];
 }

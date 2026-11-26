@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { linesSlide } from "@/lib/deck/slides";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { AuthorProfile } from "@/lib/news/authors";
 import { articleSlug, type LiveArticle } from "@/lib/data/live/shared";
@@ -97,12 +96,7 @@ export function MoreStoriesPanel({ stories, fetchedAt }: { stories: LiveArticle[
   return (
     <Panel
       title="More stories"
-      deck={linesSlide({
-        key: `news:more-${stories[0].id}`,
-        title: "More stories",
-        lines: stories.slice(0, 10).map((a) => `${a.title} (${a.outlet})`),
-        source: "Market News feeds",
-      })}
+      deck={null}
     >
       <ul className="space-y-3">
         {stories.map((a) => (
