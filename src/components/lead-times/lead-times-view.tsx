@@ -15,7 +15,7 @@ import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock } from "@/components/ui/states";
 import { SignalLines, type Format, type Row } from "@/components/signals/charts";
 import { StoryList, type StoryRow } from "./story-list";
-import { linesSlide, seriesSlide, tableSlide } from "@/lib/deck/slides";
+import { seriesSlide, tableSlide } from "@/lib/deck/slides";
 
 /** A segment's read in words, for the slide. */
 const VERDICT_WORDS: Record<SegmentVerdict, string> = { longer: "Getting longer", easing: "Easing", mixed: "Mixed", thin: "Too few stories", quiet: "Quiet" };
@@ -282,17 +282,7 @@ export async function LeadTimesView() {
           title="Lead-time stories"
           subtitle="Newest first. Direction and weeks are read from the headline and summary."
           bodyClassName="p-0"
-          deck={
-            storyRows.length
-              ? linesSlide({
-                  key: "lead-times:stories",
-                  title: "Lead-time stories",
-                  text: "The latest stories on component lead times, newest first.",
-                  lines: storyRows.slice(0, 10).map((r) => `${r.title} (${r.outlet}, ${r.date}${r.weeks ? `, ${r.weeks}` : ""})`),
-                  source: storySources.join(", ") || "News feeds",
-                })
-              : null
-          }
+          deck={null}
         >
           <StoryList stories={storyRows} segments={segments.map((s) => s.segment)} />
         </Panel>
@@ -300,17 +290,7 @@ export async function LeadTimesView() {
           title="Published lead-time reports"
           subtitle="Full figures live with each publisher, whose terms don't allow copying them here."
           bodyClassName="p-0"
-          deck={
-            reports.length
-              ? linesSlide({
-                  key: "lead-times:published-reports",
-                  title: "Published lead-time reports",
-                  text: "Full figures live with each publisher.",
-                  lines: reports.slice(0, 10).map((r) => `${r.publisher}: ${r.title}${r.date ? `, ${fullDate(r.date)}` : ""}`),
-                  source: "Each publisher",
-                })
-              : null
-          }
+          deck={null}
         >
           <Reports reports={reports} />
         </Panel>
