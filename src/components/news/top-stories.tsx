@@ -7,7 +7,6 @@ import { Chip } from "@/components/ui/chip";
 import { Panel } from "@/components/ui/panel";
 import { EmptyState, LoadingBlock } from "@/components/ui/states";
 import { Byline, CompanyLinks, entityRule, Headline, QbrAction, RelevanceChip } from "./story-parts";
-import { linesSlide } from "@/lib/deck/slides";
 import { cn } from "@/lib/utils";
 
 /**
@@ -31,21 +30,7 @@ export function TopStories({ top, angles, fetchedAt }: { top: Top | null; angles
       subtitle={subtitle}
       className="xl:col-span-8"
       bodyClassName="pt-3"
-      deck={
-        top?.stories.length
-          ? linesSlide({
-              key: "news:top-stories",
-              title: "Top stories for Avnet",
-              text: subtitle,
-              lines: top.stories.slice(0, 8).map((a) => {
-                const angle = angles?.byId[a.id]?.angle;
-                return angle ? `${angle} (${a.title}, ${a.outlet})` : `${a.title} (${a.outlet})`;
-              }),
-              source: "Market News feeds",
-              claude: top.stories.some((a) => angles?.byId[a.id]?.angle) ? "Angles written by Claude from each story" : undefined,
-            })
-          : null
-      }
+      deck={null}
     >
       {top === null ? (
         <LoadingBlock label="Claude is reading the stories…" lines={6} />
