@@ -54,7 +54,7 @@ The key rejected on 2026-11-25 had expired. With a new key, commentary ran live 
 
 ## Not verified
 
-- **Not exported.** The PowerPoint and PDF with live commentary haven't been opened. The panel bullet strip has only been seen in the on-screen preview.
+- **The PowerPoint, exported live on 2026-11-26**, had Claude's summary after the cover and commentary on every slide. Rendered in Keynote, it showed a bug: on chart slides with key figures, four long bullets ran off the bottom of the side panel, and the on-screen preview clipped them. Fixed in the same PR. When the bullets don't fit under the key figures, they now go in a strip under the chart (`linesInSide` in `layout.ts`), drawn the same in the preview and the PowerPoint. The panel stays full height. The PDF hasn't been exported live, and the PowerPoint hasn't been opened in PowerPoint itself.
 - **Write again, Clear and Undo** haven't been clicked in the browser. They're covered by tests.
 - **The PowerPoint strip height** is estimated from character counts, the same as the existing layout code. Long bullets could wrap differently in PowerPoint than on screen.
 

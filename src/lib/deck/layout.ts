@@ -43,6 +43,40 @@ export function bulletsHeight(lines: string[], w: number, size: number = PANEL_B
   const chars = ((w - 0.2) * 72) / (size * 0.5);
   return lines.reduce((h, l) => h + Math.max(1, Math.ceil(l.length / chars)) * perLine + spaceAfter / 72, 0);
 }
+
+/** Lines in the panel beside a chart: their size and spacing in points. */
+export const SIDE_LINES = { size: 10, spaceAfter: 4 } as const;
+/**
+ * The body height a chart slide can count on: the body under a two-line headline,
+ * a two-line sentence and Claude's line. The preview can't measure the body, so
+ * both renderers decide with this.
+ */
+export const SIDE_BODY_MIN = 2.8;
+
+/** The height the side panel's key figures and table take, as the PowerPoint draws them. */
+export function sideUsed(plan: SlidePlan): number {
+  let y = 0.12;
+  if (plan.callouts.length) {
+    const dense = plan.callouts.length > 3;
+    const valueH = dense ? 0.28 : 0.36;
+    y += 0.24;
+    for (const c of plan.callouts) y += (dense ? 0.05 : 0.08) + valueH + (c.note ? 0.4 : 0.24) + (dense ? 0.02 : 0.04);
+    y += 0.06;
+  }
+  if (plan.table) y += 0.36 * (plan.table.rows.length + (plan.table.headers ? 1 : 0)) + 0.15;
+  return y;
+}
+
+/**
+ * Whether a chart slide's lines go in the panel beside the chart. When there is
+ * no panel, or the lines won't fit under its figures, they go in a strip across
+ * the body under the chart instead, as on a panels slide.
+ */
+export function linesInSide(plan: SlidePlan, lines: string[]): boolean {
+  if (!plan.side || !lines.length) return false;
+  return sideUsed(plan) + bulletsHeight(lines, plan.sideW - 0.32, SIDE_LINES.size, SIDE_LINES.spaceAfter) + 0.1 <= SIDE_BODY_MIN;
+}
+
 /** Tiles across a slide with no chart. */
 export const MAX_TILES = 5;
 

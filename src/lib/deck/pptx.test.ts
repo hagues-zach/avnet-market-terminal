@@ -173,6 +173,45 @@ try {
     const companyChart = charts.find((x) => x.includes("Microchip revenue"))!;
     assert.match(avnetChart, /41C363/, "Avnet in Avnet Green");
     assert.ok(!/41C363/.test(companyChart), "no Avnet Green on another company's chart");
+
+    // A chart slide whose bullets won't fit beside the key figures: they go in a strip under the chart, on the slide.
+    const lines = [
+      "This slide is on mock data, so these are not Avnet's real results.",
+      "Mock billings rose each quarter, from $5.79B in FY26 Q2 to $6.58B in FY27 Q1.",
+      "Mock bookings rose from $6.14B to $7.17B over the same four quarters.",
+      "Connect real sources before using these figures outside the team.",
+    ];
+    const q = ["FY25 Q2", "FY25 Q3", "FY25 Q4", "FY26 Q1", "FY26 Q2", "FY26 Q3", "FY26 Q4", "FY27 Q1"];
+    const pts = (v: number[]) => v.map((value, i) => ({ label: q[i], value }));
+    const stripFile = path.join(dir, "strip.pptx");
+    writeFileSync(
+      stripFile,
+      await buildDeck("Strip", [
+        {
+          mock: true,
+          preview: {
+            headline: "Mock data shows bookings staying ahead of billings in every quarter shown",
+            text: "In the mock model, FY27 Q1 billings reached $6.58B and bookings $7.17B, up 25% on a year ago.",
+            columns: q.slice(4),
+            facts: [
+              { label: "Billings", values: ["$5.79B", "$6.02B", "$6.31B", "$6.58B"] },
+              { label: "Bookings", values: ["$6.14B", "$6.51B", "$6.94B", "$7.17B"] },
+            ],
+            chart: { kind: "line", format: "usd", series: [{ name: "Billings", who: "avnet", points: pts([5.48, 5.4, 5.42, 5.56, 5.79, 6.02, 6.31, 6.58].map((x) => x * 1e9)) }, { name: "Bookings", who: "market", points: pts([5.15, 5.22, 5.42, 5.73, 6.14, 6.51, 6.94, 7.17].map((x) => x * 1e9)) }] },
+            lines,
+            source: "Mock model of Avnet",
+          },
+        },
+      ]),
+    );
+    const stripXml = execFileSync("unzip", ["-p", stripFile, "ppt/slides/slide1.xml"], { encoding: "utf8" });
+    const EMU = 914400;
+    const shape = stripXml.split("<p:sp>").find((sp) => sp.includes("Connect real sources"))!;
+    assert.ok(shape.includes("This slide is on mock data"), "all four bullets in one box");
+    const [, x, y] = shape.match(/<a:off x="(\d+)" y="(\d+)"/)!.map(Number);
+    const [, cx, cy] = shape.match(/<a:ext cx="(\d+)" cy="(\d+)"/)!.map(Number);
+    assert.ok((y + cy) / EMU <= 5.12 + 1e-6, `the strip ends on the slide body: ${(y + cy) / EMU}`);
+    assert.ok(x / EMU < 0.6 && cx / EMU > 5 && (x + cx) / EMU < 6.5, `under the chart, clear of the key figures: ${x / EMU} to ${(x + cx) / EMU}`);
     console.log("deck pptx: ok");
   })()
     .catch((e) => {

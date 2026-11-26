@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { usdShort } from "@/lib/deck/slides";
-import { AREA, barLabelWidth, bulletsHeight, chartTitle, layoutPanels, PANEL_BULLETS, planSlide, SIDE, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
+import { AREA, barLabelWidth, bulletsHeight, chartTitle, layoutPanels, linesInSide, PANEL_BULLETS, planSlide, SIDE, SIDE_LINES, SLIDE, withChart, type Callout, type SlidePlan } from "@/lib/deck/layout";
 import type { Chart, Panel, Preview } from "@/lib/deck/outline";
 import { AVNET, VIZ } from "@/lib/colors";
 import { cn } from "@/lib/utils";
@@ -331,19 +331,30 @@ function Body({ p, plan }: { p: Preview; plan: SlidePlan }) {
     );
 
   if (plan.kind === "chart" && p.chart) {
+    // The lines beside the chart when they fit under the key figures; otherwise in a strip under the chart, as in the PowerPoint.
+    const lines = p.lines ?? [];
+    const inSide = linesInSide(plan, lines);
+    const side = plan.callouts.length > 0 || Boolean(plan.table) || inSide;
+    const chartW = (side ? AREA.right - plan.sideW - SIDE.gap : AREA.right) - AREA.left;
+    const strip = lines.length && !inSide ? bulletsHeight(lines, chartW) : 0;
     return (
-      <div className="grid h-full" style={{ gridTemplateColumns: plan.side ? `minmax(0,1fr) ${inch(plan.sideW)}` : "minmax(0,1fr)", gap: inch(SIDE.gap) }}>
+      <div className="grid h-full" style={{ gridTemplateColumns: side ? `minmax(0,1fr) ${inch(plan.sideW)}` : "minmax(0,1fr)", gap: inch(SIDE.gap) }}>
         <div className="flex min-h-0 flex-col">
           {chartTitle(p.chart) && <p style={{ fontSize: pt(10), fontWeight: 700, marginBottom: inch(0.06) }}>{chartTitle(p.chart)}</p>}
           <div className="min-h-0 flex-1">
             <PreviewChart c={p.chart} plan={plan} />
           </div>
+          {strip > 0 && (
+            <div className="shrink-0 overflow-hidden" style={{ height: inch(strip), marginTop: inch(PANEL_BULLETS.gap) }}>
+              <Bullets lines={lines} size={PANEL_BULLETS.size} tight />
+            </div>
+          )}
         </div>
-        {plan.side && (
+        {side && (
           <div className="min-h-0 space-y-[1.4cqw] overflow-hidden" style={{ background: PANEL, padding: `${inch(0.12)} ${inch(0.16)}` }}>
             {plan.callouts.length > 0 && <KeyFigures items={plan.callouts} />}
             {plan.table && <FactTable table={plan.table} size={9.5} />}
-            {p.lines?.length ? <Bullets lines={p.lines} size={9.5} /> : null}
+            {inSide ? <Bullets lines={lines} size={SIDE_LINES.size} /> : null}
           </div>
         )}
       </div>
