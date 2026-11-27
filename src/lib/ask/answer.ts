@@ -20,6 +20,9 @@ import { getAvnet } from "@/lib/avnet";
 import { readsOf, sentence as economySentence, type Changes } from "@/lib/signals/read";
 import { store } from "@/lib/store";
 import { SIGNAL_KEYS, scoreSignals, sentence as supplySentence } from "@/lib/supply/read";
+import { EXPLAINERS, explainSlug } from "@/lib/explain/registry";
+import { GLOSSARY } from "@/lib/learn/content";
+import { isHidden } from "@/lib/visibility";
 import { route, suggest } from "./route";
 import {
   CANT,
@@ -311,6 +314,25 @@ export async function avnet(question: string): Promise<Answer> {
   };
 }
 
+/**
+ * A glossary term: its definition and formula, and a link that opens the KPI's
+ * explainer on the page with the tile (?explain=), unless that page is hidden.
+ */
+export function define(question: string, term: string): Answer {
+  const g = GLOSSARY.find((x) => x.term === term)!;
+  const e = EXPLAINERS.find((x) => x.term === term);
+  const page = e?.page && !isHidden(e.page) ? e.page : undefined;
+  return {
+    intent: "define",
+    question,
+    subject: e?.name ?? term,
+    text: g.definition,
+    facts: e ? [{ label: "Formula", values: [e.formula] }] : undefined,
+    sources: [],
+    links: page && e ? [{ href: `${page}?explain=${explainSlug(e.name)}`, label: `Open the ${e.name.charAt(0).toLowerCase()}${e.name.slice(1)} explainer` }] : [],
+  };
+}
+
 /** Answer a typed question, or say what can be answered instead. */
 export async function answer(question: string): Promise<Answer> {
   const r = route(question);
@@ -335,6 +357,8 @@ export async function answer(question: string): Promise<Answer> {
         return await lineCard(question, r.name ?? "", r.company);
       case "avnet":
         return await avnet(question);
+      case "define":
+        return define(question, r.term!);
     }
   } catch {
     return failed(question, "Not answered", "the data for this answer", "/data-hookups", "What the app's data is");

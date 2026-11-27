@@ -275,6 +275,14 @@ export const GLOSSARY: { term: string; definition: string }[] = [
     definition: "Capital spending by the largest cloud companies on data centers, servers and chips. A lead signal for AI demand.",
   },
   {
+    term: "Free cash flow margin",
+    definition: "Free cash flow as a share of revenue: the cash a company keeps from each revenue dollar after capital spending.",
+  },
+  {
+    term: "Mapping confidence",
+    definition: "How sure the code map is that a segment's Avnet product codes match its market category, rated High, Medium or Low.",
+  },
+  {
     term: "Supply-chain revenue",
     definition:
       "The combined revenue of the listed component makers, distributors, EMS providers and equipment makers, against the same quarter a year earlier. Its sign and direction give the cycle label.",

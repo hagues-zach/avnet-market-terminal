@@ -14,6 +14,8 @@ export interface Column<Row> {
   /** Value to sort by; omit to make the column unsortable. */
   sortValue?: (row: Row) => number | string;
   className?: string;
+  /** An explainer mark after the header, e.g. <ExplainColumn column="grossMargin" />. */
+  explain?: React.ReactNode;
 }
 
 type Density = "compact" | "comfortable";
@@ -109,18 +111,22 @@ export function DataTable<Row>({
                       c.className,
                     )}
                   >
-                    {c.sortValue ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(c.key)}
-                        className={cn("inline-flex cursor-pointer items-center gap-1 uppercase hover:text-ink", c.numeric && "flex-row-reverse", active && "text-ink")}
-                      >
-                        {c.header}
-                        <SortIcon className="h-3 w-3" strokeWidth={1.5} aria-hidden />
-                      </button>
-                    ) : (
-                      c.header
-                    )}
+                    {/* The mark sits outside the sort button, so opening it never re-sorts. */}
+                    <span className={cn("inline-flex items-center", c.numeric && "flex-row-reverse")}>
+                      {c.sortValue ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleSort(c.key)}
+                          className={cn("inline-flex cursor-pointer items-center gap-1 uppercase hover:text-ink", c.numeric && "flex-row-reverse", active && "text-ink")}
+                        >
+                          {c.header}
+                          <SortIcon className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                        </button>
+                      ) : (
+                        c.header
+                      )}
+                      {c.explain}
+                    </span>
                   </th>
                 );
               })}

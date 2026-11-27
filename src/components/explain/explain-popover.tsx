@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { CircleHelp, X } from "lucide-react";
+import { explainSlug } from "@/lib/explain/registry";
 import { cn } from "@/lib/utils";
 
 // A "what does this mean?" mark beside a KPI label that opens a small explainer
@@ -17,6 +18,7 @@ export function ExplainPopover({
   label,
   title,
   className,
+  float = false,
   children,
 }: {
   /** The mark's accessible name, e.g. "Explain book-to-bill". */
@@ -24,11 +26,16 @@ export function ExplainPopover({
   /** The explainer's heading, in sentence case. */
   title: string;
   className?: string;
+  /**
+   * Position the panel against the viewport, for marks inside a scrolling box
+   * (a table header) that would clip it. It closes when the page scrolls.
+   */
+  float?: boolean;
   children: React.ReactNode;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
-  const [place, setPlace] = useState<{ shift: number; above: boolean }>({ shift: 0, above: false });
+  const [place, setPlace] = useState<{ shift: number; above: boolean; top?: number; left?: number }>({ shift: 0, above: false });
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -49,12 +56,27 @@ export function ExplainPopover({
     const shift = right > window.innerWidth - EDGE ? window.innerWidth - EDGE - right : left < EDGE ? EDGE - left : 0;
     const below = t.bottom + GAP + p.height;
     const above = below > window.innerHeight - EDGE && t.top - GAP - p.height > EDGE;
-    setPlace({ shift, above });
+    setPlace(
+      float
+        ? { shift: 0, above, top: above ? t.top - GAP - p.height : t.bottom + GAP, left: Math.min(Math.max(EDGE, t.left), window.innerWidth - EDGE - p.width) }
+        : { shift, above },
+    );
     // Focus the body when it asks for it (it owns the arrow keys), else the panel.
     // preventScroll: the shift above is applied on the next render, and focusing first
     // would scroll the page sideways to reach the unshifted panel.
     (panel.current.querySelector<HTMLElement>("[data-explain-focus]") ?? panel.current).focus({ preventScroll: true });
   }, [open]);
+
+  // A link with ?explain=<slug> (Ask the Terminal's glossary answer) opens the matching
+  // explainer once the page loads: the first mark on the page whose name matches.
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get("explain");
+    const w = window as Window & { __explainOpened?: string };
+    if (!want || w.__explainOpened === window.location.href || explainSlug(label.replace(/^Explain /, "")) !== want) return;
+    w.__explainOpened = window.location.href;
+    trigger.current?.scrollIntoView({ block: "center" });
+    setOpen(true);
+  }, [label]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,13 +87,20 @@ export function ExplainPopover({
     const onPointer = (e: PointerEvent) => {
       if (root.current && !root.current.contains(e.target as Node)) close(false);
     };
+    // A floating panel would drift off its mark when anything scrolls, so it closes instead.
+    const onScroll = (e: Event) => {
+      if (panel.current && e.target instanceof Node && panel.current.contains(e.target)) return;
+      close(false);
+    };
     window.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer);
+    if (float) window.addEventListener("scroll", onScroll, true);
     return () => {
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("scroll", onScroll, true);
     };
-  }, [open, close]);
+  }, [open, close, float]);
 
   return (
     <div
@@ -104,10 +133,16 @@ export function ExplainPopover({
           role="dialog"
           aria-labelledby={`${id}-title`}
           tabIndex={-1}
-          style={{ transform: place.shift ? `translateX(${place.shift}px)` : undefined }}
+          style={
+            float
+              ? // The layout effect places it before the first paint.
+                { position: "fixed", top: place.top ?? 0, left: place.left ?? 0 }
+              : { transform: place.shift ? `translateX(${place.shift}px)` : undefined }
+          }
           className={cn(
-            "absolute left-0 z-30 w-[340px] max-w-[calc(100vw-16px)] rounded-sm border border-hairline bg-surface text-left font-body text-body font-normal normal-case tracking-normal text-ink focus-visible:outline-none",
-            place.above ? "bottom-full mb-2" : "top-full mt-2",
+            "z-30 w-[340px] max-w-[calc(100vw-16px)] whitespace-normal rounded-sm border border-hairline bg-surface text-left font-body text-body font-normal normal-case tracking-normal text-ink focus-visible:outline-none",
+            !float && "absolute left-0",
+            !float && (place.above ? "bottom-full mb-2" : "top-full mt-2"),
           )}
         >
           <div className="flex items-center justify-between gap-2 border-b border-hairline py-1 pl-4 pr-1">

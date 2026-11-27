@@ -1,5 +1,7 @@
 "use client";
 
+import { ExplainColumn } from "@/components/explain/column";
+import type { ColumnKey } from "@/lib/explain/columns";
 import Link from "next/link";
 import type { Quarter } from "@/lib/data/live/earnings-model";
 import { CaveatMark } from "@/components/ui/caveat-mark";
@@ -38,10 +40,11 @@ export function GroupTable({
   showGroup?: boolean;
   median: Partial<Record<keyof Values, number>>;
 }) {
-  const num = (m: keyof Values, kind: Parameters<typeof format>[0], header: string): Column<GroupRow> => ({
+  const num = (m: keyof Values, kind: Parameters<typeof format>[0], header: string, help?: ColumnKey): Column<GroupRow> => ({
     key: m,
     header,
     numeric: true,
+    explain: help ? <ExplainColumn column={help} /> : undefined,
     sortValue: sortNum(m),
     render: (r) => (
       <>
@@ -90,11 +93,11 @@ export function GroupTable({
         ),
     },
     num("revenue", "usd", "Revenue"),
-    num("revenueYoY", "growth", "Growth YoY"),
-    num("grossMargin", "pct", "Gross margin"),
-    num("operatingMargin", "pct", "Op margin"),
-    num("inventoryDays", "days", "Inv days"),
-    num("fcfMargin", "pct", "FCF margin"),
+    num("revenueYoY", "growth", "Growth YoY", "revenueYoY"),
+    num("grossMargin", "pct", "Gross margin", "grossMargin"),
+    num("operatingMargin", "pct", "Op margin", "operatingMargin"),
+    num("inventoryDays", "days", "Inv days", "inventoryDays"),
+    num("fcfMargin", "pct", "FCF margin", "fcfMargin"),
   ];
 
   return (
