@@ -92,6 +92,12 @@ export interface StageSeries {
 }
 
 /** One company's own figures, on the same calendar quarters. */
+export interface CompanyGrowth {
+  slug: string;
+  name: string;
+  growth: number;
+}
+
 export interface CompanySeries {
   slug: string;
   name: string;
@@ -105,6 +111,8 @@ export interface Cycle {
   groups: GroupSeries[];
   /** All supply-chain groups combined (customer groups excluded). */
   supply: GroupPoint[];
+  /** Each supply-chain company's revenue growth on a year ago, by label; only companies with both quarters. */
+  supplyGrowth: CompanyGrowth[][];
   /** Chip makers only (CHIP_MAKERS), the like-for-like comparison with the WSTS market. */
   chipMakers: GroupPoint[];
   /** The phase each quarter was in, by the same rule as `phase`. */
@@ -202,6 +210,16 @@ export async function getCycle(): Promise<Cycle> {
     return { cohort, companies: members.length, points: labels.map((l) => point(l, members)) };
   });
   const supply = labels.map((l) => point(l, supplyMembers));
+  // Each supply-chain company's growth, on the same pairing rule as the rollup, for the explainers' dot strip.
+  const supplyCompanies = IN_ROLLUPS.filter((c) => !isDemand(c.cohort));
+  const supplyGrowth = labels.map((label) =>
+    supplyCompanies.flatMap((c) => {
+      const m = byLabel.get(c.slug);
+      const a = m?.get(label)?.values.revenue;
+      const b = m?.get(shift(label, -4))?.values.revenue;
+      return a !== undefined && b !== undefined && b > 0 ? [{ slug: c.slug, name: c.name, growth: a / b - 1 }] : [];
+    }),
+  );
   const chipMembers = CHIP_MAKERS.map((c) => byLabel.get(c.slug) ?? new Map());
   const chipMakers = labels.map((l) => point(l, chipMembers));
   const stages: StageSeries[] = STAGES.map((stage) => {
@@ -248,6 +266,7 @@ export async function getCycle(): Promise<Cycle> {
     latest,
     groups,
     supply,
+    supplyGrowth,
     chipMakers,
     phases: supply.map((_, i) => (supply[i].growth === undefined ? null : phaseOf(supply.slice(0, i + 1)))),
     stages,

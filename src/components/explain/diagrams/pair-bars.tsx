@@ -46,7 +46,8 @@ export function PairBars({
             <rect x={0} y={14} width={(Math.max(0, row.value) / max) * W} height={BAR} fill={row.fill} />
           </g>
         ))}
-        {pair && long.value !== short.value && (
+        {/* No outline when the gap is under a pixel wide (equal Avnet and Arrow revenue, say). */}
+        {pair && ((long.value - Math.max(0, short.value)) / max) * W >= 1 && (
           <rect
             x={(Math.max(0, short.value) / max) * W}
             y={y(shortIdx) + 14.5}

@@ -81,6 +81,21 @@ const ENTRIES: Omit<Explainer, "definition">[] = [
   },
   { term: "Holding share", name: "Against holding share", formula: "Scenario billings less billings at today's share", learnHref: "/learn#glossary" },
   {
+    term: "Supply-chain revenue",
+    name: "Supply-chain revenue",
+    formula: "Combined revenue ÷ the same companies' revenue a year earlier, less one",
+    learnHref: "/learn#glossary",
+  },
+  { term: "Companies growing", name: "Companies growing", formula: "Companies with revenue up on a year ago ÷ all with both quarters", learnHref: "/learn#glossary" },
+  { term: "Median revenue growth", name: "Median revenue growth", formula: "The middle company's revenue growth on a year ago", learnHref: "/learn#glossary" },
+  { term: "Distributor inventory", name: "Distributor inventory", formula: "The middle distributor's inventory days", learnHref: "/learn#glossary" },
+  {
+    term: "Hyperscaler capex",
+    name: "Hyperscaler capex",
+    formula: "Capital spending of the five hyperscalers added together",
+    learnHref: "/learn#glossary",
+  },
+  {
     term: "Compound annual growth",
     name: "Growth a year",
     formula: "(Billings at the horizon ÷ billings today) to the power of one over the years, less one",

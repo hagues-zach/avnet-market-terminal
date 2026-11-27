@@ -53,11 +53,22 @@ import {
   readValidated,
   type ScenarioFigures,
 } from "./share";
+import {
+  breadth,
+  growthScale,
+  readCapex,
+  readCompaniesGrowing,
+  readDistributorInventory,
+  readMedianGrowth,
+  readSupplyRevenue,
+} from "./cycle";
 import { summarise, coverage as mapCoverage, weakest } from "@/lib/mapping/read";
 import { getAvnet } from "@/lib/avnet";
 import {
   count,
+  dotRows,
   funnel,
+  median,
   nested,
   position,
   shareOfFirst,
@@ -609,6 +620,58 @@ assert.equal(readAgainstHold({ ...sc, billingsAt: 24200 }).lead, "The scenario b
 assert.equal(readScenarioGrowth(sc).lead, "The scenario grows Avnet's mapped billings 10.0% a year, compounded.");
 assert.ok(readScenarioGrowth(sc).note?.endsWith("adds up to 21%, not 20%."));
 assert.equal(readScenarioGrowth({ ...sc, years: 1 }).note, "Over one year, the rate a year is simply the growth.");
+// Dot strip: dots too close share no row, and rows come back in input order.
+assert.deepEqual(dotRows([10, 12, 30, 11], 6), [0, 2, 0, 1]);
+assert.deepEqual(dotRows([], 6), []);
+assert.equal(median([3, 1, 2]), 2);
+assert.equal(median([4, 1, 3, 2]), 2.5);
+assert.equal(median([]), undefined);
+
+// Cycle: an even growth scale, and the phase read back in words.
+assert.deepEqual(growthScale([0.12, -0.03]), { min: -0.15, max: 0.15 });
+assert.deepEqual(growthScale([0.05]), { min: -0.05, max: 0.05 });
+const gq = [
+  { label: "CY26 Q1", growth: 0.08, phase: "Expansion, accelerating" },
+  { label: "CY26 Q2", growth: 0.05, phase: "Expansion, slowing" },
+];
+const sr = readSupplyRevenue(gq, 1);
+assert.equal(sr.lead, "The supply chain is in expansion, slowing: revenue grew 5.0% on a year ago.");
+assert.equal(sr.sentence, "In Q2 '26, the supply chain's combined revenue grew 5.0%, down from 8.0% the quarter before.");
+assert.ok(readSupplyRevenue(gq, 0).lead.startsWith("The supply chain was in expansion, accelerating"));
+assert.ok(
+  readSupplyRevenue([{ label: "CY26 Q1", growth: -0.02, phase: null }, { label: "CY26 Q2", growth: -0.01, phase: "Contraction, easing" }], 1).sentence.endsWith(
+    "fell 1.0%, up from minus 2.0% the quarter before.",
+  ),
+);
+
+const crowd = [
+  { slug: "avnet", name: "Avnet", growth: 0.1 },
+  { slug: "arrow", name: "Arrow", growth: 0.02 },
+  { slug: "ti", name: "Texas Instruments", growth: -0.04 },
+  { slug: "nxp", name: "NXP", growth: 0.06 },
+];
+assert.deepEqual(breadth(crowd), { growing: 3, shrinking: 1, median: 0.04 });
+const cg = readCompaniesGrowing(crowd, "CY26 Q2", 0.12);
+assert.equal(cg.lead, "75% of supply-chain companies grew revenue on a year ago: 3 of 4.");
+assert.equal(cg.sentence, "In Q2 '26, the median company grew 4.0% and combined revenue grew 12.0%. Avnet's 10.0% is above the median.");
+assert.ok(cg.note?.startsWith("Combined revenue grew faster than the median company"));
+assert.ok(readCompaniesGrowing(crowd, "CY26 Q2", 0.045).note?.includes("it is broad"));
+const mg = readMedianGrowth(crowd, "CY26 Q3", 40);
+assert.equal(mg.lead, "The median company that has filed Q3 '26 grew 4.0% on a year ago.");
+assert.ok(mg.sentence.startsWith("4 of 40 companies have filed: 3 grew and 1 shrank."));
+
+const dq = [90, 92, 95, 98, 101].map((days, k) => ({ label: `CY2${5 + Math.floor((k + 2) / 4)} Q${((k + 2) % 4) + 1}`, days, chipGrowth: 0.1 }));
+const di = readDistributorInventory(dq, 4, 4);
+assert.equal(di.lead, "The median distributor holds 101 days of inventory, up 11 days on a year ago.");
+assert.ok(di.sentence.includes("across four distributors"));
+assert.equal(readDistributorInventory(dq, 0, 4).lead, "The median distributor holds 90 days of inventory.");
+
+const usd = (v: number) => `$${(v / 1e9).toFixed(1)}B`;
+const cx = readCapex({ label: "CY26 Q2", total: 90e9, yearAgo: 60e9, chipGrowth: 0.2 }, 5, usd);
+assert.equal(cx.lead, "The five hyperscalers spent $90.0B on capital projects in Q2 '26, up 50% on a year ago.");
+assert.ok(cx.note?.startsWith("Capex grew 30 pts faster"));
+const cycleReads = [sr, cg, mg, di, cx];
+
 const shareReads = [ms, readMappedBillings(mf, "share"), vc, readPeerShare(pq), readScenarioShare(sc), readAgainstHold(sc), readScenarioGrowth(sc)];
 
 // The mock data the explainers are shown with reads cleanly.
@@ -661,7 +724,7 @@ void (async () => {
         ),
     ),
   ];
-  for (const t of [bl, ttm, da, ap, ar, c10, ...ops, ...shareReads, ...shareOps].flatMap((r) => [
+  for (const t of [bl, ttm, da, ap, ar, c10, ...ops, ...shareReads, ...shareOps, ...cycleReads].flatMap((r) => [
     r.lead,
     r.sentence,
     r.note ?? "",

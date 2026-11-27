@@ -6,6 +6,7 @@ import { getPeerRows } from "@/lib/data/live/earnings";
 import { isUsFiler } from "@/lib/data/live/earnings-model";
 import { justReported, season } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainMedianGrowth } from "@/components/explain/cycle";
 import { Panel } from "@/components/ui/panel";
 import { EmptyState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,15 @@ export async function SeasonOverview() {
           value={format("growth", s.medianGrowth)}
           note="of those filed"
           source={{ status: "live", label: "SEC" }}
+          explain={
+            <ExplainMedianGrowth
+              companies={s.reported.flatMap((r) =>
+                r.latest?.values.revenueYoY === undefined ? [] : [{ slug: r.company.slug, name: r.company.name, growth: r.latest.values.revenueYoY }],
+              )}
+              quarter={s.quarter}
+              total={s.total}
+            />
+          }
         />
         <KpiTile label="Reporting this week" value={String(s.thisWeek.length)} note={s.due.length ? `${s.due.length} overdue` : "estimated dates"} />
         <KpiTile
