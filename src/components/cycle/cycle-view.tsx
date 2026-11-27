@@ -4,6 +4,7 @@ import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
 import { NA, format, leaderboardHref } from "@/components/earnings/format";
 import { Delta } from "@/components/ui/delta";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainCapex, ExplainCompaniesGrowing, ExplainDistributorInventory, ExplainSupplyRevenue } from "@/components/explain/cycle";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { CapexBars, GrowthBars, InventoryLines } from "./charts";
@@ -71,6 +72,16 @@ export async function CycleView() {
   const growthChange = ptChange(supplyNow?.growth, supplyPrior?.growth);
   const growingChange = ptChange(supplyNow?.growing, supplyPrior?.growing);
 
+  // Explainer inputs: only quarters the tiles would show a figure for.
+  const supplyQuarters = supply.flatMap((p, i) => (p.growth === undefined ? [] : [{ label: p.label, growth: p.growth, phase: phases[i] }]));
+  const breadthQuarters = supply.flatMap((p, i) => (p.growing === undefined ? [] : [{ label: p.label, companies: cycle.supplyGrowth[i], combined: p.growth }]));
+  const chipGrowth = (label: string) => at(cycle.chipMakers, label)?.growth;
+  const daysQuarters = dist.points.flatMap((p) => (p.inventoryDays === undefined ? [] : [{ label: p.label, days: p.inventoryDays, chipGrowth: chipGrowth(p.label) }]));
+  const capexQuarters = hyperscalerCapex.flatMap((c, i) => {
+    const ago = hyperscalerCapex[i - 4]?.total;
+    return c.total === undefined || ago === undefined ? [] : [{ label: c.label, total: c.total, yearAgo: ago, chipGrowth: chipGrowth(c.label) }];
+  });
+
   return (
     <>
       <section aria-labelledby="cycle-call" className="space-y-1">
@@ -97,12 +108,14 @@ export async function CycleView() {
           note="YoY"
           delta={growthChange !== undefined ? { value: growthChange, display: pts(growthChange), period: "on prior qtr" } : undefined}
           source={{ status: "live", label: "SEC" }}
+          explain={<ExplainSupplyRevenue quarters={supplyQuarters} />}
         />
         <KpiTile
           label="Companies growing"
           value={supplyNow?.growing === undefined ? NA : `${Math.round(supplyNow.growing * 100)}%`}
           delta={growingChange !== undefined ? { value: growingChange, display: pts(growingChange), period: "on prior qtr" } : undefined}
           source={{ status: "live", label: "SEC" }}
+          explain={<ExplainCompaniesGrowing quarters={breadthQuarters} />}
         />
         <KpiTile
           label="Distributor inventory"
@@ -110,6 +123,7 @@ export async function CycleView() {
           note="median"
           delta={distChange !== undefined ? { value: distChange, display: days(distChange), period: "YoY", invert: true } : undefined}
           source={{ status: "live", label: "SEC" }}
+          explain={<ExplainDistributorInventory quarters={daysQuarters} distributors={dist.companies} />}
         />
         <KpiTile
           label="Hyperscaler capex"
@@ -117,6 +131,7 @@ export async function CycleView() {
           note={capexLatest?.label}
           delta={capexLatest?.yoy !== undefined ? { value: capexLatest.yoy, period: "YoY" } : undefined}
           source={{ status: "live", label: "SEC" }}
+          explain={<ExplainCapex quarters={capexQuarters} hyperscalers={hyperscalers.length} />}
         />
       </div>
 

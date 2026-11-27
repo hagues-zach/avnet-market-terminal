@@ -114,3 +114,31 @@ export function nested(levels: NestLevel[]): number[] {
     return cap;
   });
 }
+
+// Dot strip ----------------------------------------------------------------
+
+/**
+ * A row for each dot so none overlap: dots in x order, each in the lowest row
+ * whose last dot is at least `gap` pixels to its left. Returns rows in the
+ * order the xs were given.
+ */
+export function dotRows(xs: number[], gap: number): number[] {
+  const order = xs.map((x, i) => ({ x, i })).sort((a, b) => a.x - b.x);
+  const ends: number[] = [];
+  const rows = new Array<number>(xs.length);
+  for (const d of order) {
+    let r = ends.findIndex((e) => d.x - e >= gap);
+    if (r === -1) r = ends.length;
+    ends[r] = d.x;
+    rows[d.i] = r;
+  }
+  return rows;
+}
+
+/** The median of a list, or undefined when it is empty. */
+export function median(values: number[]): number | undefined {
+  if (!values.length) return undefined;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}

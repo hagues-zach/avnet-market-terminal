@@ -275,6 +275,19 @@ export const GLOSSARY: { term: string; definition: string }[] = [
     definition: "Capital spending by the largest cloud companies on data centers, servers and chips. A lead signal for AI demand.",
   },
   {
+    term: "Supply-chain revenue",
+    definition:
+      "The combined revenue of the listed component makers, distributors, EMS providers and equipment makers, against the same quarter a year earlier. Its sign and direction give the cycle label.",
+  },
+  {
+    term: "Companies growing",
+    definition: "The share of supply-chain companies whose revenue rose on the same quarter a year earlier. It shows how broad growth is.",
+  },
+  {
+    term: "Median revenue growth",
+    definition: "Revenue growth on a year ago for the middle company of those that have filed the quarter, so no single large company sways it.",
+  },
+  {
     term: "Distributor inventory",
     definition: "Inventory days across the listed distributors. It usually turns before chip makers' revenue does.",
   },

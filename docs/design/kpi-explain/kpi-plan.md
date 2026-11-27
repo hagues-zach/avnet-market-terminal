@@ -102,7 +102,18 @@ Built in `src/components/explain/share.tsx`, rules in `src/lib/explain/share.ts`
 | Growth over makers / Share of Avnet + Arrow / Avnet against Arrow | `share/sections.tsx`, `line-cards/insights.tsx` | Pair bars, Avnet green against Arrow dark blue | Gaining share means growing faster than the makers whose parts Avnet sells |
 | Against holding share | `scenario/modeler.tsx` | Pair bars: scenario against a held share | What the scenario assumes |
 
-## Phase 4: cycle
+## Phase 4: cycle (built 2026-11-27, branch `claude/kpi-explain-cycle`)
+Built in `src/components/explain/cycle.tsx`, rules in `src/lib/explain/cycle.ts`, plus a new `DotStrip` diagram (layout rules `dotRows()` and `median()` in `diagrams.ts`). Built in the existing explainer style, without Stitch. Differences from the plan below:
+- **Supply-chain revenue** has no shaded bands: the cycle label is only the sign of growth and its direction, so the scale is even about zero with Contraction and Expansion at its ends, and the phase the engine gave each quarter leads.
+- **Companies growing** and **Median revenue growth** use the dot strip: one dot per company, stacked where they would overlap, the median marked, Avnet green and Arrow dark blue among grey dots. The strip stops at 100% either way and says how many companies sit beyond it. `getCycle` now returns `supplyGrowth`, each supply-chain company's growth on the rollup's pairing rule, so the count matches the tile.
+- **Distributor inventory** is the ratio scale in days with the 90-day reference from Phase 1, in grey (a group, not Avnet). The sentence gives chip makers' growth in the same quarter.
+- **Hyperscaler capex** is pair bars of a quarter against the same quarter a year earlier, stepping through the quarters where both are complete (four of the eight), with chip makers' growth beside it for the AI gap.
+- `cycle-view.tsx`'s per-company Inventory days still uses `Measure`, so it has no mark.
+- The Supply-chain revenue, Companies growing and Median revenue growth glossary terms are new.
+- Fixed in passing: `PairBars` drew its dashed gap outline with a negative width when the two bars were within a pixel (Avnet and Arrow revenue on Market Share).
+- The real-data reads aren't in `explain.test.ts`: these figures are live SEC data, which the tests don't fetch. They were checked in the browser instead.
+
+### Phase 4 as planned
 
 | KPI tile | Where | Diagram | The one idea |
 |---|---|---|---|
