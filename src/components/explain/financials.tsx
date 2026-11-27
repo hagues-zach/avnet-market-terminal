@@ -9,7 +9,11 @@ import {
   grossMarginSteps,
   inventoryScale,
   operatingMarginSteps,
+  peerPair,
+  peerScale,
   readEps,
+  readPeer,
+  type PeerKind,
   readFreeCashFlow,
   readGrossMargin,
   readInventoryDays,
@@ -56,6 +60,9 @@ const READ: Record<FinKind, (q: FinQuarter, s: Subject) => FinReading | null> = 
   inventoryDays: readInventoryDays,
   revenueGrowth: readRevenueGrowth,
 };
+
+/** The kinds with a peer median: ratios, not amounts. */
+const PEER_KINDS: Record<PeerKind, true> = { grossMargin: true, operatingMargin: true, inventoryDays: true, revenueGrowth: true };
 
 const STEPS = { grossMargin: grossMarginSteps, operatingMargin: operatingMarginSteps, freeCashFlow: freeCashFlowSteps, eps: epsSteps };
 /** Which waterfall row each kind highlights: its last total. */
@@ -138,15 +145,43 @@ function Body({ kind, quarters, subject, source }: { kind: FinKind; quarters: Fi
     );
   }
 
+  // The group median for the same quarter, as a second, smaller scale under the diagram.
+  const peerKind = kind in PEER_KINDS ? (kind as PeerKind) : null;
+  const pair = peerKind ? peerPair(peerKind, q) : null;
+  const peerLine = peerKind ? readPeer(peerKind, q, subject) : null;
+  const days = kind === "inventoryDays";
+  const peerFmt = (v: number) => (days ? `${Math.round(v)} days` : `${v < 0 ? "−" : ""}${(Math.abs(v) * 100).toFixed(1)}%`);
+  const peerFigure = pair && (
+    <RatioScale
+      points={[{ label: subject.name, value: pair.value }]}
+      selected={0}
+      scale={peerScale(pair.value, pair.median, days ? 5 : 0.01)}
+      reference={pair.median}
+      format={peerFmt}
+      words={["", "Group median", ""]}
+      color={color}
+      caption={`${subject.name} against the ${pair.peer.group} median, ${q.label}`}
+    />
+  );
+
   return (
     <ExplainFrame
       explainer={e}
       lead={r.lead}
-      figure={figure}
+      figure={
+        peerFigure ? (
+          <>
+            {figure}
+            {peerFigure}
+          </>
+        ) : (
+          figure
+        )
+      }
       periods={quarters.map((x) => x.label)}
       index={i}
       onIndex={setI}
-      sentence={r.sentence}
+      sentence={peerLine ? `${r.sentence} ${peerLine}` : r.sentence}
       note={r.note}
       source={<span className="text-caption text-ink-muted">{source}</span>}
     />

@@ -28,6 +28,19 @@ export interface FinQuarter {
   yearAgo?: { label: string; revenue?: number; inventoryDays?: number };
   /** EPS backed out of the annual report (fourth quarters), so approximate. */
   epsDerived?: boolean;
+  /** The company's peer group medians for the same calendar quarter, when the group reported enough. */
+  peer?: PeerFigures;
+}
+
+export interface PeerFigures {
+  /** The group as the app names it, e.g. "Distributors". */
+  group: string;
+  companies: number;
+  grossMargin?: number;
+  operatingMargin?: number;
+  inventoryDays?: number;
+  /** The median company's revenue growth on a year ago. */
+  growth?: number;
 }
 
 /** Which peer group a margin should be read against. */
@@ -236,4 +249,47 @@ export function readRevenueGrowth(q: FinQuarter, s: Subject): (FinReading & { ga
       : "Comparing with the same quarter a year earlier cancels out the seasons, which a quarter on quarter change would not.",
     gapText: Math.round(gap / 1e6) === 0 ? "Level with a year ago" : `${usd(gap)} ${gap > 0 ? "more" : "less"} than a year ago`,
   };
+}
+
+// Peer group ----------------------------------------------------------------
+
+/** The KPIs a peer median means something for: ratios, not amounts. */
+export type PeerKind = "grossMargin" | "operatingMargin" | "inventoryDays" | "revenueGrowth";
+
+const PEER_METRIC: Record<PeerKind, { value: (q: FinQuarter) => number | undefined; median: (p: PeerFigures) => number | undefined; what: string; days?: boolean; close: number }> = {
+  grossMargin: { value: (q) => q.v.grossMargin, median: (p) => p.grossMargin, what: "gross margin", close: 0.005 },
+  operatingMargin: { value: (q) => q.v.operatingMargin, median: (p) => p.operatingMargin, what: "operating margin", close: 0.005 },
+  inventoryDays: { value: (q) => q.v.inventoryDays, median: (p) => p.inventoryDays, what: "inventory", days: true, close: 3 },
+  revenueGrowth: { value: (q) => q.v.revenueYoY, median: (p) => p.growth, what: "revenue growth", close: 0.005 },
+};
+
+/** The company's figure and its group's median for the quarter, or null when either is missing or the group is too small. */
+export function peerPair(kind: PeerKind, q: FinQuarter): { value: number; median: number; peer: PeerFigures } | null {
+  const m = PEER_METRIC[kind];
+  const value = m.value(q);
+  const median = q.peer ? m.median(q.peer) : undefined;
+  if (value === undefined || median === undefined || !q.peer || q.peer.companies < 3) return null;
+  return { value, median, peer: q.peer };
+}
+
+/** "Avnet's gross margin of 10.8% is below the 11.6% median of the six Distributors." */
+export function readPeer(kind: PeerKind, q: FinQuarter, s: Subject): string | null {
+  const p = peerPair(kind, q);
+  if (!p) return null;
+  const m = PEER_METRIC[kind];
+  const fmt = (v: number) => (m.days ? `${Math.round(v)} days` : `${v < 0 ? "minus " : ""}${pct(Math.abs(v))}`);
+  const where = Math.abs(p.value - p.median) < m.close ? "in line with" : p.value > p.median ? "above" : "below";
+  // "Distributors" reads as "distributors" mid-sentence; "AI & connectivity" keeps its capitals.
+  const group = p.peer.group.replace(/^[A-Z](?![A-Z])/, (c) => c.toLowerCase());
+  return `${s.name}'s ${m.what} of ${fmt(p.value)} is ${where} the ${fmt(p.median)} median of the ${count(p.peer.companies)} companies in ${group}.`;
+}
+
+/**
+ * A scale centred on the group median, twice as wide as the company's distance
+ * from it, so the median's label sits clear of the end labels and the company
+ * never lands on an end. `least` is the smallest half-width (1 point, 5 days).
+ */
+export function peerScale(value: number, median: number, least: number): { min: number; max: number } {
+  const half = Math.max(Math.abs(value - median) * 2, Math.abs(median) * 0.25, least);
+  return { min: median - half, max: median + half };
 }

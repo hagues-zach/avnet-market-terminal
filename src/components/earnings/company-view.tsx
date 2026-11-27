@@ -5,7 +5,7 @@ import { CaveatMark } from "@/components/ui/caveat-mark";
 import { yearAgo } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { ExplainFinancial, type FinKind } from "@/components/explain/financials";
-import { finQuarters, subjectOf } from "@/lib/explain/financials-data";
+import { finQuarters, subjectOf, type PeerSeries } from "@/lib/explain/financials-data";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState } from "@/components/ui/states";
 import { ChartButton } from "@/components/chart-view/chart-button";
@@ -27,7 +27,7 @@ function headline(e: CompanyEarnings): string {
 }
 
 /** The selected company's latest quarter: the sentence, the KPIs and the trend. */
-export function CompanyResults({ earnings }: { earnings: CompanyEarnings }) {
+export function CompanyResults({ earnings, peers }: { earnings: CompanyEarnings; peers?: PeerSeries }) {
   const { company, quarters, latestFiling } = earnings;
   const latest = quarters[quarters.length - 1];
   if (!latest) {
@@ -53,7 +53,7 @@ export function CompanyResults({ earnings }: { earnings: CompanyEarnings }) {
   const fcfChange = change(v.freeCashFlow, p.freeCashFlow);
   const revChange = rel(v.revenue, p.revenue);
   // Explainers step through quarters, so half-yearly reporters don't get them yet.
-  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings), subject: subjectOf(company), source: sourceOf(company).short };
+  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings, 8, peers), subject: subjectOf(company), source: sourceOf(company).short };
   const explain = (kind: FinKind) => (fin ? <ExplainFinancial kind={kind} {...fin} /> : undefined);
 
   return (

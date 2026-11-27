@@ -29,9 +29,12 @@ import {
 } from "@/components/network/company-profile";
 import { PrivateKeyFacts, PrivateLineCard, PrivateOverview } from "@/components/network/private-profile";
 
+import { peerSeries } from "@/lib/explain/financials-data";
+
 /** Server components: the earnings sections, each loading the company's filings (cached, shared). */
 async function Results({ slug }: { slug: string }) {
-  return <CompanyResults earnings={await getCompanyEarnings(slug)} />;
+  const earnings = await getCompanyEarnings(slug);
+  return <CompanyResults earnings={earnings} peers={await peerSeries(earnings.company)} />;
 }
 async function Trend({ slug }: { slug: string }) {
   const earnings = await getCompanyEarnings(slug);

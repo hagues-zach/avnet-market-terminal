@@ -25,7 +25,7 @@ import { isHidden } from "@/lib/visibility";
 import { companyColor } from "@/lib/colors";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ExplainFinancial, type FinKind } from "@/components/explain/financials";
-import { finQuarters, subjectOf } from "@/lib/explain/financials-data";
+import { finQuarters, peerSeries, subjectOf } from "@/lib/explain/financials-data";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { BetaChip, Chip, DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -204,7 +204,7 @@ export async function ProfileKeyFacts({ company }: { company: Company }) {
 
 export async function ProfileOverview({ company }: { company: Company }) {
   // The mix is cached and shared with the Revenue mix section.
-  const [earnings, mix] = await Promise.all([getCompanyEarnings(company.slug), getRevenueMix(company.slug)]);
+  const [earnings, mix, peers] = await Promise.all([getCompanyEarnings(company.slug), getRevenueMix(company.slug), peerSeries(company)]);
   const { quarters } = earnings;
   const q = quarters[quarters.length - 1];
   if (!q) {
@@ -224,7 +224,7 @@ export async function ProfileOverview({ company }: { company: Company }) {
   const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
   const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
   // Explainers step through quarters, so half-yearly reporters don't get them yet.
-  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings), subject: subjectOf(company), source: sourceOf(company).short };
+  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings, 8, peers), subject: subjectOf(company), source: sourceOf(company).short };
   const explain = (kind: FinKind) => (fin ? <ExplainFinancial kind={kind} {...fin} /> : undefined);
   const footer = <SourceLine source={sourceOf(company).filings} asOf={`${company.cadence === "half" ? "half" : "quarter"} ended ${longDate(q.end)}`} />;
 

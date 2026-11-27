@@ -16,7 +16,9 @@ import {
   impliedShares,
   inventoryScale,
   operatingMarginSteps,
+  peerScale,
   readEps,
+  readPeer,
   readFreeCashFlow,
   readGrossMargin,
   readInventoryDays,
@@ -671,6 +673,27 @@ const cx = readCapex({ label: "CY26 Q2", total: 90e9, yearAgo: 60e9, chipGrowth:
 assert.equal(cx.lead, "The five hyperscalers spent $90.0B on capital projects in Q2 '26, up 50% on a year ago.");
 assert.ok(cx.note?.startsWith("Capex grew 30 pts faster"));
 const cycleReads = [sr, cg, mg, di, cx];
+
+// Peer group: the median for the same quarter, only for ratios and big enough groups.
+const peerQ: FinQuarter = {
+  label: "FY27 Q1",
+  v: { grossMargin: 0.108, operatingMargin: 0.032, inventoryDays: 98, revenueYoY: 0.06 },
+  peer: { group: "Distributors", companies: 6, grossMargin: 0.116, operatingMargin: 0.034, inventoryDays: 80, growth: 0.02 },
+};
+const avnetSub: Subject = { name: "Avnet", slug: "avnet", group: "distributor" };
+assert.equal(
+  readPeer("grossMargin", peerQ, avnetSub),
+  "Avnet's gross margin of 10.8% is below the 11.6% median of the six companies in distributors.",
+);
+assert.equal(readPeer("operatingMargin", peerQ, avnetSub)?.includes("in line with the 3.4% median"), true);
+assert.equal(readPeer("inventoryDays", peerQ, avnetSub), "Avnet's inventory of 98 days is above the 80 days median of the six companies in distributors.");
+assert.ok(readPeer("revenueGrowth", peerQ, avnetSub)?.includes("is above the 2.0% median"));
+assert.ok(readPeer("grossMargin", { ...peerQ, peer: { ...peerQ.peer!, group: "AI & connectivity" } }, avnetSub)?.endsWith("companies in AI & connectivity."));
+assert.equal(readPeer("grossMargin", { ...peerQ, peer: { ...peerQ.peer!, companies: 2 } }, avnetSub), null);
+assert.equal(readPeer("grossMargin", { ...peerQ, peer: undefined }, avnetSub), null);
+{ const ps = peerScale(0.1, 0.12, 0.01); assert.ok(Math.abs(ps.min - 0.08) < 1e-9 && Math.abs(ps.max - 0.16) < 1e-9); }
+assert.deepEqual(peerScale(80, 80, 5), { min: 60, max: 100 });
+cycleReads.push({ lead: "", sentence: readPeer("grossMargin", peerQ, avnetSub)! });
 
 const shareReads = [ms, readMappedBillings(mf, "share"), vc, readPeerShare(pq), readScenarioShare(sc), readAgainstHold(sc), readScenarioGrowth(sc)];
 
