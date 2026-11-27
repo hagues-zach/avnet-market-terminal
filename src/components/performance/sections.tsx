@@ -6,6 +6,7 @@ import { getAvnet } from "@/lib/avnet";
 import { fmtM } from "@/lib/avnet/format";
 import { fullQuarter } from "@/lib/share/peers";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainBookToBill } from "@/components/explain/book-to-bill";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
@@ -42,6 +43,7 @@ export async function PerformanceKpis() {
           value={latest.bookToBill.toFixed(2)}
           note={quartersAboveOne ? `above 1 for ${quartersAboveOne} quarters` : "below 1"}
           source={{ status: m.status }}
+          explain={<ExplainBookToBill quarters={m.performance.slice(-8)} status={m.status} />}
         />
         <KpiTile label="Backlog" value={fmtM(latest.backlog)} delta={{ value: backlogGrowth, period: "YoY" }} source={{ status: m.status }} />
         <KpiTile label="Design-approved billings" value={`${Math.round(m.designApprovedShare * 100)}%`} note="share of billings" source={{ status: m.status }} />

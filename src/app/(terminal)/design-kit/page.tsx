@@ -8,9 +8,12 @@ import { Delta } from "@/components/ui/delta";
 import { HighlightBar } from "@/components/ui/highlight-bar";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainBookToBill } from "@/components/explain/book-to-bill";
+import { PERFORMANCE } from "@/lib/shells/mock-avnet";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { EmptyState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { Tabs } from "@/components/ui/tabs";
+import { DiagramDemos } from "./diagram-demos";
 import { BillingsChart, ErrorDemo, FilterDemo, SegmentTable, ShareChart } from "./kit-demos";
 
 export const metadata: Metadata = { title: "Design kit · Avnet Market Intelligence" };
@@ -63,14 +66,24 @@ export default function DesignKitPage() {
         <HighlightBar>Book-to-bill is above 1.1 in Asia for the second quarter running.</HighlightBar>
       </Section>
 
-      <Section title="KPI tiles" note="Label, figure, change, source. One figure size per row; changes never wrap.">
+      <Section title="KPI tiles" note="Label, figure, change, source. One figure size per row; changes never wrap. A question mark beside the label opens the metric's explainer.">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <KpiTile label="Billings Q3 FY26" value="$5.9B" delta={{ value: 0.032, period: "QoQ" }} source={{ status: "mock" }} />
-          <KpiTile label="Book-to-bill" value="1.04" delta={{ value: 0.03, display: "0.03", period: "QoQ" }} source={{ status: "mock" }} />
+          <KpiTile
+            label="Book-to-bill"
+            value={PERFORMANCE[PERFORMANCE.length - 1].bookToBill.toFixed(2)}
+            delta={{ value: -0.01, display: "0.01", period: "QoQ" }}
+            source={{ status: "mock" }}
+            explain={<ExplainBookToBill quarters={PERFORMANCE} status="mock" />}
+          />
           <KpiTile label="Inventory days" value="198" delta={{ value: 12, display: "12", period: "YoY", invert: true }} source={{ status: "live", label: "SEC 10-Q" }} asOf="Oct 20" />
           <KpiTile label="Gross margin" value="56.8%" note="Non-GAAP" delta={{ value: 0, display: "0 bps", period: "QoQ" }} source={{ status: "live", label: "SEC 10-Q" }} />
         </div>
         <HookupMarker ids={["billings", "bookings"]} />
+      </Section>
+
+      <Section title="Explainer diagrams" note="The four shapes every KPI explainer draws from: ratio scale, pair bars, waterfall and funnel. Click a dot, a total or a stage to select it.">
+        <DiagramDemos />
       </Section>
 
       <Section title="Filter bar" note="One row above what it filters. Selects are square; applied filters can be removed.">
