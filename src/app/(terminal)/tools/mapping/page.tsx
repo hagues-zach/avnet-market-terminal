@@ -5,6 +5,7 @@ import { PageBody } from "@/components/layout/page-body";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainMappedBillings, ExplainValidated } from "@/components/explain/share";
 import { PageTitle } from "@/components/ui/page-title";
 import { Panel } from "@/components/ui/panel";
 import { MappingWorkbench } from "@/components/mapping/workbench";
@@ -38,6 +39,12 @@ export default async function CodeMappingPage() {
   const share = s.validated / s.categories;
   const monthAgo = avnet.validatedMonthAgo / s.categories;
   const pts = Math.round((share - monthAgo) * 100);
+  const billings = {
+    ttm: avnet.ttmBillings,
+    mappedShare: avnet.mappedShare,
+    validatedBillings: avnet.mappings.filter((m) => m.status === "validated").reduce((n, m) => n + m.billings, 0),
+    reviewBillings: s.reviewBillings,
+  };
   const confidence = Object.fromEntries(avnet.segmentBillings.map((x) => [x.segment, x.confidence]));
   const changes = avnet.mappings.flatMap((m) => m.history.filter((h) => h.event !== "Suggested").map((h) => ({ ...h, m })))
     .sort((a, b) => a.daysAgo - b.daysAgo)
@@ -56,13 +63,27 @@ export default async function CodeMappingPage() {
       </section>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <KpiTile label="Billings mapped" value={pct(avnet.mappedShare)} note={`${money(avnet.mappedBillings)} of billings`} source={{ status: avnet.status }} />
+        <KpiTile
+          label="Billings mapped"
+          value={pct(avnet.mappedShare)}
+          note={`${money(avnet.mappedBillings)} of billings`}
+          source={{ status: avnet.status }}
+          explain={<ExplainMappedBillings figures={billings} focus="share" status={avnet.status} />}
+        />
         <KpiTile
           label="Validated categories"
           value={`${s.validated} of ${s.categories}`}
           note={pct(share)}
           delta={{ value: pts, display: `${Math.abs(pts)} pts`, period: "this month" }}
           source={{ status: avnet.status }}
+          explain={
+            <ExplainValidated
+              categories={{ ...s, validatedMonthAgo: avnet.validatedMonthAgo }}
+              billings={billings}
+              weakest={weak && { segment: weak.segment, validatedShare: weak.validatedShare }}
+              status={avnet.status}
+            />
+          }
         />
         <KpiTile label="Awaiting review" value={String(s.review)} note={`${money(s.reviewBillings)} of billings`} source={{ status: avnet.status }} />
         <KpiTile label="Not mapped" value={String(s.unmapped)} note="with no Avnet code" source={{ status: avnet.status }} />

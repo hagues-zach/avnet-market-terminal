@@ -34,7 +34,7 @@ const lower = (name: string) => name.charAt(0).toLowerCase() + name.slice(1);
 const NONE = () => {};
 
 /** A popover around a single-period explainer (no stepper). */
-function Single({ e, label, ...body }: { e: Explainer; label?: string } & Omit<Parameters<typeof ExplainFrame>[0], "explainer" | "periods" | "index" | "onIndex">) {
+export function Single({ e, label, ...body }: { e: Explainer; label?: string } & Omit<Parameters<typeof ExplainFrame>[0], "explainer" | "periods" | "index" | "onIndex">) {
   return (
     <ExplainPopover label={`Explain ${lower(label ?? e.name)}`} title={label ?? e.name}>
       <ExplainFrame explainer={e} periods={[]} index={0} onIndex={NONE} {...body} />

@@ -7,7 +7,9 @@ import { VIZ } from "@/lib/colors";
 import { getAvnet } from "@/lib/avnet";
 import { shareHistory } from "@/lib/avnet/derive";
 import { fullQuarter, growthAgainstMakers, latestGap, peerShare, shortQuarter } from "@/lib/share/peers";
+import { summarise } from "@/lib/mapping/read";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainGrowthGap, ExplainMappedBillings, ExplainMappedShare, ExplainPeerShare } from "@/components/explain/share";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -47,6 +49,13 @@ async function shareFigures() {
 
 export async function ShareKpis() {
   const { m, latestTrend, yearAgoTrend, mappedMarket, mappedBillings } = await shareFigures();
+  const s = summarise(m.mappings);
+  const mapping = {
+    ttm: m.ttmBillings,
+    mappedShare: m.mappedShare,
+    validatedBillings: m.mappings.filter((x) => x.status === "validated").reduce((a, x) => a + x.billings, 0),
+    reviewBillings: s.reviewBillings,
+  };
   return (
     <>
       <KpiTile
@@ -54,12 +63,16 @@ export async function ShareKpis() {
         value={`${(latestTrend * 100).toFixed(1)}%`}
         delta={{ value: latestTrend - yearAgoTrend, display: pts(latestTrend - yearAgoTrend), period: "YoY" }}
         source={{ status: m.status }}
+        explain={
+          <ExplainMappedShare share={latestTrend} shareYearAgo={yearAgoTrend} mappedShare={m.mappedShare} segments={m.shareBySegment} status={m.status} />
+        }
       />
       <KpiTile
         label="Mapped billings"
         value={`$${mappedBillings.toFixed(1)}B`}
         note={`of a $${mappedMarket.toFixed(0)}B market`}
         source={{ status: m.status }}
+        explain={<ExplainMappedBillings figures={mapping} focus="amount" status={m.status} />}
       />
     </>
   );
@@ -188,7 +201,9 @@ export async function PeerKpis() {
   const share = peerShare(avnet, arrow);
   const last = share[share.length - 1];
   const yearAgo = share.length >= 5 ? share[share.length - 5] : undefined;
-  const gap = cycle ? latestGap(growthAgainstMakers(avnet, cycle)) : null;
+  const growth = cycle ? growthAgainstMakers(avnet, cycle) : [];
+  const gap = cycle ? latestGap(growth) : null;
+  const gaps = growth.flatMap((g) => (g.avnet !== undefined && g.makers !== undefined ? [{ label: g.label, avnet: g.avnet, makers: g.makers }] : [])).slice(-8);
   return (
     <>
       <KpiTile
@@ -197,6 +212,7 @@ export async function PeerKpis() {
         delta={last && yearAgo ? { value: last.avnet - yearAgo.avnet, display: pts(last.avnet - yearAgo.avnet), period: "YoY" } : undefined}
         source={{ status: "live", label: "SEC" }}
         asOf={last ? shortQuarter(last.label) : undefined}
+        explain={<ExplainPeerShare points={share.map((p) => ({ ...p, avnetRevenue: p.avnetRevenue / 1e6, arrowRevenue: p.arrowRevenue / 1e6 }))} />}
       />
       <KpiTile
         label="Growth over makers"
@@ -204,6 +220,7 @@ export async function PeerKpis() {
         note={gap ? `${(gap.avnet * 100).toFixed(0)}% vs ${(gap.makers * 100).toFixed(0)}%` : undefined}
         source={{ status: "live", label: "SEC" }}
         asOf={gap ? shortQuarter(gap.label) : undefined}
+        explain={<ExplainGrowthGap points={gaps} makers={MAKERS} />}
       />
     </>
   );
