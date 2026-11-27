@@ -15,6 +15,7 @@ export function KpiTile({
   asOf,
   note,
   caveat,
+  explain,
   className,
 }: {
   label: string;
@@ -26,15 +27,20 @@ export function KpiTile({
   note?: string;
   /** Why the figure doesn't compare cleanly with other companies' (accounting rules, a segment). */
   caveat?: string;
+  /** An explainer opened from a mark beside the label, e.g. <ExplainBookToBill />. */
+  explain?: React.ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn("flex min-w-0 flex-col rounded-sm border border-hairline bg-surface px-4 py-3", className)}>
       <div className="flex items-start justify-between gap-2">
-        <span className="font-display text-label uppercase text-ink-muted">
-          {label}
-          <CaveatMark reason={caveat} />
-        </span>
+        <div className="flex min-w-0 items-center">
+          <span className="font-display text-label uppercase text-ink-muted">
+            {label}
+            <CaveatMark reason={caveat} />
+          </span>
+          {explain}
+        </div>
         {source && <DataChip status={source.status} label={source.label} />}
       </div>
       <div className="mt-1.5 flex items-baseline gap-2">

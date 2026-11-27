@@ -223,6 +223,49 @@ export const GLOSSARY: { term: string; definition: string }[] = [
     definition: "Orders booked divided by sales billed in the same period. Above 1 means orders are arriving faster than they ship.",
   },
   { term: "Backlog", definition: "Orders taken but not yet shipped." },
+  {
+    term: "Backlog coverage",
+    definition: "Backlog divided by one quarter of billings: how many quarters of shipments are already on order.",
+  },
+  {
+    term: "Gross margin",
+    definition:
+      "Gross profit as a share of revenue, after the cost of the goods sold. Distributors run near 10 to 12%, chip makers above 50%, so compare within a group.",
+  },
+  {
+    term: "Operating margin",
+    definition: "Operating profit as a share of revenue: what is left after cost of sales and the cost of running the business.",
+  },
+  {
+    term: "Free cash flow",
+    definition:
+      "Cash from operations minus capital spending. Distributors often make the most cash in a downturn, as they sell inventory they no longer replace.",
+  },
+  {
+    term: "Diluted EPS",
+    definition:
+      "Net income divided by the average share count, including options and convertible stock that could become shares. Fourth quarters come from annual reports.",
+  },
+  {
+    term: "Revenue growth (year on year)",
+    definition: "Revenue in a quarter against the same quarter a year earlier, so seasonal swings cancel out.",
+  },
+  {
+    term: "Customer concentration",
+    definition: "How much of billings comes from the largest customers. A high share means losing one account moves the total.",
+  },
+  {
+    term: "Hyperscaler capex",
+    definition: "Capital spending by the largest cloud companies on data centers, servers and chips. A lead signal for AI demand.",
+  },
+  {
+    term: "Distributor inventory",
+    definition: "Inventory days across the listed distributors. It usually turns before chip makers' revenue does.",
+  },
+  {
+    term: "Approval rate",
+    definition: "Design registrations approved by the supplier as a share of those decided in the period.",
+  },
   { term: "Lead time", definition: "Weeks from order to delivery for a part. Rising lead times usually mean supply is tightening." },
   {
     term: "Design registration (DRMS)",
