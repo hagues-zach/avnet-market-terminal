@@ -3,11 +3,13 @@ import { getCycle } from "@/lib/data/live/cycle";
 import type { Cohort } from "@/lib/data/live/earnings-model";
 import { MARKET_GROUP } from "@/lib/customers/read";
 import { getAvnet, type AvnetModel } from "@/lib/avnet";
-import { PIPELINE_STAGES } from "@/lib/avnet/format";
 import { PageBody } from "@/components/layout/page-body";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { PIPELINE_STAGES } from "@/lib/avnet/format";
+import { ExplainDesignApproved, ExplainPipeline } from "@/components/explain/operations";
+import type { PipelineFigures } from "@/lib/explain/operations";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { PageTitle } from "@/components/ui/page-title";
 import { PipelineBreakdown, type View } from "@/components/pipeline/breakdown";
@@ -41,6 +43,14 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
   const regChange = m.newRegistrations.thisQuarter / m.newRegistrations.yearAgo - 1;
   const rateChange = m.approvalRate.now - m.approvalRate.yearAgo;
   const first = m.pipeline.submitted.value;
+  const figures: PipelineFigures = {
+    stages: PIPELINE_STAGES.map((st) => ({ label: st.label, ...m.pipeline[st.id] })),
+    approvedPipeline: m.approvedPipeline,
+    approvedPipelineYearAgo: m.approvedPipelineYearAgo,
+    approvalRate: m.approvalRate,
+    newRegistrations: m.newRegistrations,
+    monthsToBilling: m.monthsToBilling,
+  };
 
   return (
     <PageBody>
@@ -60,6 +70,7 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiTile
           label="Approved pipeline"
+          explain={<ExplainPipeline figures={figures} focus="approvedPipeline" status={m.status} />}
           value={money(m.approvedPipeline)}
           note="not yet billing"
           delta={{ value: pipelineChange, display: pct(Math.abs(pipelineChange)), period: "YoY" }}
@@ -67,6 +78,7 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
         />
         <KpiTile
           label="New registrations"
+          explain={<ExplainPipeline figures={figures} focus="newRegistrations" status={m.status} />}
           value={m.newRegistrations.thisQuarter.toLocaleString("en-US")}
           note="this quarter"
           delta={{ value: regChange, display: pct(Math.abs(regChange)), period: "YoY" }}
@@ -74,12 +86,19 @@ export default async function DesignPipelinePage({ searchParams }: { searchParam
         />
         <KpiTile
           label="Approval rate"
+          explain={<ExplainPipeline figures={figures} focus="approvalRate" status={m.status} />}
           value={pct(m.approvalRate.now)}
           note="last 12 months"
           delta={{ value: rateChange, display: `${Math.abs(rateChange * 100).toFixed(0)} pts`, period: "YoY" }}
           source={{ status: m.status }}
         />
-        <KpiTile label="Billings on design-approved parts" value={pct(m.designApprovedShare)} note="of all billings" source={{ status: m.status }} />
+        <KpiTile
+          label="Billings on design-approved parts"
+          value={pct(m.designApprovedShare)}
+          note="of all billings"
+          source={{ status: m.status }}
+          explain={<ExplainDesignApproved share={m.designApprovedShare} ttm={m.ttmBillings} status={m.status} label="Billings on design-approved parts" />}
+        />
       </div>
 
       <div className="grid items-start gap-4 xl:grid-cols-12 [&>*]:min-w-0">

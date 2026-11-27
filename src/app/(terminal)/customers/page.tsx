@@ -5,6 +5,7 @@ import { PageBody } from "@/components/layout/page-body";
 import { DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainActiveCustomers, ExplainConcentration, ExplainTtmBillings } from "@/components/explain/operations";
 import { PageTitle } from "@/components/ui/page-title";
 import {
   DemandPlot,
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 export default async function CustomersPage() {
-  const { ttmBillings, ttmBillingsYearAgo, concentration, verticals, status } = await getAvnet();
+  const { ttmBillings, ttmBillingsYearAgo, concentration, verticals, status, performance } = await getAvnet();
   const growth = ttmBillings / ttmBillingsYearAgo - 1;
   const top10 = concentration.top10;
   const top100 = concentration.top100;
@@ -49,9 +50,11 @@ export default async function CustomersPage() {
           value={`$${(ttmBillings / 1000).toFixed(1)}B`}
           delta={{ value: growth, display: `${(growth * 100).toFixed(1)}%`, period: "YoY" }}
           source={{ status }}
+          explain={<ExplainTtmBillings quarters={performance} ttm={ttmBillings} ttmYearAgo={ttmBillingsYearAgo} status={status} />}
         />
         <KpiTile
           label="Top 10 customers"
+          explain={<ExplainConcentration concentration={concentration} focus="top10" status={status} />}
           value={pct(top10.now)}
           note="of billings"
           delta={{ value: pts(top10), display: `${Math.abs(pts(top10)).toFixed(1)} pts`, period: "YoY", neutral: true }}
@@ -59,6 +62,7 @@ export default async function CustomersPage() {
         />
         <KpiTile
           label="Top 100 customers"
+          explain={<ExplainConcentration concentration={concentration} focus="top100" status={status} />}
           value={pct(top100.now)}
           note="of billings"
           delta={{ value: pts(top100), display: `${Math.abs(pts(top100)).toFixed(1)} pts`, period: "YoY", neutral: true }}
@@ -66,6 +70,7 @@ export default async function CustomersPage() {
         />
         <KpiTile
           label="Active customers"
+          explain={<ExplainActiveCustomers active={concentration.active} newCustomerGrowth={concentration.newCustomerGrowth} status={status} />}
           value={`${(concentration.active / 1e6).toFixed(1)}M`}
           note="parent companies"
           delta={{ value: concentration.newCustomerGrowth, display: `${(concentration.newCustomerGrowth * 100).toFixed(1)}% new`, period: "YoY" }}

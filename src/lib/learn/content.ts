@@ -224,6 +224,22 @@ export const GLOSSARY: { term: string; definition: string }[] = [
   },
   { term: "Backlog", definition: "Orders taken but not yet shipped." },
   {
+    term: "Billings (last 12 months)",
+    definition: "Avnet's word for revenue: what it invoiced. Adding the last four quarters smooths out the swings between them.",
+  },
+  {
+    term: "Design-approved billings",
+    definition: "The share of billings on parts carrying DRMS status 04: demand Avnet created by designing the part in, not just orders it took.",
+  },
+  {
+    term: "Approved pipeline",
+    definition: "Estimated annual billings on approved design registrations that are not billing yet.",
+  },
+  {
+    term: "Active customers",
+    definition: "Parent companies Avnet billed at least once in the last 12 months. Subsidiaries roll up to their parent.",
+  },
+  {
     term: "Backlog coverage",
     definition: "Backlog divided by one quarter of billings: how many quarters of shipments are already on order.",
   },
@@ -264,7 +280,7 @@ export const GLOSSARY: { term: string; definition: string }[] = [
   },
   {
     term: "Approval rate",
-    definition: "Design registrations approved by the supplier as a share of those decided in the period.",
+    definition: "Design registrations the supplier approved as a share of those Avnet submitted in the last 12 months.",
   },
   { term: "Lead time", definition: "Weeks from order to delivery for a part. Rising lead times usually mean supply is tightening." },
   {
