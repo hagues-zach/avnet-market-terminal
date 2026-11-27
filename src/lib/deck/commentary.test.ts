@@ -98,7 +98,7 @@ async function main() {
   const drop: string[] = [];
   const long = "Avnet's margin recovered quarter after quarter ".repeat(12);
   const many = toCommentary(
-    deck([marginTrend()]),
+    deck([marginTrend(), shareTiles()]),
     {
       slides: [
         { id: "card:not-sent", headline: "Something", text: "", bullets: [], notes: "" },
@@ -123,6 +123,18 @@ async function main() {
   assert.deepEqual(s.summary?.lines, ["The market grew +22.5% and Arrow leads at $28.1B."]);
   assert.deepEqual(s.summary?.slideIds, mixed.map((x) => x.id));
   assert.match(sumDrop[0], /summary.*14\.0/);
+  // A one-slide deck has no executive summary: a stray one from Claude is ignored, and the answer is complete without it.
+  const single = toCommentary(deck([marginTrend()]), { slides: [{ id, headline: "Margins recovered", text: "", bullets: ["Both rose."], notes: "" }], summary: ["Avnet reached 10.8%."] }, DAY, []);
+  assert.equal(single.summary, undefined, "a one-slide deck gets no summary");
+  const oneStore = memoryStore();
+  const oneSlide = await getDeckCommentary(deck([marginTrend()]), {
+    store: oneStore,
+    on: true,
+    write: async (input) => writeDeckCommentary(input, { client: fakeClient({ slides: [{ id, headline: "Margins recovered", text: "", bullets: ["Both rose."], notes: "" }], summary: [] }), now: () => DAY }),
+  });
+  assert.equal(oneSlide.message, undefined, "no 'no summary held up' message for one slide");
+  assert.equal(oneStore.data.get(COMMENTARY_NS)?.size, 1, "a one-slide answer without a summary is complete, so it's kept");
+  assert.match(render(deck([marginTrend()])), /<slide /);
   // A summary with nothing left isn't kept.
   assert.equal(toCommentary(deck(mixed), { slides: [], summary: ["Up 99.9%."] }, DAY, []).summary, undefined);
 

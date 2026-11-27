@@ -83,7 +83,7 @@ Write, for every slide:
 - bullets: two to four short bullets, each at most 18 words. Each bullet states something the slide shows, or a specific consequence of it for this audience, and names the row, series, company or figure it is about. No generic advice that would fit any slide ("watch share closely", "scale matters", "worth tracking"). Don't describe the source or how the chart is drawn; the footer does that. A slide marked bullets_max="3" has room for three at most.
 - notes: speaker notes, 50 to 120 words (never more than 120): what the presenter says aloud while the slide is up. Build on the slide rather than reading it out: the point in plain words, what to draw the audience's eye to, how it leads to the next slide, a question the audience may ask. Full sentences, no bullets. Write notes for every slide, including two-column slides.
 
-Then write the summary: three to five lines, each one sentence of at most 25 words, that a leader could read instead of the deck. Follow the order of the slides, and say what the deck as a whole adds up to.
+Then write the summary: three to five lines, each one sentence of at most 25 words, that a leader could read instead of the deck. Follow the order of the slides, and say what the deck as a whole adds up to. A deck of one slide has no summary: return an empty list.
 
 Audiences:
 - Supplier: a manufacturer whose parts Avnet distributes. Avnet wants a bigger share of its channel, design-win support and fair allocation.
@@ -172,7 +172,8 @@ export function toCommentary(input: DeckInput, out: DeckOutput, writtenAt: strin
     };
   }
   const all = [...evidence.values()].join("\n");
-  const lines = out.summary
+  // A one-slide deck has no executive summary: it would only repeat the slide.
+  const lines = (shipped.length < MIN_SUMMARY_SLIDES ? [] : out.summary)
     .map((l) => groundPiece(l, all, dropped, "summary"))
     .filter(Boolean)
     .slice(0, COMMENTARY.summaryLines)
@@ -260,7 +261,7 @@ function partial(input: DeckInput, r: Pick<DeckCommentary, "slides" | "summary">
   const got = Object.keys(r.slides).length;
   const parts = [
     got < n ? `Claude's commentary held up for ${got} of ${n} slides; the rest keep the app's wording.` : "",
-    !r.summary ? "No executive summary held up against the slides." : "",
+    !r.summary && n >= MIN_SUMMARY_SLIDES ? "No executive summary held up against the slides." : "",
   ].filter(Boolean);
   return parts.length ? parts.join(" ") : undefined;
 }
@@ -300,6 +301,9 @@ export async function getDeckCommentary(
   }
   return { status: "ok", slides: r.slides, ...(r.summary ? { summary: r.summary } : {}), ...(message ? { message } : {}) };
 }
+
+/** The fewest slides a deck needs for an executive summary: with one, the summary would only repeat it. */
+export const MIN_SUMMARY_SLIDES = 2;
 
 /** The output budget for a deck of `n` slides: about 900 tokens a slide plus 1,500 for the summary, at most 16,000. Pure. */
 export const maxTokens = (n: number) => Math.min(16000, 1500 + 900 * n);

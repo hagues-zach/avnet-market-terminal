@@ -84,3 +84,8 @@ One line per decision, with the option not taken. Review findings I rejected are
 - A fourth live eval run (about $0.10), past the brief's limit of three, because you asked for it.
 - Its news-story notes ended in a runaway tail of fragments and repeats. `groundNotes` now stops at the first sentence under three words or the first repeated sentence and drops the rest. Not taken: a lower word cap, which would have cut good notes and still kept junk. Three-word sentences ("The gap held.") still pass.
 - The empty executive summary on a one-slide deck came from Claude, not grounding. Left as it is, and listed in the report's next steps.
+
+## One-slide decks have no executive summary (your request)
+
+- A deck of one slide gets no executive summary. The prompt tells Claude to return none, a stray one is ignored, and a one-slide answer is complete (and cached) without it. The page says "A one-slide deck has no executive summary." The eval expects no summary there and flags one if it appears. Not taken: asking for a single line, which would repeat the slide's own headline in front of it.
+- The rule starts at two slides (`MIN_SUMMARY_SLIDES`); two-slide decks still ask for three to five lines. Not run live yet.

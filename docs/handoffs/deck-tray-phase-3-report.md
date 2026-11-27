@@ -79,5 +79,5 @@ The key came from `.env.local` with the shell's key unset. Total spend was about
 2. Write commentary once on a tray that includes the Performance Tracker's region slide, to see whether the "call each row what the slide calls it" rule fixed Farnell.
 3. Add that region slide as an eval fixture, and save raw answers (`--save`) on every live run so the checks can be re-scored.
 4. Done (run 4): the wider number-word check dropped nothing, and no deck failed. It found a runaway tail in one slide's notes, now cut off by `groundNotes`.
-5. One-slide decks sometimes get an empty or two-line executive summary. Consider skipping the summary for a one-slide deck, or asking for one line there.
+5. Done: a one-slide deck no longer gets an executive summary (the summary slide would only repeat it). Not yet run live.
 5. When SSO lands, build the server-side tray and per-user cap from the design note.

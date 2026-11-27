@@ -185,7 +185,11 @@ function Review({ items }: { items: TrayItem[] }) {
         missing.length
           ? `Claude wrote commentary for ${got.length} of ${slides(sent.length)}. ${missing.map((x) => x.title).join(", ")} ${missing.length === 1 ? "keeps" : "keep"} the app's wording${plan.cleared.length ? ", and the earlier commentary there was cleared" : ""}.`
           : `Claude wrote commentary for ${slides(sent.length)}.`,
-        plan.summary ? "The executive summary ships after the cover." : "No executive summary held up against the slides.",
+        plan.summary
+          ? "The executive summary ships after the cover."
+          : sent.length < 2
+            ? "A one-slide deck has no executive summary."
+            : "No executive summary held up against the slides.",
         got.length ? `Speaker notes on ${got.filter((x) => r.slides[x.id]?.notes).length} of ${slides(got.length)}, in the PowerPoint.` : "",
         "Check it before you ship.",
         saved === "unsaved" ? UNSAVED : "",

@@ -127,8 +127,10 @@ export function checkDeck(name: string, input: DeckInput, r: WriteResult): DeckR
     if (c.notes) noteWords.push(words(c.notes));
     else if (r.raw?.slides.find((s) => s.id === x.id)?.notes?.trim()) notesDropped.push(x.id);
   }
+  // A one-slide deck has no summary by design; a longer one needs at least three lines.
   const lines = r.summary?.lines.length ?? 0;
-  if (lines < 3) empty.push(`summary: ${lines} ${lines === 1 ? "line" : "lines"}`);
+  if (shipped.length >= 2 && lines < 3) empty.push(`summary: ${lines} ${lines === 1 ? "line" : "lines"}`);
+  if (shipped.length < 2 && lines) empty.push(`summary: ${lines} ${lines === 1 ? "line" : "lines"} on a one-slide deck`);
   const u = r.usage;
   return {
     name,

@@ -49,6 +49,11 @@ async function main() {
   assert.match(text, /^Deck\s+Status/);
   assert.match(text, /planted\s+ok\s+5\/6/);
   assert.match(text, /planted  empty: summary: 1 line/);
+  // One-slide decks have no summary by design, so an empty one isn't flagged; a stray one is.
+  const oneSlide = decks[0].input;
+  const noSum = checkDeck("one", oneSlide, await writeDeckCommentary(oneSlide, { client: fakeClient({ ...goodAnswer(oneSlide), summary: [] }) }));
+  assert.ok(!noSum.empty.some((e) => e.startsWith("summary")), "no summary on one slide is expected");
+
   /* ---------- Filler ---------- */
 
   const regions = labelWords(rankedBars().preview, rankedBars().title);
