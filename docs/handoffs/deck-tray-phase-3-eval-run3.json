@@ -1,0 +1,233 @@
+{
+  "TAM funnel": {
+    "raw": null,
+    "dropped": [],
+    "usage": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0
+    }
+  },
+  "Ranked bar chart": {
+    "raw": {
+      "slides": [
+        {
+          "id": "card:earnings-leaderboard-distributors",
+          "headline": "Avnet ranks third among distributors, behind Arrow and WPG Holdings, ahead of WT Microelectronics",
+          "text": "Avnet's revenue over the last four quarters is $22.8B, against Arrow at $28.1B, WPG Holdings at $25.4B and WT Microelectronics at $21.9B.",
+          "bullets": [
+            "Arrow leads the group at $28.1B, the closest competitor and the benchmark for channel share.",
+            "WPG Holdings sits second at $25.4B, ahead of Avnet's $22.8B.",
+            "Future Electronics trails at $6.20B, far below the four larger distributors."
+          ],
+          "notes": "This is the landscape in one view. Avnet is third on revenue for the last four quarters at $22.8B, with Arrow ahead at $28.1B and WPG Holdings at $25.4B. WT Microelectronics is close behind at $21.9B, so the gap below us is thin. Future Electronics is a much smaller player at $6.20B. For a supplier, the point is that Avnet is a top tier channel with real reach, and we want to talk about how to grow your share through us. The likely question is how we compare with Arrow, so be ready to move to the next slide on strengths.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+        }
+      ],
+      "summary": [
+        "Avnet is third among the listed distributors with $22.8B in revenue over the last four quarters.",
+        "Arrow at $28.1B and WPG Holdings at $25.4B lead, while WT Microelectronics at $21.9B is close behind Avnet."
+      ]
+    },
+    "dropped": [],
+    "usage": {
+      "input": 388,
+      "output": 757,
+      "cacheRead": 0,
+      "cacheWrite": 1644
+    }
+  },
+  "Growth against margin scatter": {
+    "raw": {
+      "slides": [
+        {
+          "id": "card:earnings-growth-against-margin-semis",
+          "headline": "Avnet trails Arrow and the semiconductor medians on both growth and operating margin",
+          "text": "Avnet shows revenue growth of +3.1% and operating margin of 3.4%, against Arrow at +5.2% and 4.1% and semiconductor medians of +8.4% and 21.3%.",
+          "bullets": [
+            "Avnet growth of +3.1% sits below the median of +8.4%.",
+            "Avnet operating margin of 3.4% is far under the median of 21.3%.",
+            "Arrow leads Avnet on both measures, with +5.2% growth and 4.1% margin.",
+            "Two companies are off the scale, so the medians describe a wider spread."
+          ],
+          "notes": "The point here is where we sit against both the semiconductor makers and our closest competitor. Avnet grew revenue +3.1% with a 3.4% operating margin. Arrow is a little ahead at +5.2% and 4.1%. The medians for the semiconductor makers are +8.4% growth and 21.3% margin, so both distributors sit well below them. Draw the eye to the gap between our dot and the dashed median lines. Be careful: this compares a distributor with its suppliers, so the gap is about the business model as much as performance. The audience may ask why Arrow is ahead of us; that leads into what we do next on mix and cost."
+        }
+      ],
+      "summary": [
+        "Avnet grew revenue +3.1% with a 3.4% operating margin, below the semiconductor medians of +8.4% and 21.3%.",
+        "Arrow is ahead of Avnet on both growth and margin, at +5.2% and 4.1%."
+      ]
+    },
+    "dropped": [],
+    "usage": {
+      "input": 364,
+      "output": 550,
+      "cacheRead": 0,
+      "cacheWrite": 1645
+    }
+  },
+  "News story": {
+    "raw": {
+      "slides": [
+        {
+          "id": "card:news-story-microchip-lead-times",
+          "headline": "Microchip says MCU lead times are back to 12 weeks, easing supply for industrial buyers",
+          "text": "Microchip says microcontroller lead times have fallen to 12 weeks and expects distributors to restock in the March quarter.",
+          "bullets": [
+            "Microchip puts microcontroller lead times at 12 weeks, a sign that supply is normalising.",
+            "Distributors are expected to restock microcontrollers in the March quarter, so more channel inventory is coming.",
+            "Microchip ties the recovery to industrial demand in Europe.",
+            "Shorter lead times ease allocation for industrial customers like you."
+          ],
+          "notes": "The headline is good news for equipment makers: Microchip says microcontroller lead times have come back to 12 weeks. Point the audience to the restock expectation, because Microchip expects distributors to rebuild inventory in the March quarter. For a customer that means more stock available through the channel, and allocation should feel easier. Microchip links the recovery to industrial demand in Europe, so it is not only a supply story. A likely question is whether to change ordering plans now. Suggest we go through your upcoming programs together and line up forecasts with the March quarter restock. That leads into the next conversation about your demand.\"</parameter>\n<parameter name=\"x\">1</parameter>\n</invoke>\n</br>"
+        }
+      ],
+      "summary": [
+        "Microchip says microcontroller lead times have fallen to 12 weeks.",
+        "Distributors are expected to restock in the March quarter, adding channel inventory to plan for.",
+        "Easier allocation helps industrial customers, so now is the time to align forecasts with Avnet."
+      ]
+    },
+    "dropped": [],
+    "usage": {
+      "input": 334,
+      "output": 558,
+      "cacheRead": 0,
+      "cacheWrite": 1643
+    }
+  },
+  "Mixed six-slide deck": {
+    "raw": {
+      "slides": [
+        {
+          "id": "card:tam-opportunity",
+          "headline": "Avnet bills a small slice of a fast growing semiconductor market",
+          "text": "On mock data, world semiconductor sales are $772.2B, distribution serves $185.3B of that, and Avnet's $16.4B is 8.9% of the served market.",
+          "bullets": [
+            "TAM is $772.2B, up 22.5% on 2025, with $860.4B forecast for 2027.",
+            "SAM, the part sold through distributors, is $185.3B, or 24.0% of TAM (mock).",
+            "SOM, Avnet billings in the served market, is $16.4B (mock)."
+          ],
+          "notes": "Start with the size of the prize. The world market is $772.2B, and the 2027 forecast is $860.4B. Distribution serves $185.3B of it, and Avnet bills $16.4B, which is 8.9% of that served market. These last two figures are mock until our sources are connected, so present them as a model, not results. The point for Microchip is that growth is large and our share of the channel has room to grow. Expect the question of how real the SAM split is. Next we compare Avnet with other distributors on revenue."
+        },
+        {
+          "id": "card:earnings-leaderboard-distributors",
+          "headline": "Avnet ranks third among distributors on revenue, behind Arrow and WPG Holdings",
+          "text": "Avnet's $22.8B over the last four quarters trails Arrow at $28.1B and WPG Holdings at $25.4B, and sits just above WT Microelectronics at $21.9B.",
+          "bullets": [
+            "Arrow leads the group at $28.1B.",
+            "WT Microelectronics at $21.9B is close behind Avnet.",
+            "Future Electronics is far smaller at $6.20B."
+          ],
+          "notes": "This shows where Avnet sits among distributors. Arrow leads at $28.1B, WPG Holdings is at $25.4B, and Avnet is third at $22.8B. WT Microelectronics is only just behind at $21.9B, so the gap below us is thin. Future Electronics is at $6.20B. For Microchip, Avnet is a top three channel partner with real scale, but not the biggest. Someone may ask how much of this is semiconductors alone, and the slide does not split that out. Next we look at how distributors compare with chip makers on growth and margin."
+        },
+        {
+          "id": "card:earnings-growth-against-margin-semis",
+          "headline": "Distributors grow slower and earn far thinner margins than the semiconductor maker median",
+          "text": "Avnet shows +3.1% growth and 3.4% operating margin, and Arrow +5.2% and 4.1%, against medians of +8.4% growth and 21.3% margin.",
+          "bullets": [
+            "Avnet: growth +3.1%, operating margin 3.4%.",
+            "Arrow: growth +5.2%, operating margin 4.1%.",
+            "Median operating margin is 21.3%, so makers keep much more per dollar."
+          ],
+          "notes": "Here Avnet and Arrow are plotted against semiconductor makers. The medians are growth of +8.4% and operating margin of 21.3%. Avnet sits at +3.1% and 3.4%, Arrow at +5.2% and 4.1%. The message for Microchip is that distribution runs on thin margins, so support on design wins and fair allocation matters to our economics. Two companies are off the scale and four others are unlabelled, so avoid naming them. Someone may ask why we compare with makers at all. It frames the value of the channel. Next we narrow to Avnet against Arrow on gross margin."
+        },
+        {
+          "id": "chart:avnet-vs-arrow-scorecard:gross-margin:trend",
+          "headline": "Avnet's gross margin has recovered each quarter, but Arrow still leads",
+          "text": "Avnet's gross margin rose from 10.3% in Q4 2025 to 10.8% in Q3 2026, while Arrow moved from 10.9% to 11.2%.",
+          "bullets": [
+            "Avnet improved every quarter, reaching 10.8% in Q3 2026.",
+            "Arrow rose from 10.9% to 11.2% over the same quarters.",
+            "Arrow's gross margin is 0.4 points above Avnet's."
+          ],
+          "notes": "The recovery is real. Avnet has risen every quarter, from 10.3% to 10.8%. Arrow has also moved up, from 10.9% to 11.2%, so the gap stays at 0.4 points in the latest quarter. Draw the eye to the two lines moving together. For Microchip, better margin supports investment in design and customer programs. The likely question is what closes the gap. Better mix and design wins are part of that discussion. Next we move to Avnet's position in a specific product area, analog."
+        },
+        {
+          "id": "view:share",
+          "headline": "Avnet holds 4.4% of analog, up 0.3 points on a year ago",
+          "text": "On mock data, Avnet's 4.4% share of a $84.1B analog market is up +0.3 pts on a year ago.",
+          "bullets": [
+            "Avnet share of analog is 4.4% (mock).",
+            "Share changed +0.3 pts on a year ago (mock).",
+            "The analog market is $84.1B, so each point of share is large."
+          ],
+          "notes": "This is a mock model, so say so. It puts Avnet's share of analog at 4.4%, up 0.3 pts on a year ago, in an $84.1B market. The direction is encouraging, but the base is small, which means there is room to grow with the right supplier support. Ask Microchip where it sees analog opportunities that design-win help could unlock. Someone may question the model. We will replace it with connected data. Next we close with the news on Microchip's own lead times."
+        },
+        {
+          "id": "card:news-story-microchip-lead-times",
+          "headline": "Microchip's 12 week MCU lead times point to a March quarter restock",
+          "text": "Microchip says microcontroller lead times have fallen to 12 weeks and expects distributors to restock in the March quarter, tied to industrial demand in Europe.",
+          "bullets": [
+            "MCU lead times are down to 12 weeks, per Microchip.",
+            "Distributors are expected to restock in the March quarter.",
+            "Shorter lead times ease allocation for industrial customers."
+          ],
+          "notes": "Close on Microchip's own news. Lead times for microcontrollers are back to 12 weeks, and Microchip expects distributors to restock in the March quarter, linked to industrial demand in Europe. For Avnet this eases allocation for industrial customers and means more channel inventory to plan for. The ask to Microchip is clear: share restock timing and allocation early so we can plan, and back our design wins. A likely question is how much Avnet will restock. We should agree that together after this meeting."
+        }
+      ],
+      "summary": [
+        "The market is large, with $772.2B in world sales, and Avnet's mock share of the served market is 8.9%.",
+        "Avnet is third among distributors on revenue at $22.8B, behind Arrow at $28.1B and WPG Holdings at $25.4B.",
+        "Distributors earn thin margins, and Avnet's gross margin of 10.8% is still 0.4 points below Arrow's.",
+        "Avnet's mock analog share is 4.4%, and Microchip's 12 week MCU lead times set up a March quarter restock."
+      ]
+    },
+    "dropped": [],
+    "usage": {
+      "input": 1834,
+      "output": 2356,
+      "cacheRead": 0,
+      "cacheWrite": 1733
+    }
+  },
+  "Storyline: detail before the market": {
+    "order": [
+      "card:tam-opportunity",
+      "view:share",
+      "card:earnings-leaderboard-distributors",
+      "chart:avnet-vs-arrow-scorecard:gross-margin:trend",
+      "card:news-story-microchip-lead-times"
+    ],
+    "reasons": {
+      "card:tam-opportunity": "Lead with the market before Avnet's share of it",
+      "card:earnings-leaderboard-distributors": "Show the distributor field before the Avnet and Arrow comparison",
+      "chart:avnet-vs-arrow-scorecard:gross-margin:trend": "Margin comparison with Arrow follows the revenue leaderboard",
+      "card:news-story-microchip-lead-times": "Close on the news that follows from the picture"
+    },
+    "sections": {
+      "card:tam-opportunity": "Market and Avnet's place in it",
+      "card:earnings-leaderboard-distributors": "Avnet against Arrow and peers"
+    },
+    "dropped": [],
+    "usage": {
+      "input": 1494,
+      "output": 377,
+      "cacheRead": 0,
+      "cacheWrite": 1210
+    }
+  },
+  "Storyline: already in a good order": {
+    "order": [
+      "card:tam-opportunity",
+      "card:earnings-growth-against-margin-semis",
+      "card:earnings-leaderboard-distributors",
+      "chart:avnet-vs-arrow-scorecard:gross-margin:trend",
+      "card:news-story-microchip-lead-times"
+    ],
+    "reasons": {
+      "card:earnings-growth-against-margin-semis": "Show the wider semiconductor picture before the distributor comparison",
+      "card:earnings-leaderboard-distributors": "Distributor ranking follows the semiconductor makers and leads into Avnet against Arrow"
+    },
+    "sections": {
+      "card:earnings-leaderboard-distributors": "Avnet against Arrow"
+    },
+    "dropped": [],
+    "usage": {
+      "input": 1667,
+      "output": 247,
+      "cacheRead": 0,
+      "cacheWrite": 1223
+    }
+  }
+}

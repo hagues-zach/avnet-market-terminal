@@ -234,7 +234,7 @@ export async function writeStoryline(input: StorylineInput, opts: { client?: Ant
 export function storylineKey(input: StorylineInput, model = DECK_MODEL): string {
   const slides = shippedOf(input).map((x) => ({ id: x.id, title: x.title, note: x.note?.trim() ?? "", head: claudeHeadline(x), mock: isMock(x), preview: x.preview }));
   return createHash("sha256")
-    .update(JSON.stringify({ ns: STORYLINE_NS, model, title: input.title.trim(), audience: input.audience, slides }))
+    .update(JSON.stringify({ ns: STORYLINE_NS, model, system: SYSTEM, title: input.title.trim(), audience: input.audience, slides }))
     .digest("hex");
 }
 

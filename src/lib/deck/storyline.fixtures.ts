@@ -16,9 +16,15 @@ export const badOrder = () => deck([marginTrend(), shareTiles(), newsStory(), ta
 /** Market, competitors, Avnet, then the news: a good answer moves little or nothing. */
 export const goodOrder = () => deck([tamFunnel(), rankedBars(), growthMargin(), marginTrend(), newsStory()], "Internal", "Avnet market review");
 
-/** The slides the storyline eval judges by: which are the market, which are Avnet's own detail. */
+/** The canned answer's order: the market and the competitors first, then Avnet's own detail. */
 export const MARKET = [tamFunnel().id, rankedBars().id];
 export const DETAIL = [marginTrend().id, shareTiles().id];
+/**
+ * What the eval judges a reorder by: the market itself (the TAM funnel) before
+ * every slide of Avnet's own detail. The competitors' ranking may go either side
+ * of Avnet's share; both read well.
+ */
+export const JUDGE = { market: [tamFunnel().id], detail: DETAIL };
 
 export function storylineDecks(): { name: string; input: TrayDeck; expect: "reorder" | "keep" }[] {
   return [

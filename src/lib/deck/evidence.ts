@@ -136,7 +136,7 @@ export function figures(text: string): Figure[] {
 }
 
 /** A figure that is part of the wording rather than data: a year, or a bare count of one to ten. */
-function exempt(f: Figure): boolean {
+export function exempt(f: Figure): boolean {
   if (f.unit || f.sign) return false;
   if (/^(19|20)\d\d$/.test(f.text)) return true; // A year: four digits, no comma, no unit.
   return !f.num.includes(".") && Number(f.num) <= 10;

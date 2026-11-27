@@ -131,12 +131,12 @@ export const COMMENTARY = { headline: 240, text: 600, bullet: 240, bullets: 4, s
 
 /**
  * The most bullets Claude's commentary may put on a slide: three on a chart slide
- * whose side panel holds two or more key figures (four would crowd the chart into
- * a strip), otherwise four. linesInSide still decides where they go. Pure.
+ * whose side panel holds two or more key figures, or a table (more figures than the
+ * panel shows as large numbers): four would crowd the chart into a strip. Otherwise four. linesInSide still decides where they go. Pure.
  */
 export function bulletsMax(p: Preview): number {
   const plan = planSlide(withChart(p));
-  return plan.kind === "chart" && plan.side && plan.callouts.length >= 2 ? 3 : COMMENTARY.bullets;
+  return plan.kind === "chart" && plan.side && (plan.callouts.length >= 2 || Boolean(plan.table)) ? 3 : COMMENTARY.bullets;
 }
 
 // Quantities written as words: counts past ten, fractions and multiples. Counts up to ten are left out, as the
@@ -168,7 +168,10 @@ export function groundNotes(raw: string, evidence: string, dropped?: string[], w
       continue;
     }
     const n = g.split(/\s+/).length;
-    if (words + n > COMMENTARY.notesWords || size + g.length + 1 > COMMENTARY.notes) break;
+    if (words + n > COMMENTARY.notesWords || size + g.length + 1 > COMMENTARY.notes) {
+      dropped?.push(`${where ? `${where}: ` : ""}${g} [over the notes' length limit]`);
+      break;
+    }
     kept.push(g);
     words += n;
     size += g.length + 1;

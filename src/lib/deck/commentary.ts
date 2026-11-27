@@ -78,21 +78,22 @@ export const SYSTEM = `You write the words on a slide deck that an Avnet seller,
 The reader collected each slide from Avnet's market intelligence terminal. Each slide's figures, chart, table or panels stay exactly as the app drew them; you write the words around them. For each slide you get its card title, the reader's point for it (when they wrote one) and everything the slide shows, as evidence.
 
 Write, for every slide:
-- headline: one sentence, at most 14 words, that makes the slide's point, not a label. When the reader wrote a point, the headline makes that point, in sharper words if you can; never contradict it.
+- headline: one sentence, at most 14 words (count them), that makes the slide's point, not a label. When the reader wrote a point, the headline makes that point, in sharper words if you can; never contradict it.
 - text: one sentence, at most 30 words, under the headline: the figure or comparison that proves the point.
-- bullets: two to four short bullets, each at most 18 words, saying what the slide shows and why it matters to this audience. A slide marked bullets_max="3" has room for three at most.
-- notes: speaker notes, 50 to 120 words: what the presenter says aloud while the slide is up. Build on the slide rather than reading it out: the point in plain words, what to draw the audience's eye to, how it leads to the next slide, a question the audience may ask. Full sentences, no bullets. Write notes for every slide, including two-column slides.
+- bullets: two to four short bullets, each at most 18 words. Each bullet states something the slide shows, or a specific consequence of it for this audience, and names the row, series, company or figure it is about. No generic advice that would fit any slide ("watch share closely", "scale matters", "worth tracking"). Don't describe the source or how the chart is drawn; the footer does that. A slide marked bullets_max="3" has room for three at most.
+- notes: speaker notes, 50 to 120 words (never more than 120): what the presenter says aloud while the slide is up. Build on the slide rather than reading it out: the point in plain words, what to draw the audience's eye to, how it leads to the next slide, a question the audience may ask. Full sentences, no bullets. Write notes for every slide, including two-column slides.
 
 Then write the summary: three to five lines, each one sentence of at most 25 words, that a leader could read instead of the deck. Follow the order of the slides, and say what the deck as a whole adds up to.
 
 Audiences:
 - Supplier: a manufacturer whose parts Avnet distributes. Avnet wants a bigger share of its channel, design-win support and fair allocation.
 - Customer: an equipment maker that buys through Avnet. Avnet wants to understand its demand and help with supply, design and new programs.
-- Internal: Avnet's own team. Plain, candid, focused on what to do next.
+- Internal: Avnet's own team. Plain, candid, focused on what to do next. A next step names the row, company or figure it follows from.
 
 Rules:
 - Every figure you write, in the notes too, must appear in that slide's evidence, written exactly as the evidence writes it ("$1.62B", "22.5%"). Do not round, convert, add up, subtract or work out changes the evidence doesn't state. A slide's figures belong to that slide; the summary may use any slide's.
 - Use only names and facts in the evidence. No outside knowledge.
+- Call each row, series and panel what the slide calls it, and keep different kinds apart: a company listed beside regions is a company, not a region; a forecast is a forecast, not a result.
 - A slide marked mock="true" is on mock data until Avnet's sources are connected. Don't present its figures as Avnet's real results; say "mock" if you cite one.
 - Write plainly, as to a colleague. No headings, bold or numbering inside an item. Do not use em dashes, en dashes, slashes or middle dots; write "to", "and" or "or" instead.
 - Return one entry per slide, using the slide's id exactly as given.
@@ -200,7 +201,9 @@ export async function writeDeckCommentary(input: DeckInput, opts: { client?: Ant
   try {
     const response = await (opts.client ?? claude()).beta.messages.parse({
       model: opts.model ?? DECK_MODEL,
-      max_tokens: 16000,
+      // Room for each slide (headline, sentence, bullets, about 120 words of notes) and the summary, so a
+      // runaway answer stops early rather than at 16,000 tokens.
+      max_tokens: maxTokens(shipped.length),
       output_config: { effort: "medium", format: zodOutputFormat(outputSchema(ids)) },
       // On a policy decline, the API retries on a fallback model inside the same call.
       betas: ["server-side-fallback-2026-07-01"],
@@ -232,7 +235,8 @@ export async function writeDeckCommentary(input: DeckInput, opts: { client?: Ant
 export function commentaryKey(input: DeckInput, model = DECK_MODEL): string {
   const slides = shippedOf(input).map((x) => ({ id: x.id, title: x.title, note: x.note?.trim() ?? "", mock: isMock(x), preview: x.preview }));
   return createHash("sha256")
-    .update(JSON.stringify({ ns: COMMENTARY_NS, model, title: input.title.trim(), audience: input.audience, slides }))
+    // The prompt too: a changed prompt doesn't keep serving answers written under the old one.
+    .update(JSON.stringify({ ns: COMMENTARY_NS, model, system: SYSTEM, title: input.title.trim(), audience: input.audience, slides }))
     .digest("hex");
 }
 
@@ -296,3 +300,6 @@ export async function getDeckCommentary(
   }
   return { status: "ok", slides: r.slides, ...(r.summary ? { summary: r.summary } : {}), ...(message ? { message } : {}) };
 }
+
+/** The output budget for a deck of `n` slides: about 900 tokens a slide plus 1,500 for the summary, at most 16,000. Pure. */
+export const maxTokens = (n: number) => Math.min(16000, 1500 + 900 * n);

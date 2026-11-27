@@ -6,7 +6,7 @@
 // bullets at most. Nothing here calls Claude. Run with: npx tsx src/lib/deck/notes.test.ts
 import assert from "node:assert/strict";
 import JSZip from "jszip";
-import { COMMENTARY_NS, render, toCommentary, writeDeckCommentary, type DeckInput } from "./commentary";
+import { COMMENTARY_NS, maxTokens, render, toCommentary, writeDeckCommentary, type DeckInput } from "./commentary";
 import { fakeClient, goodAnswer, marginTrend, rankedBars, shareTiles, tamFunnel } from "./commentary.fixtures";
 import { evidenceOf } from "./evidence";
 import { linesInSide, planSlide, withChart } from "./layout";
@@ -89,7 +89,10 @@ async function main() {
   assert.equal(bulletsMax(marginTrend().preview), 3, "a chart slide with two key figures");
   assert.equal(planSlide(withChart(marginTrend().preview)).callouts.length >= 2, true);
   assert.equal(bulletsMax(tamFunnel().preview), 4);
-  assert.equal(bulletsMax(rankedBars().preview), 4, "a chart without key figures");
+  assert.ok(planSlide(withChart(rankedBars().preview)).table, "the ranked chart has a table beside it");
+  assert.equal(bulletsMax(rankedBars().preview), 3, "a chart with a table beside it is as full as one with key figures");
+  const { facts: _f, columns: _c, ...bare } = marginTrend().preview;
+  assert.equal(bulletsMax(bare), 4, "a chart with nothing beside it");
   assert.equal(bulletsMax(shareTiles().preview), 4, "figure tiles without a chart");
   const four = toCommentary(deck([marginTrend()]), { slides: [{ id, headline: "h", text: "", bullets: ["Both rose.", "The gap held.", "Arrow leads.", "Avnet trails."], notes: "" }], summary: [] }, DAY, []).slides[id];
   assert.equal(four.bullets.length, 3, "Claude's fourth bullet is dropped");
@@ -159,6 +162,13 @@ async function main() {
   const badXml = await bad.file("ppt/notesSlides/notesSlide1.xml")!.async("string");
   assert.doesNotMatch(badXml, /[\u0000-\u0008\uD800-\uDFFF]/);
   assert.match(badXml, /Avnet reached 10\.8%\. The gap held\./);
+
+  // The output budget scales with the deck, so a runaway answer stops early (the live eval saw one).
+  const seen: { max_tokens: number }[] = [];
+  await writeDeckCommentary(deck([marginTrend()]), { client: fakeClient(goodAnswer(deck([marginTrend()])), "end_turn", seen) });
+  assert.equal(seen[0].max_tokens, maxTokens(1));
+  assert.equal(maxTokens(1), 2400);
+  assert.equal(maxTokens(25), 16000, "never past 16,000");
 
   /* ---------- The PDF has no notes ---------- */
 
