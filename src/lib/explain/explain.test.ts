@@ -38,10 +38,27 @@ import {
   readTtmBillings,
   type PipelineFigures,
 } from "./operations";
+import {
+  categoryShares,
+  confidenceShares,
+  gapScale,
+  mappingShares,
+  readAgainstHold,
+  readGrowthGap,
+  readMappedBillings,
+  readMappedShare,
+  readPeerShare,
+  readScenarioGrowth,
+  readScenarioShare,
+  readValidated,
+  type ScenarioFigures,
+} from "./share";
+import { summarise, coverage as mapCoverage, weakest } from "@/lib/mapping/read";
 import { getAvnet } from "@/lib/avnet";
 import {
   count,
   funnel,
+  nested,
   position,
   shareOfFirst,
   waterfall,
@@ -503,9 +520,121 @@ assert.equal(
   "Avnet billed about 2.1 million companies in the last 12 months.",
 );
 
+// Nested boxes: areas to scale, and an inner level never outgrows its holder.
+assert.deepEqual(
+  nested([
+    { label: "Market", value: 100 },
+    { label: "Avnet", value: 4 },
+  ]),
+  [1, 0.2],
+);
+assert.deepEqual(
+  nested([
+    { label: "Market", value: 100 },
+    { label: "Part", value: 25 },
+    { label: "Too big", value: 81 },
+  ]),
+  [1, 0.5, 0.5],
+);
+assert.deepEqual(nested([{ label: "Empty", value: 0 }]), [0]);
+
+// Share of mapped market: SOM over TAM, and the low confidence segments named.
+const segShares = [
+  { segment: "Analog", tam: 80, share: 0.05, confidence: "High" },
+  { segment: "Memory", tam: 200, share: 0.01, confidence: "Medium" },
+  { segment: "Sensors", tam: 20, share: 0.1, confidence: "Low" },
+];
+const conf = confidenceShares(segShares);
+assert.ok(Math.abs(conf.reduce((a, v) => a + v, 0) - 1) < 1e-9);
+assert.ok(Math.abs(conf[0] - 4 / 8) < 1e-9);
+const ms = readMappedShare({ share: 8 / 300, shareYearAgo: 0.025, mappedShare: 0.85, segments: segShares });
+assert.equal(ms.lead, "Avnet wins 2.7% of the market its billings map to, up 0.2 pts on a year ago.");
+assert.equal(ms.sentence, "$8.0B of Avnet's billings map to segments worth $300.0B, and $8.0B ÷ $300.0B is 2.7%.");
+assert.ok(ms.note?.startsWith("The other 15% of billings have no market category"));
+assert.ok(ms.note?.includes("25% of mapped billings are in Sensors"));
+
+// Mapped billings: validated, awaiting review and not mapped add to one.
+const mf = { ttm: 24700, mappedShare: 0.85, validatedBillings: 15835, reviewBillings: 5160 };
+const shares = mappingShares(mf);
+assert.ok(Math.abs(shares.reduce((a, v) => a + v, 0) - 1) < 1e-9);
+assert.ok(Math.abs(shares[2] - 0.15) < 1e-9);
+assert.equal(readMappedBillings(mf, "share").lead, "85% of Avnet's billings map to a market category: $21.0B of $24.7B.");
+assert.equal(readMappedBillings(mf, "amount").lead, "$21.0B of Avnet's billings map to a market category, 85% of the total.");
+assert.deepEqual(mappingShares({ ...mf, ttm: 0 }), [0, 0, 1]);
+
+// Validated categories.
+const cat = { categories: 162, validated: 101, review: 37, unmapped: 24, validatedMonthAgo: 94 };
+assert.ok(Math.abs(categoryShares(cat).reduce((a, v) => a + v, 0) - 1) < 1e-9);
+const vc = readValidated(cat, mf, { segment: "Memory", validatedShare: 0.41 });
+assert.equal(vc.lead, "101 of 162 market categories have a validated mapping, seven more than a month ago.");
+assert.ok(vc.sentence.startsWith("37 categories wait for review and 24 have no Avnet code."));
+assert.ok(readValidated({ ...cat, validated: 94 }, mf).lead.endsWith("level with a month ago."));
+
+// Share of Avnet and Arrow: equal revenue is reported as equal, never as an error.
+const pq = { label: "Q3 '26", avnet: 0.5, avnetRevenue: 5600, arrowRevenue: 5600 };
+assert.equal(readPeerShare(pq).sentence, "In Q3 '26, Avnet reported $5.6B and Arrow $5.6B, so Avnet had the same revenue as Arrow.");
+assert.equal(
+  readPeerShare({ ...pq, avnet: 0.52 }, { ...pq, avnet: 0.5 }).lead,
+  "Avnet took 52.0% of the two companies' combined revenue, up 2.0 pts on a year ago.",
+);
+
+// Growth over makers: an even scale about zero, and ahead or behind in words.
+assert.deepEqual(gapScale([0.03, -0.12]), { min: -0.15, max: 0.15 });
+assert.deepEqual(gapScale([0.01]), { min: -0.05, max: 0.05 });
+assert.equal(
+  readGrowthGap({ label: "Q3 '26", avnet: 0.08, makers: 0.12 }, 23).lead,
+  "Avnet's revenue grew 4.0 pts slower than the revenue of the makers whose parts it sells.",
+);
+assert.equal(
+  readGrowthGap({ label: "Q3 '26", avnet: -0.02, makers: 0.05 }, 7).sentence,
+  "In Q3 '26, Avnet's revenue fell 2% on a year ago and the makers' combined revenue grew 5%.",
+);
+assert.ok(readGrowthGap({ label: "Q3 '26", avnet: 0.1, makers: 0.05 }, 7).note?.includes("the seven makers"));
+
+// Scenario Modeler.
+const sc: ScenarioFigures = {
+  years: 2,
+  billings: 21000,
+  billingsAt: 25410,
+  holdAt: 24200,
+  market: 686000,
+  marketAt: 750000,
+  share: 21000 / 686000,
+  shareAt: 25410 / 750000,
+  cagr: 0.1,
+};
+assert.equal(readScenarioShare(sc).lead, "The scenario takes Avnet's share of the mapped market to 3.4% in two years, from 3.1% today.");
+assert.equal(readAgainstHold(sc).lead, "The scenario bills $1.2B more than Avnet would if it kept today's share.");
+assert.equal(readAgainstHold({ ...sc, billingsAt: 24200 }).lead, "The scenario bills the same as Avnet would if it kept today's share.");
+assert.equal(readScenarioGrowth(sc).lead, "The scenario grows Avnet's mapped billings 10.0% a year, compounded.");
+assert.ok(readScenarioGrowth(sc).note?.endsWith("adds up to 21%, not 20%."));
+assert.equal(readScenarioGrowth({ ...sc, years: 1 }).note, "Over one year, the rate a year is simply the growth.");
+const shareReads = [ms, readMappedBillings(mf, "share"), vc, readPeerShare(pq), readScenarioShare(sc), readAgainstHold(sc), readScenarioGrowth(sc)];
+
 // The mock data the explainers are shown with reads cleanly.
 void (async () => {
   const am = await getAvnet();
+  const sum = summarise(am.mappings);
+  const amf = {
+    ttm: am.ttmBillings,
+    mappedShare: am.mappedShare,
+    validatedBillings: am.mappings.filter((x) => x.status === "validated").reduce((a, x) => a + x.billings, 0),
+    reviewBillings: sum.reviewBillings,
+  };
+  // The code map's statuses cover every mapped dollar, so the bar adds to one.
+  assert.ok(Math.abs(mappingShares(amf).reduce((a, v) => a + v, 0) - 1) < 1e-9);
+  const weak = weakest(mapCoverage(am.mappings, am.segments));
+  const shareOps = [
+    readMappedShare({
+      share: am.shareTrend.at(-1)!["Avnet share of mapped TAM"],
+      shareYearAgo: am.shareTrend.at(-5)!["Avnet share of mapped TAM"],
+      mappedShare: am.mappedShare,
+      segments: am.shareBySegment,
+    }),
+    readMappedBillings(amf, "amount"),
+    readMappedBillings(amf, "share"),
+    readValidated({ ...sum, validatedMonthAgo: am.validatedMonthAgo }, amf, weak),
+  ];
   const ops = [
     readBacklog(am.performance.at(-2)!, am.performance.at(-1)!),
     readTtmBillings(am.performance, am.ttmBillings, am.ttmBillingsYearAgo),
@@ -532,7 +661,7 @@ void (async () => {
         ),
     ),
   ];
-  for (const t of [bl, ttm, da, ap, ar, c10, ...ops].flatMap((r) => [
+  for (const t of [bl, ttm, da, ap, ar, c10, ...ops, ...shareReads, ...shareOps].flatMap((r) => [
     r.lead,
     r.sentence,
     r.note ?? "",

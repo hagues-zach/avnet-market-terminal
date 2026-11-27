@@ -27,6 +27,9 @@ export interface PeerSharePoint {
   /** Avnet revenue ÷ (Avnet + Arrow revenue). */
   avnet: number;
   arrow: number;
+  /** Each company's reported revenue for the quarter, in dollars as filed. */
+  avnetRevenue: number;
+  arrowRevenue: number;
 }
 
 /** Each company's share of the two companies' combined revenue, by calendar quarter. */
@@ -38,8 +41,10 @@ export function peerShare(avnet: CompanyEarnings, arrow: CompanyEarnings): PeerS
     .sort((x, y) => order(x) - order(y))
     .slice(-QUARTERS_SHOWN)
     .map((label) => {
-      const share = a.get(label)! / (a.get(label)! + b.get(label)!);
-      return { label, avnet: share, arrow: 1 - share };
+      const avnetRevenue = a.get(label)!;
+      const arrowRevenue = b.get(label)!;
+      const share = avnetRevenue / (avnetRevenue + arrowRevenue);
+      return { label, avnet: share, arrow: 1 - share, avnetRevenue, arrowRevenue };
     });
 }
 

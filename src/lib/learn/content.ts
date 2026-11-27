@@ -307,6 +307,32 @@ export const GLOSSARY: { term: string; definition: string }[] = [
     term: "Code map",
     definition: "The table that joins Avnet's product codes to external market categories. Every market share figure goes through it.",
   },
+  {
+    term: "Mapped billings",
+    definition: "Avnet billings whose product codes map to a market category in the code map. Only these count toward market share.",
+  },
+  {
+    term: "Validated categories",
+    definition: "Market categories whose mapping to Avnet's product codes a product manager has checked and accepted.",
+  },
+  {
+    term: "Share of Avnet and Arrow",
+    definition:
+      "Avnet's reported revenue as a share of its own and Arrow's together, from SEC filings. A live stand-in for market share while Avnet's billings and the code map are mock.",
+  },
+  {
+    term: "Growth over makers",
+    definition:
+      "How much faster Avnet's revenue grew on a year ago than the combined revenue of the component makers it distributes, in percentage points.",
+  },
+  {
+    term: "Holding share",
+    definition: "What Avnet would bill if it kept today's share of every segment while each market grows as forecast. The baseline a scenario is measured against.",
+  },
+  {
+    term: "Compound annual growth",
+    definition: "The steady rate a year that takes a figure from its start to its end over the period, each year growing on the one before.",
+  },
   { term: "Inventory days", definition: "Inventory at quarter end against one quarter of cost of sales, expressed in days." },
   { term: "Cash conversion cycle", definition: "Inventory days plus receivable days minus payable days." },
   {

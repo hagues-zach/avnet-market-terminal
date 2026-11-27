@@ -6,6 +6,7 @@ import { VIEWS, goalSeek, lead, money, path, pct, project, type Assumptions, typ
 import { deckHref } from "@/lib/deck/outline";
 import { DataChip } from "@/components/ui/chip";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainScenario } from "@/components/explain/share";
 import { HookupMarker } from "@/components/ui/hookup-marker";
 import { LoadingBlock } from "@/components/ui/states";
 import { HorizonChart } from "./charts";
@@ -229,13 +230,26 @@ export function ScenarioModeler({
           note={`from ${money(p.billings)} today`}
           source={{ status: "mock" }}
         />
-        <KpiTile label="Growth a year" value={pct(p.cagr, 1, true)} note="billings, compounded" source={{ status: "mock" }} />
-        <KpiTile label="Share of mapped market" value={pct(p.shareAt)} note={`from ${pct(p.share)}`} source={{ status: "mock" }} />
+        <KpiTile
+          label="Growth a year"
+          value={pct(p.cagr, 1, true)}
+          note="billings, compounded"
+          source={{ status: "mock" }}
+          explain={<ExplainScenario p={p} kind="growth" />}
+        />
+        <KpiTile
+          label="Share of mapped market"
+          value={pct(p.shareAt)}
+          note={`from ${pct(p.share)}`}
+          source={{ status: "mock" }}
+          explain={<ExplainScenario p={p} kind="share" />}
+        />
         <KpiTile
           label="Against holding share"
           value={money(p.billingsAt - p.holdAt, true)}
           delta={{ value: p.billingsAt - p.holdAt, display: pct((p.billingsAt - p.holdAt) / p.holdAt), period: "on holding share" }}
           source={{ status: "mock" }}
+          explain={<ExplainScenario p={p} kind="hold" />}
         />
       </div>
 

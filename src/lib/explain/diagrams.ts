@@ -92,3 +92,25 @@ export function weakestStep(rows: FunnelRow[]): number | null {
   });
   return worst;
 }
+
+// Nested boxes -------------------------------------------------------------
+
+export interface NestLevel {
+  label: string;
+  value: number;
+}
+
+/**
+ * Each level's side as a fraction of the outer box's, so areas are to scale:
+ * a level worth 4% of the outer one gets a box with 20% of its side. Pinned to
+ * 0 to 1, and never larger than the level that holds it.
+ */
+export function nested(levels: NestLevel[]): number[] {
+  const outer = levels[0]?.value ?? 0;
+  let cap = 1;
+  return levels.map((l) => {
+    const side = outer > 0 ? Math.sqrt(Math.max(0, l.value) / outer) : 0;
+    cap = Math.min(cap, side);
+    return cap;
+  });
+}

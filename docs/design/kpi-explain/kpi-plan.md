@@ -80,7 +80,20 @@ Built in `src/components/explain/operations.tsx`, rules in `src/lib/explain/oper
 | Top 10 customers / Top 100 customers | `customers/page.tsx` | A stacked bar of the share of billings: top 10, the next 90, everyone else | Concentration risk in one picture |
 | Active customers | `customers/page.tsx` | A text-only explainer (definition and source) | What counts as active |
 
-## Phase 3: market and share
+## Phase 3: market and share (built 2026-11-27, branch `claude/kpi-explain-share`)
+Built in `src/components/explain/share.tsx`, rules in `src/lib/explain/share.ts`, plus a new `NestedBoxes` diagram (layout rule `nested()` in `diagrams.ts`). Built in the existing explainer style, without Stitch. Differences from the plan below:
+- **Share of mapped market** (Market Share) uses nested boxes with areas to scale, but only two levels: the mapped market and Avnet's mapped billings. The share data has no SAM, so there is no SAM box. A second bar splits mapped billings by the segment's mapping confidence, and the note names the low confidence segments. No stepper: the market and billings are last 12 months only.
+- **Mapped billings** (Market Share) and **Billings mapped** (Code Mapping) share one explainer: a bar of all billings split into validated, awaiting review and not mapped. No flow diagram; the status split carries the idea better.
+- **Validated categories** compares two bars on the same split: categories and billings.
+- **Share of Avnet + Arrow** is pair bars of the two revenues, Avnet green and Arrow dark blue, stepping through eight quarters. Equal revenue reads as equal.
+- **Growth over makers** uses `RatioScale`, not pair bars: growth can be negative, and the makers aren't Arrow, so dark blue would be wrong. It shows the gap in points on a scale even about zero, with eight quarters as a trail.
+- **Scenario Modeler**: Growth a year (pair bars, today and the horizon, with the compounding note), Share of mapped market (pair bars of the two shares) and Against holding share (a waterfall from holding share, through the share change, to the scenario). They follow the controls live.
+- **Avnet against Arrow** on `/line-cards` is a count of agreements announced, so it joined the skip list.
+- New glossary terms: Mapped billings, Validated categories, Share of Avnet and Arrow, Growth over makers, Holding share, Compound annual growth. Share of mapped market uses the existing Market share term.
+- `PeerSharePoint` now carries each company's revenue (in dollars, as filed).
+- `/forecast` is hidden for the MVP; it was checked by un-hiding it locally.
+
+### Phase 3 as planned
 
 | KPI tile | Where | Diagram | The one idea |
 |---|---|---|---|
@@ -99,7 +112,7 @@ Built in `src/components/explain/operations.tsx`, rules in `src/lib/explain/oper
 | Companies growing / Median revenue growth | `cycle-view.tsx`, `earnings/season.tsx` | Dot strip, one dot per company | Breadth against the average |
 
 ## Skip: counts and status (a plain `title` tooltip at most)
-Suppliers, Suppliers tracked, Shared with Avnet, Carried elsewhere, Agreements announced, Filed the quarter, Reporting this week, Next for Avnet, Awaiting review, and the Live, Mock and Planned counts with Pages with a mock marker on `/data-hookups`. These are self-explanatory counts, and an explainer would be noise.
+Suppliers, Suppliers tracked, Shared with Avnet, Carried elsewhere, Agreements announced, Avnet against Arrow (agreements announced), Filed the quarter, Reporting this week, Next for Avnet, Awaiting review, and the Live, Mock and Planned counts with Pages with a mock marker on `/data-hookups`. These are self-explanatory counts, and an explainer would be noise.
 
 ## Suggested order and size
 1. **Step 0:** primitives and glossary terms. About one session.

@@ -41,9 +41,11 @@ export function ShareBar({
               <text x={0} y={10} className="fill-ink font-body text-[11px]">
                 {r.label}
               </text>
-              <text x={W} y={10} textAnchor="end" className="fill-ink font-body text-[11px] font-semibold tabular-nums">
-                {pct(lit)}
-              </text>
+              {highlight.length > 0 && (
+                <text x={W} y={10} textAnchor="end" className="fill-ink font-body text-[11px] font-semibold tabular-nums">
+                  {pct(lit)}
+                </text>
+              )}
               {r.shares.map((s, k) => {
                 const w = s * W;
                 const el = <rect key={k} x={x} y={14} width={Math.max(0, w - (k < r.shares.length - 1 ? 1 : 0))} height={BAR} fill={colors[k]} />;

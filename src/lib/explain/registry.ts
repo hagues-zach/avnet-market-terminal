@@ -59,6 +59,33 @@ const ENTRIES: Omit<Explainer, "definition">[] = [
     learnHref: "/learn#glossary",
   },
   { term: "Active customers", name: "Active customers", formula: "Parent companies billed in the last 12 months", learnHref: "/learn#glossary" },
+  { term: "Market share", name: "Share of mapped market", formula: "Mapped billings ÷ the market they map to", learnHref: "/learn#glossary" },
+  { term: "Mapped billings", name: "Mapped billings", formula: "Billings on codes in the code map ÷ all billings", learnHref: "/learn#glossary" },
+  {
+    term: "Validated categories",
+    name: "Validated categories",
+    formula: "Categories with a validated mapping ÷ all categories",
+    learnHref: "/learn#glossary",
+  },
+  {
+    term: "Share of Avnet and Arrow",
+    name: "Share of Avnet + Arrow",
+    formula: "Avnet revenue ÷ Avnet and Arrow revenue combined",
+    learnHref: "/learn#glossary",
+  },
+  {
+    term: "Growth over makers",
+    name: "Growth over makers",
+    formula: "Avnet revenue growth less the makers' combined revenue growth, year on year",
+    learnHref: "/learn#glossary",
+  },
+  { term: "Holding share", name: "Against holding share", formula: "Scenario billings less billings at today's share", learnHref: "/learn#glossary" },
+  {
+    term: "Compound annual growth",
+    name: "Growth a year",
+    formula: "(Billings at the horizon ÷ billings today) to the power of one over the years, less one",
+    learnHref: "/learn#glossary",
+  },
 ];
 
 export const EXPLAINERS: Explainer[] = ENTRIES.map((e) => {
