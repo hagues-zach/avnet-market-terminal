@@ -34,7 +34,8 @@ export function Waterfall({
   const ROW = 28;
   const BAR = 10;
   const shown = (v: number, kind: WaterfallStep["kind"]) =>
-    kind === "total" ? (v < 0 ? `${format(-v)} loss` : format(v)) : v < 0 ? `less ${format(-v)}` : `plus ${format(v)}`;
+    // A negative total's label says what it is ("Operating loss"), so the amount is shown plain.
+    kind === "total" ? format(Math.abs(v)) : v < 0 ? `less ${format(-v)}` : `plus ${format(v)}`;
 
   return (
     <>
