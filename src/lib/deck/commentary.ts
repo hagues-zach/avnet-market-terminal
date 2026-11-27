@@ -4,8 +4,8 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { aiConfigured, claude, describeError } from "@/lib/ai/claude";
 import { store as defaultStore, type Store } from "@/lib/store";
-import { cutWords, evidenceOf, groundPiece, tidy } from "./evidence";
-import { COMMENTARY, CommentarySchema, DeckSummarySchema, isMock, type Commentary, type DeckSummary, type TrayItem } from "./tray";
+import { cutWords, evidenceOf, groundPiece, sentences, tidy } from "./evidence";
+import { bulletsMax, COMMENTARY, CommentarySchema, DeckSummarySchema, groundNotes, isMock, type Commentary, type DeckSummary, type TrayItem } from "./tray";
 
 // Add to deck, Phase 2 (docs/design/deck-tray): Claude writes each slide's
 // headline, sentence and bullets, and an executive summary for the deck, in one
@@ -22,8 +22,11 @@ import { COMMENTARY, CommentarySchema, DeckSummarySchema, isMock, type Commentar
 
 /** The latest Sonnet the app uses, as QBR Prep does (QBR_MODEL). */
 export const DECK_MODEL = "claude-sonnet-5-5";
-/** v1: headline, one sentence and two to four bullets a slide, three to five summary lines. */
-export const COMMENTARY_NS = "deck-commentary-v1";
+/**
+ * v2 (Phase 3): v1's headline, sentence, bullets and summary, plus speaker notes
+ * for each slide. Saved v1 commentary on a tray item, without notes, stays valid.
+ */
+export const COMMENTARY_NS = "deck-commentary-v2";
 const KEEP_DAYS = 30;
 
 export type DeckItem = Pick<TrayItem, "id" | "title" | "preview" | "note" | "included">;
@@ -49,9 +52,23 @@ export interface WriteResult extends DeckCommentary {
   raw?: DeckOutput;
 }
 
-const outputSchema = (ids: [string, ...string[]]) =>
+/**
+ * The answer's shape. Slide ids are plain strings with the deck's ids as a hint:
+ * the API doesn't enforce an enum inside an array, and the SDK's own check would
+ * throw on one unknown id and lose the whole deck's answer. toCommentary ignores
+ * an id it didn't send.
+ */
+export const outputSchema = (ids: [string, ...string[]]) =>
   z.object({
-    slides: z.array(z.object({ id: z.enum(ids), headline: z.string(), text: z.string(), bullets: z.array(z.string()) })),
+    slides: z.array(
+      z.object({
+        id: z.string().describe(`One of these slide ids, exactly: ${ids.map((x) => JSON.stringify(x)).join(", ")}`),
+        headline: z.string(),
+        text: z.string(),
+        bullets: z.array(z.string()),
+        notes: z.string(),
+      }),
+    ),
     summary: z.array(z.string()),
   });
 export type DeckOutput = z.infer<ReturnType<typeof outputSchema>>;
@@ -61,20 +78,22 @@ export const SYSTEM = `You write the words on a slide deck that an Avnet seller,
 The reader collected each slide from Avnet's market intelligence terminal. Each slide's figures, chart, table or panels stay exactly as the app drew them; you write the words around them. For each slide you get its card title, the reader's point for it (when they wrote one) and everything the slide shows, as evidence.
 
 Write, for every slide:
-- headline: one sentence, at most 14 words, that makes the slide's point, not a label. When the reader wrote a point, the headline makes that point, in sharper words if you can; never contradict it.
+- headline: one sentence, at most 14 words (count them), that makes the slide's point, not a label. When the reader wrote a point, the headline makes that point, in sharper words if you can; never contradict it.
 - text: one sentence, at most 30 words, under the headline: the figure or comparison that proves the point.
-- bullets: two to four short bullets, each at most 18 words, saying what the slide shows and why it matters to this audience.
+- bullets: two to four short bullets, each at most 18 words. Each bullet states something the slide shows, or a specific consequence of it for this audience, and names the row, series, company or figure it is about. No generic advice that would fit any slide ("watch share closely", "scale matters", "worth tracking"). Don't describe the source or how the chart is drawn; the footer does that. A slide marked bullets_max="3" has room for three at most.
+- notes: speaker notes, 50 to 120 words (never more than 120): what the presenter says aloud while the slide is up. Build on the slide rather than reading it out: the point in plain words, what to draw the audience's eye to, how it leads to the next slide, a question the audience may ask. Full sentences, no bullets. Write notes for every slide, including two-column slides.
 
-Then write the summary: three to five lines, each one sentence of at most 25 words, that a leader could read instead of the deck. Follow the order of the slides, and say what the deck as a whole adds up to.
+Then write the summary: three to five lines, each one sentence of at most 25 words, that a leader could read instead of the deck. Follow the order of the slides, and say what the deck as a whole adds up to. A deck of one slide has no summary: return an empty list.
 
 Audiences:
 - Supplier: a manufacturer whose parts Avnet distributes. Avnet wants a bigger share of its channel, design-win support and fair allocation.
 - Customer: an equipment maker that buys through Avnet. Avnet wants to understand its demand and help with supply, design and new programs.
-- Internal: Avnet's own team. Plain, candid, focused on what to do next.
+- Internal: Avnet's own team. Plain, candid, focused on what to do next. A next step names the row, company or figure it follows from.
 
 Rules:
-- Every figure you write must appear in that slide's evidence, written exactly as the evidence writes it ("$1.62B", "22.5%"). Do not round, convert, add up, subtract or work out changes the evidence doesn't state. A slide's figures belong to that slide; the summary may use any slide's.
+- Every figure you write, in the notes too, must appear in that slide's evidence, written exactly as the evidence writes it ("$1.62B", "22.5%"). Do not round, convert, add up, subtract or work out changes the evidence doesn't state. A quantity in words counts as a figure too: don't write "a quarter", "half", "doubled", "twice" or "twelve" unless the evidence says it in those words; write the figure as the evidence does. A slide's figures belong to that slide; the summary may use any slide's.
 - Use only names and facts in the evidence. No outside knowledge.
+- Call each row, series and panel what the slide calls it, and keep different kinds apart: a company listed beside regions is a company, not a region; a forecast is a forecast, not a result.
 - A slide marked mock="true" is on mock data until Avnet's sources are connected. Don't present its figures as Avnet's real results; say "mock" if you cite one.
 - Write plainly, as to a colleague. No headings, bold or numbering inside an item. Do not use em dashes, en dashes, slashes or middle dots; write "to", "and" or "or" instead.
 - Return one entry per slide, using the slide's id exactly as given.
@@ -97,7 +116,7 @@ const shippedOf = (input: DeckInput) => {
 export function render(input: DeckInput): string {
   const slides = shippedOf(input).map((x, i) =>
     [
-      `<slide id="${attr(x.id)}" number="${i + 1}"${isMock(x) ? ' mock="true"' : ""}>`,
+      `<slide id="${attr(x.id)}" number="${i + 1}"${isMock(x) ? ' mock="true"' : ""}${bulletsMax(x.preview) < COMMENTARY.bullets ? ` bullets_max="${bulletsMax(x.preview)}"` : ""}>`,
       `<card_title>${untag(x.title)}</card_title>`,
       `<reader_point>${x.note?.trim() ? untag(x.note.trim()) : "none"}</reader_point>`,
       `<evidence>\n${untag(evidenceOf(x.preview))}\n</evidence>`,
@@ -109,7 +128,6 @@ export function render(input: DeckInput): string {
 
 /* ---------- Grounding ---------- */
 
-const sentences = (s: string) => s.split(/(?<=[.!?])\s+(?=[A-Z"“(])/).filter(Boolean);
 
 /**
  * Claude's answer, grounded piece by piece: each figure must be on the slide
@@ -134,8 +152,11 @@ export function toCommentary(input: DeckInput, out: DeckOutput, writtenAt: strin
     const bullets = s.bullets
       .map((b) => groundPiece(b, ev, dropped, `${s.id} bullet`))
       .filter(Boolean)
-      .slice(0, COMMENTARY.bullets)
+      .slice(0, bulletsMax(item.preview))
       .map((b) => cutWords(b, COMMENTARY.bullet));
+    // Notes are grounded sentence by sentence: a sentence with a figure the slide lacks goes, the rest stay.
+    const notes = groundNotes(s.notes ?? "", ev, dropped, `${s.id} notes`);
+    // Held up means something on the slide held up: notes alone would replace good on-slide commentary with the app's wording.
     if (!head && !text && !bullets.length) continue;
     const note = item.note?.trim();
     slides[s.id] = {
@@ -144,12 +165,15 @@ export function toCommentary(input: DeckInput, out: DeckOutput, writtenAt: strin
       audience: cutWords(input.audience, 40),
       ...(text ? { text: cutWords(text, COMMENTARY.text) } : {}),
       bullets,
+      // Always present from Phase 3 on, empty when none held up, so the page can tell that from commentary written before notes.
+      notes,
       writtenAt,
       ...(note ? { forNote: note } : {}),
     };
   }
   const all = [...evidence.values()].join("\n");
-  const lines = out.summary
+  // A one-slide deck has no executive summary: it would only repeat the slide.
+  const lines = (shipped.length < MIN_SUMMARY_SLIDES ? [] : out.summary)
     .map((l) => groundPiece(l, all, dropped, "summary"))
     .filter(Boolean)
     .slice(0, COMMENTARY.summaryLines)
@@ -160,6 +184,8 @@ export function toCommentary(input: DeckInput, out: DeckOutput, writtenAt: strin
 /* ---------- The call ---------- */
 
 function reason(e: unknown): string {
+  // The SDK couldn't read the answer as JSON of the right shape: its text names slide ids, so it isn't shown.
+  if (e instanceof Anthropic.AnthropicError && /Failed to parse structured output/.test(e.message)) return "Claude's commentary came back incomplete. Try again.";
   if (e instanceof Anthropic.BadRequestError && /credit balance/i.test(e.message)) return "Claude is out of credits, so no commentary was written.";
   if (e instanceof Anthropic.BadRequestError) return "Claude couldn't write commentary for this deck just now.";
   return describeError(e);
@@ -176,7 +202,9 @@ export async function writeDeckCommentary(input: DeckInput, opts: { client?: Ant
   try {
     const response = await (opts.client ?? claude()).beta.messages.parse({
       model: opts.model ?? DECK_MODEL,
-      max_tokens: 16000,
+      // Room for each slide (headline, sentence, bullets, about 120 words of notes) and the summary, so a
+      // runaway answer stops early rather than at 16,000 tokens.
+      max_tokens: maxTokens(shipped.length),
       output_config: { effort: "medium", format: zodOutputFormat(outputSchema(ids)) },
       // On a policy decline, the API retries on a fallback model inside the same call.
       betas: ["server-side-fallback-2026-07-01"],
@@ -208,7 +236,8 @@ export async function writeDeckCommentary(input: DeckInput, opts: { client?: Ant
 export function commentaryKey(input: DeckInput, model = DECK_MODEL): string {
   const slides = shippedOf(input).map((x) => ({ id: x.id, title: x.title, note: x.note?.trim() ?? "", mock: isMock(x), preview: x.preview }));
   return createHash("sha256")
-    .update(JSON.stringify({ ns: COMMENTARY_NS, model, title: input.title.trim(), audience: input.audience, slides }))
+    // The prompt too: a changed prompt doesn't keep serving answers written under the old one.
+    .update(JSON.stringify({ ns: COMMENTARY_NS, model, system: SYSTEM, title: input.title.trim(), audience: input.audience, slides }))
     .digest("hex");
 }
 
@@ -232,7 +261,7 @@ function partial(input: DeckInput, r: Pick<DeckCommentary, "slides" | "summary">
   const got = Object.keys(r.slides).length;
   const parts = [
     got < n ? `Claude's commentary held up for ${got} of ${n} slides; the rest keep the app's wording.` : "",
-    !r.summary ? "No executive summary held up against the slides." : "",
+    !r.summary && n >= MIN_SUMMARY_SLIDES ? "No executive summary held up against the slides." : "",
   ].filter(Boolean);
   return parts.length ? parts.join(" ") : undefined;
 }
@@ -272,3 +301,9 @@ export async function getDeckCommentary(
   }
   return { status: "ok", slides: r.slides, ...(r.summary ? { summary: r.summary } : {}), ...(message ? { message } : {}) };
 }
+
+/** The fewest slides a deck needs for an executive summary: with one, the summary would only repeat it. */
+export const MIN_SUMMARY_SLIDES = 2;
+
+/** The output budget for a deck of `n` slides: about 900 tokens a slide plus 1,500 for the summary, at most 16,000. Pure. */
+export const maxTokens = (n: number) => Math.min(16000, 1500 + 900 * n);

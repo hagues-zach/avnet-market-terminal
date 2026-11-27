@@ -9,7 +9,8 @@
 // beyond its shape and size.
 import { z } from "zod";
 import { HOOKUPS, type Hookup } from "@/lib/hookups";
-import { evidenceOf, groundPiece } from "./evidence";
+import { evidenceOf, groundPiece, sentences } from "./evidence";
+import { planSlide, withChart } from "./layout";
 import type { Preview, SlideId } from "./outline";
 import type { DeckSlide } from "./pptx";
 
@@ -126,7 +127,55 @@ export const PreviewSchema = z.object({
 }) satisfies z.ZodType<Preview>;
 
 /** The most Claude's commentary on one slide may hold, so saved commentary always passes the schema. */
-export const COMMENTARY = { headline: 240, text: 600, bullet: 240, bullets: 4, summaryLine: 300, summaryLines: 5 } as const;
+export const COMMENTARY = { headline: 240, text: 600, bullet: 240, bullets: 4, summaryLine: 300, summaryLines: 5, notes: 1200, notesWords: 160 } as const;
+
+/**
+ * The most bullets Claude's commentary may put on a slide: three on a chart slide
+ * whose side panel holds two or more key figures, or a table (more figures than the
+ * panel shows as large numbers): four would crowd the chart into a strip. Otherwise four. linesInSide still decides where they go. Pure.
+ */
+export function bulletsMax(p: Preview): number {
+  const plan = planSlide(withChart(p));
+  return plan.kind === "chart" && plan.side && (plan.callouts.length >= 2 || Boolean(plan.table)) ? 3 : COMMENTARY.bullets;
+}
+
+/** Spoken notes are full sentences; a sentence shorter than this is a fragment ("Next slide.", "Thanks."). */
+const MIN_NOTE_WORDS = 3;
+
+/**
+ * Speaker notes, grounded sentence by sentence against the slide's evidence: a
+ * sentence with a figure the slide lacks is dropped (noted in `dropped`), the
+ * rest kept in order, whole sentences only, within the notes' limits. A runaway
+ * tail (the first fragment or repeated sentence, as the live eval saw once) is cut
+ * off with everything after it. "" when nothing survives. Pure.
+ */
+export function groundNotes(raw: string, evidence: string, dropped?: string[], where = ""): string {
+  const kept: string[] = [];
+  const seen = new Set<string>();
+  let words = 0;
+  let size = 0;
+  for (const sentence of sentences(raw.replace(/\s+/g, " ").trim())) {
+    // A runaway tail ("Done. OK. Thanks. Thanks.") starts with a fragment or a repeat: everything from there goes.
+    const key = sentence.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+    if (sentence.split(/\s+/).length < MIN_NOTE_WORDS || seen.has(key)) {
+      dropped?.push(`${where ? `${where}: ` : ""}${sentence} [runaway text, dropped from here on]`);
+      break;
+    }
+    seen.add(key);
+    // groundPiece checks figures in digits and in words ("a quarter", "doubled", "twelve weeks").
+    const g = groundPiece(sentence, evidence, dropped, where);
+    if (!g) continue;
+    const n = g.split(/\s+/).length;
+    if (words + n > COMMENTARY.notesWords || size + g.length + 1 > COMMENTARY.notes) {
+      dropped?.push(`${where ? `${where}: ` : ""}${g} [over the notes' length limit]`);
+      break;
+    }
+    kept.push(g);
+    words += n;
+    size += g.length + 1;
+  }
+  return kept.join(" ");
+}
 
 /**
  * Claude's commentary on one slide (Phase 2): a headline that makes the point, one
@@ -141,6 +190,8 @@ export const CommentarySchema = z.object({
   headline: text(COMMENTARY.headline),
   text: text(COMMENTARY.text).optional(),
   bullets: z.array(text(COMMENTARY.bullet)).max(COMMENTARY.bullets),
+  /** Speaker notes (Phase 3): what to say aloud. Commentary saved before Phase 3 has none. */
+  notes: text(COMMENTARY.notes).optional(),
   writtenAt: Ymd,
   /** The reader's point it was written from, so the page can say when the point has changed since. */
   forNote: text(300).optional(),
@@ -162,6 +213,14 @@ export const DeckSummarySchema = z.object({
 });
 export type DeckSummary = z.infer<typeof DeckSummarySchema>;
 
+/** A section title (Phase 3): at most six words, drawn small above the slide's headline. */
+export const SECTION = { chars: 60, words: 6 } as const;
+/** True for a section title that fits: some text, at most six words and 60 characters. Pure. */
+export const sectionOk = (s: string) => {
+  const n = s.split(/\s+/).filter(Boolean).length;
+  return n > 0 && n <= SECTION.words && s.length <= SECTION.chars;
+};
+
 export const TrayItemSchema = z.object({
   /** Stable for the thing added, so adding it twice is caught: see chartItemId and viewItemId. */
   id: text(200),
@@ -181,6 +240,8 @@ export const TrayItemSchema = z.object({
   included: z.boolean(),
   /** Claude's commentary, when the reader asked for it. Trays saved before Phase 2 have none. */
   commentary: CommentarySchema.optional(),
+  /** A section title from Claude's suggested order, when the reader applied it (Phase 3). */
+  section: text(SECTION.chars).refine(sectionOk).optional(),
 });
 
 export type TrayItem = z.infer<typeof TrayItemSchema>;
@@ -233,14 +294,49 @@ export function moveItem(items: TrayItem[], id: string, dir: -1 | 1): TrayItem[]
   return next;
 }
 
-export function updateItem(items: TrayItem[], id: string, patch: Partial<Pick<TrayItem, "note" | "included" | "commentary">>): TrayItem[] {
+export function updateItem(items: TrayItem[], id: string, patch: Partial<Pick<TrayItem, "note" | "included" | "commentary" | "section">>): TrayItem[] {
   return items.map((x) => {
     if (x.id !== id) return x;
     const next = { ...x, ...patch };
-    // Clearing commentary removes the key, so the saved tray reads as it did before.
+    // Clearing commentary or a section removes the key, so the saved tray reads as it did before.
     if ("commentary" in patch && !patch.commentary) delete next.commentary;
+    if ("section" in patch && !patch.section) delete next.section;
     return next;
   });
+}
+
+/**
+ * The tray with its included slides put in `order` (Claude's suggestion), the
+ * left-out slides keeping their places. Null when `order` isn't exactly the
+ * included slides, each once: the tray changed since the suggestion was made,
+ * and nothing is moved. Pure.
+ */
+export function applyOrder(items: TrayItem[], order: readonly string[]): TrayItem[] | null {
+  const included = items.filter((x) => x.included);
+  const byId = new Map(included.map((x) => [x.id, x]));
+  if (order.length !== included.length || new Set(order).size !== order.length || !order.every((id) => byId.has(id))) return null;
+  let k = 0;
+  return items.map((x) => (x.included ? byId.get(order[k++])! : x));
+}
+
+/**
+ * Claude's suggested order applied to the tray (Phase 3): the included slides in
+ * `order`, any section titles they had removed (they headed runs in the old
+ * order), and with `sections`, Claude's new titles on, those that fit. Null when
+ * `order` isn't exactly the included slides. Pure.
+ */
+export function applyStoryline(items: TrayItem[], order: readonly string[], sections?: Record<string, string>): TrayItem[] | null {
+  const next = applyOrder(items, order);
+  if (!next) return null;
+  const ok = Object.fromEntries(Object.entries(sections ?? {}).filter(([, t]) => typeof t === "string" && sectionOk(t)));
+  return next.reduce((acc, x) => (x.included ? updateItem(acc, x.id, { section: ok[x.id] }) : acc), next);
+}
+
+/** The tray in exactly this order of ids (Undo puts an order back with it); null unless it's every item, each once. Pure. */
+export function setOrder(items: TrayItem[], ids: readonly string[]): TrayItem[] | null {
+  const byId = new Map(items.map((x) => [x.id, x]));
+  if (ids.length !== items.length || new Set(ids).size !== ids.length || !ids.every((id) => byId.has(id))) return null;
+  return ids.map((id) => byId.get(id)!);
 }
 
 /* ---------- Reading ---------- */
@@ -271,7 +367,31 @@ export function writtenDate(ymd: string): string {
  * its points. Without commentary: the reader's point, when they wrote one, is
  * its title.
  */
-export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commentary">): Preview {
+export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commentary" | "section">, deckEvidence?: string): Preview {
+  return withSection(commentaryPreview(item), item, deckEvidence);
+}
+
+/** The evidence of every included slide, for checking a section title, which speaks for a run of slides. Pure. */
+export const deckEvidenceOf = (items: Pick<TrayItem, "preview" | "included">[]) =>
+  items
+    .filter((x) => x.included)
+    .map((x) => evidenceOf(x.preview))
+    .join("\n");
+
+/**
+ * The slide with its section title, when the reader applied one: checked again
+ * as it's built, against the deck's slides (or, without them, the slide's own),
+ * so a title from the browser's saved tray can't bring a figure the deck doesn't show.
+ */
+function withSection(p: Preview, item: Pick<TrayItem, "preview" | "section">, deckEvidence?: string): Preview {
+  const raw = item.section?.trim();
+  if (!raw) return p;
+  const section = groundPiece(raw, deckEvidence ?? evidenceOf(item.preview));
+  return section && sectionOk(section) ? { ...p, section } : p;
+}
+
+function commentaryPreview(item: Pick<TrayItem, "preview" | "note" | "commentary">): Preview {
+
   const c = item.commentary;
   const note = item.note?.trim();
   if (c) {
@@ -279,7 +399,7 @@ export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commenta
     const ev = evidenceOf(p);
     const head = groundPiece(c.headline, ev);
     const text = c.text ? groundPiece(c.text, ev) : "";
-    const bullets = p.groups?.length ? [] : c.bullets.map((b) => groundPiece(b, ev)).filter(Boolean);
+    const bullets = p.groups?.length ? [] : c.bullets.map((b) => groundPiece(b, ev)).filter(Boolean).slice(0, bulletsMax(p));
     // A headline that was the reader's point follows the point as it is now.
     const claudeHead = c.headlineFrom === "note" || c.headlineFrom === "card" ? "" : head;
     if (claudeHead || text || bullets.length)
@@ -292,6 +412,20 @@ export function slidePreview(item: Pick<TrayItem, "preview" | "note" | "commenta
       };
   }
   return note ? { ...item.preview, headline: note } : item.preview;
+}
+
+export const CLAUDE_NOTES = "Notes written by Claude";
+
+/**
+ * A slide's speaker notes as they ship: Claude's, checked again sentence by
+ * sentence against the slide, with the day they were written; none when there
+ * are none or nothing holds up. Pure.
+ */
+export function slideNotes(item: Pick<TrayItem, "preview" | "commentary">): { text: string; date: string } | undefined {
+  const c = item.commentary;
+  if (!c?.notes) return undefined;
+  const text = groundNotes(c.notes, evidenceOf(item.preview));
+  return text ? { text, date: writtenDate(c.writtenAt) } : undefined;
 }
 
 /** True when the summary was written from exactly these slides, in this order, as added then. */
@@ -372,10 +506,14 @@ export function trayDeckSlides(
   const shipped = items.filter((x) => x.included);
   const mock = shipped.some((x) => isMock(x, register));
   const sum = summaryMatches(summary, items) ? summaryPreview(summary, items) : undefined;
+  const deckEv = deckEvidenceOf(shipped);
   return [
     { kind: "cover", mock: false, preview: { headline: title, text: `${audience}, ${date}`, source: "This deck" } },
     ...(sum ? [{ mock, preview: sum }] : []),
-    ...shipped.map((x) => ({ mock: isMock(x, register), preview: slidePreview(x) })),
+    ...shipped.map((x) => {
+      const notes = slideNotes(x);
+      return { mock: isMock(x, register), preview: slidePreview(x, deckEv), ...(notes ? { notes } : {}) };
+    }),
     { kind: "sources", mock: false, preview: traySources(shipped, register) },
   ];
 }

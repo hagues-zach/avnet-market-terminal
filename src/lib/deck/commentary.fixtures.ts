@@ -198,40 +198,46 @@ export function evalDecks(): { name: string; input: DeckInput }[] {
 
 /** A grounded answer for a deck: figures copied from each slide, so nothing is dropped. */
 export function goodAnswer(input: DeckInput): DeckOutput {
-  const canned: Record<string, { headline: string; text: string; bullets: string[] }> = {
+  const canned: Record<string, { headline: string; text: string; bullets: string[]; notes: string }> = {
     "card:tam-opportunity": {
-      headline: "Distribution serves a quarter of a fast-growing chip market",
+      headline: "Distribution serves 24.0% of a fast-growing chip market",
       text: "World semiconductor sales reached $772.2B, up +22.5% on 2025, with $860.4B forecast for 2027.",
       bullets: ["Distributors serve 24.0% of TAM, a mock estimate.", "Avnet bills 8.9% of SAM on the mock model.", "Growth leaves room to take share."],
+      notes: "Start with the size of the prize. World semiconductor sales reached $772.2B this year, and the forecast for 2027 is $860.4B. Distribution serves 24.0% of that, and on the mock model Avnet bills 8.9% of what distributors serve. The point to land is room to grow: the market is rising quickly, and a small gain in share is worth a lot. Ask the room where they see the next design wins.",
     },
     "card:earnings-leaderboard-distributors": {
       headline: "Arrow and WPG lead distributor revenue, with Avnet close behind",
       text: "Arrow took $28.1B over the last four quarters against Avnet's $22.8B.",
       bullets: ["WPG Holdings sits second at $25.4B.", "WT Microelectronics follows at $21.9B.", "The top four are within reach of each other."],
+      notes: "This is the field we compete in. Arrow leads on revenue over the last four quarters at $28.1B, with WPG Holdings second at $25.4B and Avnet at $22.8B. The top four are close enough that one strong year moves the ranking. Draw the eye to the gap between Avnet and the two leaders, then move on to what drives it.",
     },
     "card:earnings-growth-against-margin-semis": {
       headline: "Distributors trail chipmakers on growth and margin",
       text: "Avnet grew +3.1% at a 3.4% operating margin, below the medians of +8.4% and 21.3%.",
       bullets: ["Arrow sits close to Avnet at +5.2% growth.", "Chipmakers earn far richer margins than the channel."],
+      notes: "Here the chip makers sit far above the channel on both growth and margin. Avnet grew +3.1% at a 3.4% operating margin, below the medians of +8.4% and 21.3%. That is normal for a distributor, so the story is the gap to Arrow rather than to the chip makers. Point out where Arrow sits, close to Avnet, and keep the comparison inside the channel.",
     },
     "card:news-story-microchip-lead-times": {
       headline: "Microchip's shorter lead times point to a channel restock",
       text: "Microchip says microcontroller lead times are back to 12 weeks.",
       bullets: ["Distributors are expected to restock in the March quarter.", "Industrial demand in Europe drives the recovery."],
+      notes: "Microchip says its microcontroller lead times are back to 12 weeks. That matters because shorter lead times end the allocation squeeze for industrial customers. It also expects distributors to restock in the March quarter, so channel inventory will rise. Ask the audience how their own lead times compare and whether they plan to build stock ahead of that restock.",
     },
     "chart:avnet-vs-arrow-scorecard:gross-margin:trend": {
       headline: "Avnet's margin recovered, but Arrow still leads",
       text: "Avnet reached 10.8% in Q3 2026 against Arrow's 11.2%.",
       bullets: ["Both improved each quarter.", "The gap held at 0.4 points."],
+      notes: "Both distributors improved gross margin every quarter this year. Avnet reached 10.8% in Q3 2026, but Arrow reached 11.2%, so the gap held. The recovery is real, but it is not closing the distance to our closest competitor. Use this slide to set up the question of mix: which product lines are carrying Arrow's lead, and where can Avnet price better?",
     },
     "view:share": {
       headline: "Avnet holds a small but growing share of analog",
       text: "Avnet's mock share of analog is 4.4%, up +0.3 pts on a year ago.",
       bullets: ["The analog market is $84.1B.", "Figures are mock until billings are connected."],
+      notes: "Avnet's share of analog is 4.4% on the mock model, up +0.3 pts on a year ago. The analog market is $84.1B, so each point of share is a large number. These figures stay mock until billings are connected, so present them as direction rather than results. The question to leave with the room is which analog suppliers give the most room to grow.",
     },
   };
   const shipped = input.items.filter((x) => x.included);
-  const slides = shipped.map((x) => ({ id: x.id, ...(canned[x.id] ?? { headline: x.preview.headline, text: "", bullets: [] }) }));
+  const slides = shipped.map((x) => ({ id: x.id, ...(canned[x.id] ?? { headline: x.preview.headline, text: "", bullets: [], notes: "" }) }));
   // Three to five lines, from the slides' own grounded sentences, so the summary agrees with them.
   const pool = slides.flatMap((x) => [x.text, ...x.bullets]).filter(Boolean);
   const summary = slides.length >= 3 ? slides.map((x) => x.text).filter(Boolean).slice(0, 5) : pool.slice(0, 3);

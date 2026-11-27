@@ -7,7 +7,25 @@ import { Button, buttonClass } from "@/components/ui/button";
 import { LoadingBlock, Skeleton } from "@/components/ui/states";
 import { AUDIENCES, audienceLabel, type Audience } from "@/lib/deck/outline";
 import type { DeckCommentary } from "@/lib/deck/commentary";
-import { commentaryUpdate, isMock, slidePreview, summaryMatches, summaryPreview, trayDeckSlides, type Commentary, type DeckSummary, type TrayItem } from "@/lib/deck/tray";
+import type { Storyline } from "@/lib/deck/storyline";
+import {
+  applyOrder,
+  applyStoryline,
+  commentaryUpdate,
+  deckEvidenceOf,
+  isMock,
+  sectionOk,
+  setOrder,
+  slideNotes,
+  slidePreview,
+  summaryMatches,
+  summaryPreview,
+  trayDeckSlides,
+  updateItem,
+  type Commentary,
+  type DeckSummary,
+  type TrayItem,
+} from "@/lib/deck/tray";
 import { isHidden } from "@/lib/visibility";
 import { cn } from "@/lib/utils";
 import { SlideFrame } from "./slide-preview";
@@ -44,7 +62,20 @@ type AiState = {
   /** Claude is off on this server: the control says so and stays off. */
   off?: boolean;
   /** What Clear all removed, so it can be put back. */
-  undo?: { byId: Record<string, Commentary | undefined>; summary?: DeckSummary };
+  undo?: { byId: Record<string, Commentary | undefined>; sections?: Record<string, string | undefined>; summary?: DeckSummary };
+};
+
+/** Claude's suggested order (Phase 3): shown for the reader to apply or dismiss; nothing moves until they apply it. */
+type OrderState = {
+  busy?: boolean;
+  suggestion?: Storyline & { order: string[] };
+  /** Whether to apply Claude's section titles with the order. */
+  withSections?: boolean;
+  message?: string;
+  tone?: "error" | "info";
+  off?: boolean;
+  /** The tray's order and section titles before an applied suggestion, so Undo can put them back. */
+  undo?: { ids: string[]; sections: Record<string, string | undefined>; after: string[] };
 };
 
 const UNSAVED = "Saved for this tab only: the browser wouldn't store more, so it will be gone after a reload.";
@@ -62,6 +93,19 @@ async function askClaude(body: { title: string; audience: Audience; items: TrayI
   }
 }
 
+/** Claude's suggested order for the deck, from the server. Never throws. */
+async function askStoryline(body: { title: string; audience: Audience; items: TrayItem[] }): Promise<Storyline> {
+  try {
+    const res = await fetch("/api/deck/tray/storyline", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const json = (await res.json().catch(() => null)) as Partial<Storyline> | null;
+    const known = json && (json.status === "ok" || json.status === "off" || json.status === "failed");
+    if (known && json.reasons && typeof json.reasons === "object" && json.sections && typeof json.sections === "object") return json as Storyline;
+    return { status: "failed", reasons: {}, sections: {}, message: `Claude's suggestion didn't come back from the server (error ${res.status}).` };
+  } catch {
+    return { status: "failed", reasons: {}, sections: {}, message: "Couldn't reach the server to ask Claude. Check your connection." };
+  }
+}
+
 export function TrayReview() {
   const { items, ready } = useTray();
   if (!ready) return <LoadingBlock label="Reading your deck…" lines={6} />;
@@ -70,7 +114,7 @@ export function TrayReview() {
 }
 
 function Review({ items }: { items: TrayItem[] }) {
-  const { move, update, remove, setCommentary, summary } = useTray();
+  const { move, update, remove, setCommentary, setSections, arrange, summary } = useTray();
   const uid = useId();
   const [selectedId, setSelectedId] = useState(items[0].id);
   const [title, setTitle] = useState("");
@@ -79,6 +123,9 @@ function Review({ items }: { items: TrayItem[] }) {
   const [state, setState] = useState<{ busy: boolean; error?: string }>({ busy: false });
   const [printing, setPrinting] = useState(false);
   const [ai, setAi] = useState<AiState>({});
+  const [order, setOrderState] = useState<OrderState>({});
+  // Open or closed for every slide: someone checking notes steps through the deck with them open.
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const selected = items.find((x) => x.id === selectedId) ?? items[0];
   const shipped = items.filter((x) => x.included);
@@ -87,11 +134,32 @@ function Review({ items }: { items: TrayItem[] }) {
   const number = selected.included ? shipped.indexOf(selected) + 1 : 0;
   const deckTitle = title.trim() || "Avnet market review";
   const written = shipped.filter((x) => x.commentary).length;
+  const withNotes = shipped.filter((x) => slideNotes(x)).length;
   // What ships after the cover: the summary, checked against the slides as they are now.
   const shippedSummary = summaryMatches(summary, items) ? summaryPreview(summary, items) : undefined;
 
   const audienceName = audienceLabel(audience);
   const writeRef = useRef<HTMLButtonElement>(null);
+  const suggestRef = useRef<HTMLButtonElement>(null);
+  const proposalRef = useRef<HTMLHeadingElement>(null);
+  // Section titles are checked against every slide that ships, since a title speaks for a run of them.
+  const deckEv = deckEvidenceOf(items);
+  const busyAny = Boolean(ai.busy) || Boolean(order.busy);
+  // Either call finding Claude off means it's off for both.
+  const aiOff = Boolean(ai.off || order.off);
+  const askAgainRef = useRef<HTMLButtonElement>(null);
+  const orderStatusRef = useRef<HTMLParagraphElement>(null);
+  // A suggestion made for slides that have since changed can't be applied: said in the live region as it happens.
+  const stale = order.suggestion ? applyOrder(items, order.suggestion.order) === null : false;
+  const STALE = "The deck has changed since Claude suggested this order, so it can't be applied. Dismiss it and suggest an order again.";
+  // Why Claude's buttons are off, when they are: one caption both buttons point at.
+  const why = aiOff
+    ? ""
+    : busyAny
+      ? order.busy
+        ? "Available when Claude finishes suggesting an order."
+        : "Available when Claude finishes writing commentary."
+      : "";
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const failedWith = (r: DeckCommentary, fallback: string, slide?: string): AiState => ({
     ...(slide ? { slide } : {}),
@@ -117,7 +185,12 @@ function Review({ items }: { items: TrayItem[] }) {
         missing.length
           ? `Claude wrote commentary for ${got.length} of ${slides(sent.length)}. ${missing.map((x) => x.title).join(", ")} ${missing.length === 1 ? "keeps" : "keep"} the app's wording${plan.cleared.length ? ", and the earlier commentary there was cleared" : ""}.`
           : `Claude wrote commentary for ${slides(sent.length)}.`,
-        plan.summary ? "The executive summary ships after the cover." : "No executive summary held up against the slides.",
+        plan.summary
+          ? "The executive summary ships after the cover."
+          : sent.length < 2
+            ? "A one-slide deck has no executive summary."
+            : "No executive summary held up against the slides.",
+        got.length ? `Speaker notes on ${got.filter((x) => r.slides[x.id]?.notes).length} of ${slides(got.length)}, in the PowerPoint.` : "",
         "Check it before you ship.",
         saved === "unsaved" ? UNSAVED : "",
       ];
@@ -135,7 +208,7 @@ function Review({ items }: { items: TrayItem[] }) {
       if (!c) return setAi(failedWith(r, "Claude couldn't write this slide again just now.", id));
       const saved = setCommentary({ [id]: c });
       if (saved === "refused") return setAi({ slide: id, message: "Claude's commentary didn't fit the slide, so the old one stays. Try again.", tone: "error" });
-      setAi({ slide: id, message: `Written again. Check it before you ship.${saved === "unsaved" ? ` ${UNSAVED}` : ""}`, tone: "info" });
+      setAi({ slide: id, message: `Written again${c.notes ? ", with speaker notes" : ". No speaker notes held up against the slide"}. Check it before you ship.${saved === "unsaved" ? ` ${UNSAVED}` : ""}`, tone: "info" });
     } finally {
       setAi((a) => (a.busy === id ? { ...a, busy: undefined } : a));
     }
@@ -143,25 +216,107 @@ function Review({ items }: { items: TrayItem[] }) {
 
   const clearOne = (id: string) => {
     setCommentary({ [id]: undefined });
+    // A slide's section title goes with its commentary: Clear gives back the slide as the app made it.
+    setSections({ [id]: undefined });
     setAi({ slide: id, message: "Cleared. This slide uses the app's wording.", tone: "info" });
     // The commentary block goes; focus stays on this slide's point.
     requestAnimationFrame(() => noteRef.current?.focus());
   };
 
   const clearAll = () => {
-    const undo = { byId: Object.fromEntries(items.filter((x) => x.commentary).map((x) => [x.id, x.commentary])), ...(summary ? { summary } : {}) };
+    const undo = {
+      byId: Object.fromEntries(items.filter((x) => x.commentary).map((x) => [x.id, x.commentary])),
+      sections: Object.fromEntries(items.filter((x) => x.section).map((x) => [x.id, x.section])),
+      ...(summary ? { summary } : {}),
+    };
     setCommentary(Object.fromEntries(items.map((x) => [x.id, undefined])), null);
-    setAi({ message: "Commentary cleared. The deck uses the app's wording.", tone: "info", undo });
+    setSections(Object.fromEntries(items.map((x) => [x.id, undefined])));
+    setAi({ message: `Commentary${undo && Object.keys(undo.sections).length ? " and section titles" : ""} cleared. The deck uses the app's wording.`, tone: "info", undo });
     requestAnimationFrame(() => writeRef.current?.focus());
   };
 
   const undoClear = () => {
     if (!ai.undo) return;
     setCommentary(ai.undo.byId, ai.undo.summary ?? null);
-    setAi({ message: "Commentary put back.", tone: "info" });
+    if (ai.undo.sections) setSections(ai.undo.sections);
+    setAi({ message: ai.undo.sections && Object.keys(ai.undo.sections).length ? "Commentary and section titles put back." : "Commentary put back.", tone: "info" });
+    // The Undo button goes; focus goes back to the deck's Claude actions.
+    requestAnimationFrame(() => writeRef.current?.focus());
   };
 
   const retry = () => (ai.slide ? rewrite(ai.slide) : writeAll());
+
+  // A move by hand after applying Claude's order: Undo order would undo the hand moves too, so it goes.
+  const moveByHand = (id: string, dir: -1 | 1) => {
+    move(id, dir);
+    setOrderState((o) => (o.undo ? { ...o, undo: undefined, message: undefined } : o));
+  };
+
+  /* ---------- Claude's suggested order ---------- */
+
+  const suggest = async () => {
+    setOrderState({ busy: true });
+    const r = await askStoryline({ title: deckTitle, audience, items });
+    if (r.status !== "ok" || !r.order) {
+      const off = r.status === "off";
+      setOrderState({ message: r.message ?? "Claude couldn't suggest an order just now.", tone: off ? "info" : "error", off });
+      // The button that had focus is disabled while Claude works: focus goes to what can be done next.
+      requestAnimationFrame(() => (off ? orderStatusRef.current?.focus() : askAgainRef.current?.focus()));
+      return;
+    }
+    setOrderState({ suggestion: { ...r, order: r.order }, withSections: Object.keys(r.sections).length > 0 });
+    // The proposal takes the focus, so a keyboard or screen reader user lands on it.
+    requestAnimationFrame(() => proposalRef.current?.focus());
+  };
+
+  const dismissSuggestion = () => {
+    setOrderState({ message: "Suggestion dismissed. The deck keeps your order.", tone: "info" });
+    requestAnimationFrame(() => suggestRef.current?.focus());
+  };
+
+  const applySuggestion = () => {
+    const sug = order.suggestion;
+    if (!sug) return;
+    const summaryWas = summaryMatches(summary, items);
+    // Only titles that fit the tray's limits: one bad item would make the whole saved tray unreadable.
+    const titles = Object.fromEntries(Object.entries(sug.sections).filter(([, t]) => typeof t === "string" && sectionOk(t)));
+    const withSections = Boolean(order.withSections && Object.keys(titles).length);
+    const hadSections = items.some((x) => x.included && x.section);
+    // One write, through the tray's own reorder path. The included slides take Claude's order, and
+    // any section titles they had go: they headed runs in the old order. With section titles, Claude's new ones go on.
+    const r = arrange((now) => applyStoryline(now, sug.order, withSections ? titles : undefined));
+    if (!r) {
+      setOrderState({ message: "The deck changed since Claude suggested this order, so nothing moved. Suggest an order again.", tone: "error" });
+      requestAnimationFrame(() => suggestRef.current?.focus());
+      return;
+    }
+    const parts = [
+      "Claude's order applied.",
+      withSections ? "Section titles are on the slides." : hadSections ? "The earlier section titles were removed, since they headed the old order." : "",
+      summaryWas ? "The executive summary followed the old order, so it won't ship until you write commentary again." : "",
+      r.saved ? "" : UNSAVED,
+    ];
+    setOrderState({
+      message: parts.filter(Boolean).join(" "),
+      tone: "info",
+      undo: { ids: r.before.map((x) => x.id), sections: Object.fromEntries(r.before.map((x) => [x.id, x.section])), after: sug.order },
+    });
+    requestAnimationFrame(() => suggestRef.current?.focus());
+  };
+
+  const undoOrder = () => {
+    const u = order.undo;
+    if (!u) return;
+    const r = arrange((now) => {
+      // Only while the deck is still in Claude's order: a change since (in this tab or another) isn't undone silently.
+      const included = now.filter((x) => x.included).map((x) => x.id);
+      if (included.length !== u.after.length || included.some((id, i) => id !== u.after[i])) return null;
+      const back = setOrder(now, u.ids);
+      return back && back.reduce((acc, x) => updateItem(acc, x.id, { section: u.sections[x.id] }), back);
+    });
+    setOrderState(r ? { message: "Your order is back.", tone: "info" } : { message: "The deck changed since, so the old order couldn't be put back. Move slides with the arrows.", tone: "error" });
+    requestAnimationFrame(() => suggestRef.current?.focus());
+  };
 
   const ship = async () => {
     if (format === "pdf") return setPrinting(true);
@@ -217,7 +372,7 @@ function Review({ items }: { items: TrayItem[] }) {
                     <span className="flex shrink-0 flex-col">
                       <button
                         type="button"
-                        onClick={() => move(x.id, -1)}
+                        onClick={() => moveByHand(x.id, -1)}
                         disabled={i === 0}
                         aria-label={`Move ${x.title} up`}
                         className="cursor-pointer text-ink-muted hover:text-ink disabled:cursor-default disabled:opacity-30"
@@ -226,7 +381,7 @@ function Review({ items }: { items: TrayItem[] }) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => move(x.id, 1)}
+                        onClick={() => moveByHand(x.id, 1)}
                         disabled={i === items.length - 1}
                         aria-label={`Move ${x.title} down`}
                         className="cursor-pointer text-ink-muted hover:text-ink disabled:cursor-default disabled:opacity-30"
@@ -271,6 +426,26 @@ function Review({ items }: { items: TrayItem[] }) {
                       <p className="mt-1 text-caption text-ink-muted">
                         {x.commentary ? "Claude's brief for this slide's headline." : "Becomes the slide's title. Leave it empty to keep the app's."}
                       </p>
+                      {x.section && (
+                        <p className="mt-2 flex items-center gap-2 text-caption text-ink">
+                          <span>
+                            <span className="text-ink-muted">Section, from Claude&apos;s order: </span>
+                            {x.section}
+                            {!slidePreview(x, deckEv).section && <span className="text-ink"> (won&apos;t ship: a figure in it is no longer on an included slide)</span>}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              update(x.id, { section: undefined });
+                              setAi({ slide: x.id, message: "Section title removed.", tone: "info" });
+                              requestAnimationFrame(() => noteRef.current?.focus());
+                            }}
+                            aria-label={`Remove the section title from ${x.title}`}
+                          >
+                            Remove
+                          </Button>
+                        </p>
+                      )}
                       {x.commentary && (
                         <SlideCommentary
                           item={x}
@@ -300,9 +475,10 @@ function Review({ items }: { items: TrayItem[] }) {
             </h2>
             <span className="text-caption text-ink-muted">Figures as of {day(selected.addedAt)}</span>
           </div>
-          <figure className="mt-3" aria-busy={ai.busy === selected.id || undefined} aria-label={`Slide preview: ${slidePreview(selected).headline}`}>
-            <SlideFrame p={slidePreview(selected)} mock={isMock(selected)} number={number} />
+          <figure className="mt-3" aria-busy={ai.busy === selected.id || undefined} aria-label={`Slide preview: ${slidePreview(selected, deckEv).headline}`}>
+            <SlideFrame p={slidePreview(selected, deckEv)} mock={isMock(selected)} number={number} />
           </figure>
+          <SpeakerNotes item={selected} busy={ai.busy === selected.id || ai.busy === "deck"} open={notesOpen} onOpen={setNotesOpen} />
           <p className="mt-2 text-body-sm">
             <Link href={selected.from.href} className="text-ink underline underline-offset-2 hover:text-ink-muted">
               Opens on {selected.from.page}
@@ -339,41 +515,103 @@ function Review({ items }: { items: TrayItem[] }) {
             </label>
           </div>
 
-          <section aria-labelledby={`${uid}-claude`} aria-busy={ai.busy === "deck" || undefined} className="mt-4 border-t border-hairline pt-3">
+          <section aria-labelledby={`${uid}-claude`} aria-busy={ai.busy === "deck" || order.busy || undefined} className="mt-4 border-t border-hairline pt-3">
             <h3 id={`${uid}-claude`} className={LABEL}>
-              Claude&apos;s commentary
+              Claude
             </h3>
             <p className="mt-1 text-caption text-ink-muted">
-              Claude writes each slide&apos;s headline, a sentence and bullets, and an executive summary, using only the figures on the slides.
+              Claude writes each slide&apos;s headline, a sentence, bullets and speaker notes, and an executive summary, using only the figures on the slides. It can also suggest an order.
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Button
                 ref={writeRef}
                 onClick={writeAll}
-                disabled={!shipped.length || Boolean(ai.busy) || ai.off}
-                aria-describedby={`${uid}-claude-status${shipped.length ? "" : ` ${uid}-none`}`}
+                disabled={!shipped.length || busyAny || aiOff}
+                aria-describedby={`${uid}-claude-status${shipped.length ? "" : ` ${uid}-none`}${why ? ` ${uid}-why` : ""}`}
               >
                 {ai.busy === "deck" ? "Writing commentary…" : written ? "Write commentary again" : "Write commentary"}
               </Button>
+              <Button
+                ref={suggestRef}
+                onClick={suggest}
+                disabled={shipped.length < 2 || busyAny || aiOff}
+                aria-describedby={[shipped.length < 2 ? `${uid}-order-few` : "", why ? `${uid}-why` : "", aiOff ? `${uid}-off` : ""].filter(Boolean).join(" ") || undefined}
+              >
+                {order.busy ? "Suggesting an order…" : "Suggest an order"}
+              </Button>
               {(written > 0 || summary) && (
-                <Button variant="destructive" onClick={clearAll} disabled={Boolean(ai.busy)}>
+                <Button variant="destructive" onClick={clearAll} disabled={busyAny}>
                   Clear all
                 </Button>
               )}
             </div>
+            {why && (
+              <p id={`${uid}-why`} className="mt-1.5 text-caption text-ink-muted">
+                {why}
+              </p>
+            )}
+            {aiOff && (
+              <p id={`${uid}-off`} className="sr-only">
+                Claude is off on this server.
+              </p>
+            )}
             {/* The one live region for commentary: always mounted, so every message is announced once. */}
             <p id={`${uid}-claude-status`} role="status" aria-live="polite" className={cn("mt-1.5 min-h-4 text-caption", ai.tone === "error" ? "text-negative" : "text-ink-muted", ai.slide && !ai.busy && "sr-only")}>
               {ai.busy === "deck" ? "Claude is writing commentary for the deck…" : ai.busy ? "Claude is writing this slide again…" : ai.message}
             </p>
-            {!ai.busy && ai.tone === "error" && (
+            {!busyAny && ai.tone === "error" && !ai.off && (
               <Button variant="ghost" onClick={retry} className="mt-1">
                 Try again
               </Button>
             )}
-            {!ai.busy && ai.undo && (
+            {!busyAny && ai.undo && (
               <Button variant="ghost" onClick={undoClear} className="mt-1">
-                Undo
+                Undo clear
               </Button>
+            )}
+            {/* The storyline's own live region, always mounted, as commentary's is. */}
+            <p
+              id={`${uid}-order-status`}
+              ref={orderStatusRef}
+              tabIndex={-1}
+              role="status"
+              aria-live="polite"
+              className={cn("mt-1.5 min-h-4 text-caption", order.tone === "error" || stale ? "text-negative" : "text-ink-muted")}
+            >
+              {order.busy ? "Claude is suggesting an order for the deck…" : order.suggestion ? (stale ? STALE : "") : order.message}
+            </p>
+            {shipped.length < 2 && (
+              <p id={`${uid}-order-few`} className="mt-1 text-caption text-ink-muted">
+                Include two or more slides for Claude to suggest an order.
+              </p>
+            )}
+            {!busyAny && !order.suggestion && order.tone === "error" && !aiOff && (
+              <Button ref={askAgainRef} variant="ghost" onClick={suggest} className="mt-1">
+                Ask again
+              </Button>
+            )}
+            {!busyAny && order.undo && (
+              <Button variant="ghost" onClick={undoOrder} className="mt-1">
+                Undo order
+              </Button>
+            )}
+            {order.busy ? (
+              <OrderSkeleton />
+            ) : (
+              order.suggestion && (
+                <OrderProposal
+                  headingRef={proposalRef}
+                  suggestion={order.suggestion}
+                  items={items}
+                  stale={stale}
+                  withSections={Boolean(order.withSections)}
+                  onSections={(v) => setOrderState((o) => ({ ...o, withSections: v }))}
+                  onApply={applySuggestion}
+                  onDismiss={dismissSuggestion}
+                  busy={busyAny}
+                  whyId={`${uid}-why`}
+                />
+              )
             )}
             {ai.busy === "deck" ? (
               <SummarySkeleton />
@@ -387,6 +625,11 @@ function Review({ items }: { items: TrayItem[] }) {
               {slides(shipped.length)}, with a cover{shippedSummary ? ", Claude's executive summary" : ""} and the sources
             </li>
             {written > 0 && <li className="py-2">Claude&apos;s commentary on {written} of {slides(shipped.length)}</li>}
+            {withNotes > 0 ? (
+              <li className="py-2">Speaker notes on {withNotes} of {slides(shipped.length)}, in the PowerPoint only</li>
+            ) : (
+              written > 0 && <li className="py-2 text-ink-muted">No speaker notes on the slides yet</li>
+            )}
             <li className="flex items-center justify-between gap-2 py-2">
               <span>{mock ? `${slides(mock)} on mock data` : "Every slide on live data"}</span>
               {mock > 0 && <span className="bg-warning px-1 text-micro font-semibold text-ink">Mock data</span>}
@@ -399,8 +642,8 @@ function Review({ items }: { items: TrayItem[] }) {
             <div className="mt-1 space-y-2">
               {(
                 [
-                  ["pptx", "PowerPoint", "Avnet template, editable native charts"],
-                  ["pdf", "PDF", "One slide to a page. Choose Save as PDF in the print dialog"],
+                  ["pptx", "PowerPoint", `Avnet template, editable native charts${withNotes ? ", with Claude's speaker notes" : ""}`],
+                  ["pdf", "PDF", "One slide to a page. Speaker notes ship in the PowerPoint only. Choose Save as PDF in the print dialog"],
                 ] as const
               ).map(([value, name, about]) => (
                 <label
@@ -447,7 +690,7 @@ function Review({ items }: { items: TrayItem[] }) {
  * the charts are measured, then the print dialog opens, and it goes when the
  * dialog closes.
  */
-function PrintDeck({ items, summary, title, audience, onDone }: { items: TrayItem[]; summary?: DeckSummary; title: string; audience: string; onDone: () => void }) {
+export function PrintDeck({ items, summary, title, audience, onDone }: { items: TrayItem[]; summary?: DeckSummary; title: string; audience: string; onDone: () => void }) {
   const deck = trayDeckSlides(items, { title, audience, date: longDay(), summary });
   // Print once per mount, whatever the page re-renders in the meantime.
   const onDoneRef = useRef(onDone);
@@ -522,6 +765,151 @@ function SlideCommentary({
       </div>
       {waiting && <p className="mt-1 text-caption text-ink-muted">Waiting for Claude to finish the deck.</p>}
     </div>
+  );
+}
+
+/**
+ * Claude's suggested order, before anything moves: each slide in the new order,
+ * where it was, Claude's reason for each one that moved, and any section titles.
+ * The reader applies it or dismisses it. When the deck has changed since Claude
+ * was asked, it can only be dismissed.
+ */
+function OrderProposal({
+  headingRef,
+  suggestion,
+  items,
+  stale,
+  withSections,
+  onSections,
+  onApply,
+  onDismiss,
+  busy,
+  whyId,
+}: {
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
+  suggestion: Storyline & { order: string[] };
+  items: TrayItem[];
+  stale: boolean;
+  withSections: boolean;
+  onSections: (v: boolean) => void;
+  onApply: () => void;
+  onDismiss: () => void;
+  busy: boolean;
+  /** The caption saying why Apply is off while Claude is busy. */
+  whyId: string;
+}) {
+  const uid = useId();
+  const shipped = items.filter((x) => x.included);
+  const byId = new Map(shipped.map((x) => [x.id, x]));
+  const was = new Map(shipped.map((x, i) => [x.id, i + 1]));
+  const moved = suggestion.order.filter((id, i) => was.get(id) !== i + 1).length;
+  const sections = Object.keys(suggestion.sections).length;
+  return (
+    <div role="region" aria-labelledby={`${uid}-h`} className="mt-3 border border-hairline bg-surface-sunken px-3 py-2">
+      <h4 id={`${uid}-h`} ref={headingRef} tabIndex={-1} aria-describedby={`${uid}-lead`} className={LABEL}>
+        Claude&apos;s suggested order
+      </h4>
+      <p id={`${uid}-lead`} className="mt-0.5 text-caption text-ink">
+        {stale
+          ? "The deck has changed since Claude suggested this order, so it can't be applied. Dismiss it and suggest an order again."
+          : moved
+            ? `Moves ${slides(moved)}. Nothing changes until you apply it.`
+            : "Claude suggests keeping your order."}
+      </p>
+      <ol className="mt-2 space-y-1.5 text-body-sm text-ink">
+        {suggestion.order.map((id, i) => {
+          const x = byId.get(id);
+          const from = was.get(id);
+          const reason = suggestion.reasons[id];
+          return (
+            <li key={id} className="flex gap-2">
+              <span className="w-4 shrink-0 text-right text-caption tabular-nums text-ink-muted">{i + 1}</span>
+              <span className="min-w-0">
+                {withSections && suggestion.sections[id] && <span className={cn(LABEL, "block")}>{suggestion.sections[id]}</span>}
+                <span className="block">{x?.title ?? "A slide no longer in the deck"}</span>
+                {from !== undefined && from !== i + 1 && (
+                  <span className="block text-caption text-ink-muted">
+                    Was {from}
+                    {reason ? `. ${reason}` : ""}
+                  </span>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {sections > 0 && !stale && (
+        <label className="mt-2 flex cursor-pointer items-start gap-2 text-caption text-ink">
+          <input type="checkbox" checked={withSections} onChange={(e) => onSections(e.target.checked)} className="mt-0.5 h-4 w-4 accent-ink" />
+          <span>Add Claude&apos;s {sections === 1 ? "section title" : `${sections} section titles`} above the slides&apos; headlines</span>
+        </label>
+      )}
+      <p className="mt-2 text-caption text-ink-muted">Suggested by Claude from the slides&apos; titles and figures. Check it reads the way you&apos;ll tell it.</p>
+      <div className="mt-2 flex gap-2">
+        {!stale && moved + (withSections ? sections : 0) > 0 && (
+          <Button onClick={onApply} disabled={busy} aria-describedby={busy ? whyId : undefined}>
+            {moved ? (withSections && sections ? "Apply order and titles" : "Apply order") : "Add section titles"}
+          </Button>
+        )}
+        <Button variant="ghost" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** While Claude suggests an order: a short numbered list's shape, for the status line to describe. */
+function OrderSkeleton() {
+  return (
+    <div aria-hidden className="mt-3 space-y-2">
+      <Skeleton className="h-3 w-1/2" />
+      {[0, 1, 2].map((i) => (
+        <Skeleton key={i} className={cn("ml-6 h-4", i === 1 ? "w-2/3" : "w-[calc(100%-1.5rem)]")} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The selected slide's speaker notes, as they ship in the PowerPoint (checked
+ * against the slide again), in a collapsed disclosure under its preview. They
+ * come and go with the slide's commentary: written, written again and cleared with it.
+ */
+function SpeakerNotes({ item, busy, open, onOpen }: { item: TrayItem; busy: boolean; open: boolean; onOpen: (open: boolean) => void }) {
+  const notes = slideNotes(item);
+  if (!item.commentary) return null;
+  const words = notes ? notes.text.split(/\s+/).length : 0;
+  // Commentary from before Phase 3 has no notes key; Phase 3 commentary always has one, empty when none held up.
+  const why =
+    item.commentary.notes === undefined
+      ? "This slide's commentary was written before Claude wrote speaker notes. Choose Write again under this slide in the list to add them."
+      : item.commentary.notes
+        ? "Claude's notes for this slide quote a figure the slide no longer shows, so none ship. Choose Write again under this slide in the list."
+        : "Claude's notes for this slide didn't hold up against its figures, so none ship. Choose Write again under this slide in the list to try again.";
+  return (
+    <details className="group mt-3 border-y border-hairline" open={open} onToggle={(e) => onOpen(e.currentTarget.open)} aria-busy={busy || undefined}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-2 text-body-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        <span>
+          Speaker notes<span className="font-normal text-ink-muted">{notes ? ` by Claude, ${words} words` : ", none for this slide"}</span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" strokeWidth={1.5} aria-hidden />
+      </summary>
+      <div className="pb-3">
+        {busy && <p className="mb-1.5 text-caption text-ink-muted">Claude is writing these notes again…</p>}
+        {notes ? (
+          <>
+            <p className={cn("max-w-prose text-body-sm", busy ? "text-ink-muted" : "text-ink")}>{notes.text}</p>
+            <p className="mt-1.5 text-caption text-ink-muted">
+              Written by Claude{notes.date ? ` on ${notes.date}` : ""}.{" "}
+              {item.included ? "Ships in the PowerPoint's speaker notes, not on the slide or in the PDF." : "This slide is left out of the deck, so these notes don't ship."} Check before presenting.
+            </p>
+          </>
+        ) : (
+          <p className="text-caption text-ink-muted">{why}</p>
+        )}
+      </div>
+    </details>
   );
 }
 

@@ -12,3 +12,16 @@ export function callCap(max: number, windowMs: number) {
     return true;
   };
 }
+
+const SHARED = Symbol.for("avnet.deck.callCap");
+type WithCap = typeof globalThis & { [SHARED]?: (now?: number) => boolean };
+
+/**
+ * The one budget every Claude call from the deck tray takes from (commentary and
+ * the storyline): 20 uncached calls per 10 minutes per server process. Kept on
+ * globalThis, so two route bundles that each load this module still share it.
+ */
+export function deckCallCap(): (now?: number) => boolean {
+  const g = globalThis as WithCap;
+  return (g[SHARED] ??= callCap(20, 10 * 60_000));
+}

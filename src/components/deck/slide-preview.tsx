@@ -449,6 +449,16 @@ export function SlideFrame({
             {p?.text && <p style={{ fontSize: pt(14), color: MUTED, marginTop: inch(0.2) }}>{p.text}</p>}
           </div>
         ) : (
+          <>
+            {/* The section title the reader applied, in the top margin above the headline, as the PowerPoint draws it. */}
+            {p?.section && (
+              <p
+                className="absolute truncate uppercase"
+                style={{ left: inch(AREA.left), width: inch(7.2), top: inch(0.1), height: inch(0.18), fontSize: pt(8), fontWeight: 700, color: MUTED, letterSpacing: "0.08em", lineHeight: inch(0.18) }}
+              >
+                {p.section}
+              </p>
+            )}
           <div className="absolute flex flex-col" style={{ left: inch(AREA.left), right: inch(SLIDE.w - AREA.right), top: inch(0.32), bottom: inch(SLIDE.h - AREA.bottom) }}>
             <p
               className="text-balance"
@@ -472,6 +482,7 @@ export function SlideFrame({
               {p && plan ? <Body p={p} plan={plan} /> : <p style={{ fontSize: pt(12), color: MUTED }}>No preview for this slide.</p>}
             </div>
           </div>
+          </>
         )}
 
         {/* The footer: the slide number where the template puts it, the source beside it. */}

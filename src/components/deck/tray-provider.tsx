@@ -11,8 +11,10 @@ import {
   parseSummary,
   parseTray,
   removeItem,
+  sectionOk,
   TRAY_LIMIT,
   TrayItemSchema,
+  TraySchema,
   updateItem,
   type Commentary,
   type DeckSummary,
@@ -93,7 +95,16 @@ interface Tray {
   add: (item: NewTrayItem) => boolean;
   remove: (id: string, quiet?: boolean) => void;
   move: (id: string, dir: -1 | 1) => void;
-  update: (id: string, patch: Partial<Pick<TrayItem, "note" | "included">>) => void;
+  update: (id: string, patch: Partial<Pick<TrayItem, "note" | "included" | "section">>) => void;
+  /**
+   * The tray rearranged in one write, through the same path as moving a slide:
+   * `f` gets the tray as saved now and returns the new one, or null to change
+   * nothing (the tray moved on since). The tray as it was comes back, for Undo,
+   * or null when nothing was written. Applying Claude's order uses it.
+   */
+  arrange: (f: (items: TrayItem[]) => TrayItem[] | null) => { before: TrayItem[]; saved: boolean } | null;
+  /** Section titles by slide id, saved in one write (undefined clears one); "refused" when one doesn't fit. */
+  setSections: (byId: Record<string, string | undefined>) => "saved" | "unsaved" | "refused";
   /**
    * Claude's commentary by slide id, saved in one write (undefined clears a slide's),
    * and with `summary` given, the deck's summary too (null clears it). Anything
@@ -167,6 +178,18 @@ export function TrayProvider({ children }: { children: React.ReactNode }) {
       },
       move: (id, dir) => change((x) => moveItem(x, id, dir)),
       update: (id, patch) => change((x) => updateItem(x, id, patch)),
+      arrange: (f) => {
+        const before = parseTray(read());
+        const next = f(before);
+        // Checked as the tray reads it back: one item outside its limits would lose the whole saved tray.
+        if (!next || !TraySchema.safeParse(next).success) return null;
+        return { before, saved: write(next) };
+      },
+      setSections: (byId) => {
+        const entries = Object.entries(byId);
+        if (entries.some(([, t]) => t !== undefined && !sectionOk(t))) return "refused";
+        return write(entries.reduce((acc, [id, section]) => updateItem(acc, id, { section }), parseTray(read()))) ? "saved" : "unsaved";
+      },
       setCommentary: (byId, next) => {
         const entries = Object.entries(byId);
         if (entries.some(([, c]) => c && !CommentarySchema.safeParse(c).success)) return "refused";

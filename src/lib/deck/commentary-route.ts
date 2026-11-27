@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Store } from "@/lib/store";
-import { callCap } from "./call-cap";
+import { deckCallCap } from "./call-cap";
 import { getDeckCommentary, writeDeckCommentary, type DeckCommentary } from "./commentary";
 import { AUDIENCES, audienceLabel } from "./outline";
 import { TraySchema } from "./tray";
@@ -26,8 +26,9 @@ const json = (body: DeckCommentary, status = 200) => Response.json(body, { statu
 const failed = (message: string, status: number) => json({ status: "failed", slides: {}, message }, status);
 
 export function makeCommentaryPost(deps: { store?: Store; write?: typeof writeDeckCommentary; on?: boolean; takeCall?: () => boolean } = {}) {
-  // Uncached calls this server process makes in ten minutes, so a stuck button can't run up the bill.
-  const takeCall = deps.takeCall ?? callCap(20, 10 * 60_000);
+  // Uncached calls this server process makes in ten minutes, shared with the storyline route,
+  // so a stuck button can't run up the bill.
+  const takeCall = deps.takeCall ?? deckCallCap();
   const write = deps.write ?? writeDeckCommentary;
   return async function POST(req: Request): Promise<Response> {
     if (Number(req.headers.get("content-length") ?? 0) > MAX_BYTES) return failed("That deck is too large to write commentary for.", 413);

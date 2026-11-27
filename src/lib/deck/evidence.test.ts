@@ -1,7 +1,7 @@
 // The deck's figure check: sign, unit, small numbers, years, dashes and cuts.
 // Run with: npx tsx src/lib/deck/evidence.test.ts
 import assert from "node:assert/strict";
-import { cutWords, evidenceOf, figures, groundPiece, tidy, ungroundedFigures } from "./evidence";
+import { cutWords, evidenceOf, figures, groundPiece, numberWords, tidy, ungroundedFigures, ungroundedWords } from "./evidence";
 
 const ev = "Avnet margin −3.1%, revenue $1.62B, up +22.5% on 2025. Gap 0.4 points. Lead times 12 weeks. Share 4.4%, +0.3 pts. 1,950 units.";
 const bad = (t: string) => ungroundedFigures(t, ev);
@@ -56,5 +56,20 @@ const big = evidenceOf({ headline: "H", lines: Array.from({ length: 12 }, (_, i)
 assert.ok(big.length <= 8000);
 assert.match(big, /\nSource: SEC filings$/);
 assert.ok(big.split("\n").every((l) => l === "Headline: H" || l.startsWith("Source") || l.endsWith("$1.625B")), "no line cut through a figure");
+
+// Quantities in words: a fraction, multiple or count past ten the slide doesn't state is a converted figure.
+assert.deepEqual(numberWords("A quarter of sales doubled, twice as fast, twelve weeks, a threefold rise."), ["a quarter", "doubled", "twice", "twelve", "threefold"]);
+assert.deepEqual(numberWords("The two leaders and three regions."), [], "counts up to ten are wording, as bare digits up to 10 are");
+assert.deepEqual(numberWords("Results for the second half, half-year figures, and the change on a quarter ago."), [], "periods aren't quantities");
+assert.deepEqual(numberWords("The scaffold of a manifold plan will unfold."), [], "only real multiples end in -fold");
+assert.deepEqual(ungroundedWords("Lead times halved to twelve weeks.", ev), ["halved", "twelve"]);
+assert.deepEqual(ungroundedWords("Margins doubled.", "Margins doubled on the year."), [], "the slide's own words ground them");
+// Every piece Claude writes goes through groundPiece, so headlines, bullets, summary lines, reasons and titles get it too.
+const words: string[] = [];
+assert.equal(groundPiece("Distribution serves a quarter of the market", "Distributors serve 24.0% of TAM.", words, "headline"), "");
+assert.match(words[0], /headline: Distribution serves a quarter of the market \[a quarter\]/);
+assert.equal(groundPiece("Distribution serves 24.0% of the market", "Distributors serve 24.0% of TAM."), "Distribution serves 24.0% of the market");
+assert.equal(groundPiece("Arrow's revenue is double Avnet's.", ev), "", "a bullet with a multiple the slide doesn't state");
+assert.equal(groundPiece("Growth slowed in the second half.", ev), "Growth slowed in the second half.");
 
 console.log("evidence.test.ts: ok");

@@ -28,9 +28,9 @@ import {
 
 const DAY = "2026-11-25";
 const deck = (items: TrayItem[], audience = "Supplier"): DeckInput => ({ title: "Microchip supplier review", audience, items });
-const one = (out: DeckOutput["slides"][number], items: TrayItem[] = [marginTrend()]) => {
+const one = (out: Omit<DeckOutput["slides"][number], "notes"> & { notes?: string }, items: TrayItem[] = [marginTrend()]) => {
   const dropped: string[] = [];
-  const r = toCommentary(deck(items), { slides: [out], summary: [] }, DAY, dropped);
+  const r = toCommentary(deck(items), { slides: [{ notes: "", ...out }], summary: [] }, DAY, dropped);
   return { c: r.slides[out.id], dropped };
 };
 
@@ -98,12 +98,12 @@ async function main() {
   const drop: string[] = [];
   const long = "Avnet's margin recovered quarter after quarter ".repeat(12);
   const many = toCommentary(
-    deck([marginTrend()]),
+    deck([marginTrend(), shareTiles()]),
     {
       slides: [
-        { id: "card:not-sent", headline: "Something", text: "", bullets: [] },
-        { id, headline: long, text: long, bullets: [long, "b", "c", "d", "e", "f"] },
-        { id, headline: "Second entry", text: "", bullets: [] },
+        { id: "card:not-sent", headline: "Something", text: "", bullets: [], notes: "" },
+        { id, headline: long, text: long, bullets: [long, "b", "c", "d", "e", "f"], notes: "" },
+        { id, headline: "Second entry", text: "", bullets: [], notes: "" },
       ],
       summary: [long, "2", "3", "4", "5", "6", "7"],
     },
@@ -112,7 +112,7 @@ async function main() {
   );
   assert.deepEqual(Object.keys(many.slides), [id]);
   assert.ok(CommentarySchema.safeParse(many.slides[id]).success, "capped to the schema's limits");
-  assert.equal(many.slides[id].bullets.length, 4);
+  assert.equal(many.slides[id].bullets.length, 3, "the gross margin chart has two key figures beside it, so three bullets at most");
   assert.equal(many.summary?.lines.length, 5);
   assert.ok(many.summary!.lines[0].length <= 300);
 
@@ -123,6 +123,18 @@ async function main() {
   assert.deepEqual(s.summary?.lines, ["The market grew +22.5% and Arrow leads at $28.1B."]);
   assert.deepEqual(s.summary?.slideIds, mixed.map((x) => x.id));
   assert.match(sumDrop[0], /summary.*14\.0/);
+  // A one-slide deck has no executive summary: a stray one from Claude is ignored, and the answer is complete without it.
+  const single = toCommentary(deck([marginTrend()]), { slides: [{ id, headline: "Margins recovered", text: "", bullets: ["Both rose."], notes: "" }], summary: ["Avnet reached 10.8%."] }, DAY, []);
+  assert.equal(single.summary, undefined, "a one-slide deck gets no summary");
+  const oneStore = memoryStore();
+  const oneSlide = await getDeckCommentary(deck([marginTrend()]), {
+    store: oneStore,
+    on: true,
+    write: async (input) => writeDeckCommentary(input, { client: fakeClient({ slides: [{ id, headline: "Margins recovered", text: "", bullets: ["Both rose."], notes: "" }], summary: [] }), now: () => DAY }),
+  });
+  assert.equal(oneSlide.message, undefined, "no 'no summary held up' message for one slide");
+  assert.equal(oneStore.data.get(COMMENTARY_NS)?.size, 1, "a one-slide answer without a summary is complete, so it's kept");
+  assert.match(render(deck([marginTrend()])), /<slide /);
   // A summary with nothing left isn't kept.
   assert.equal(toCommentary(deck(mixed), { slides: [], summary: ["Up 99.9%."] }, DAY, []).summary, undefined);
 
@@ -146,7 +158,7 @@ async function main() {
   const thrown = await writeDeckCommentary(deck(mixed), { client: fakeClient(() => { throw new Error("network down"); }) });
   assert.equal(thrown.status, "failed");
   assert.equal(thrown.message, "network down");
-  const allBad = await writeDeckCommentary(deck([marginTrend()]), { client: fakeClient({ slides: [{ id, headline: "Up 23.4%", text: "", bullets: [] }], summary: [] }) });
+  const allBad = await writeDeckCommentary(deck([marginTrend()]), { client: fakeClient({ slides: [{ id, headline: "Up 23.4%", text: "", bullets: [], notes: "" }], summary: [] }) });
   assert.equal(allBad.status, "failed", "nothing held up");
   assert.equal((await writeDeckCommentary(deck([{ ...marginTrend(), included: false }]), { client: fakeClient(goodAnswer(deck(mixed))) })).status, "failed", "no slides to write for");
 
@@ -341,7 +353,7 @@ async function main() {
     assert.match(text(read(parts[1])), /Summary written by Claude, November 25, 2026\. Check before quoting\./);
     const funnelXml = text(read(parts[2]));
     assert.match(funnelXml, /Commentary written by Claude, November 25, 2026\. Check before quoting\./);
-    assert.match(funnelXml, /Distribution serves a quarter of a fast-growing chip market/);
+    assert.match(funnelXml, /Distribution serves 24\.0% of a fast-growing chip market/);
     assert.match(funnelXml, /Distributors serve 24\.0% of TAM, a mock estimate\./, "bullets drawn under the panels");
     assert.match(funnelXml, /\$772\.2B/, "the panels' figures stay");
     const trendXml = text(read(parts[5]));

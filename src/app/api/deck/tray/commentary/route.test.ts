@@ -99,9 +99,23 @@ async function main() {
   assert.deepEqual(stored.summary, first.summary, "and so is the summary");
   assert.deepEqual(stored.slides[deck[1].id].bullets, r.body.slides[deck[1].id].bullets);
   // A rewrite that doesn't hold up leaves the old one.
-  answers.push((input) => ({ ...goodAnswer(input), slides: goodAnswer(input).slides.map((x) => (x.id === deck[1].id ? { ...x, headline: "Up 66.6%", text: "", bullets: [] } : x)) }));
+  answers.push((input) => ({ ...goodAnswer(input), slides: goodAnswer(input).slides.map((x) => (x.id === deck[1].id ? { ...x, headline: "Up 66.6%", text: "", bullets: [], notes: "" } : x)) }));
   r = await send({ ...base, rewrite: deck[1].id });
   assert.equal(r.body.status, "failed");
+  assert.match(r.body.message, /old one stays/);
+  // Notes on the cache paths: a hit returns the stored notes; a rewrite replaces that slide's notes only.
+  const before = (await send(base)).body;
+  assert.ok(before.slides[deck[0].id].notes, "a cache hit carries the stored notes");
+  answers.push((input) => ({ ...goodAnswer(input), slides: goodAnswer(input).slides.map((x) => (x.id === deck[1].id ? { ...x, notes: "Arrow reached 11.2% in Q3 2026, so the gap held." } : x)) }));
+  r = await send({ ...base, rewrite: deck[1].id });
+  assert.equal(r.body.slides[deck[1].id].notes, "Arrow reached 11.2% in Q3 2026, so the gap held.");
+  const after = (await send(base)).body;
+  assert.equal(after.slides[deck[1].id].notes, "Arrow reached 11.2% in Q3 2026, so the gap held.", "the stored answer has the rewritten notes");
+  assert.equal(after.slides[deck[0].id].notes, before.slides[deck[0].id].notes, "the other slides' notes stay put");
+  // A rewrite whose on-slide pieces fail and whose notes pass still fails: the old commentary stays.
+  answers.push((input) => ({ ...goodAnswer(input), slides: goodAnswer(input).slides.map((x) => (x.id === deck[1].id ? { ...x, headline: "Up 66.6%", text: "", bullets: [], notes: "The gap held all year." } : x)) }));
+  r = await send({ ...base, rewrite: deck[1].id });
+  assert.equal(r.body.status, "failed", "notes alone don't replace the slide's commentary");
   assert.match(r.body.message, /old one stays/);
   console.log("commentary route.test.ts: ok");
 }

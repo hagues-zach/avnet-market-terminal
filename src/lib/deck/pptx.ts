@@ -1,6 +1,6 @@
 import type PptxGenJS from "pptxgenjs";
 import { plainDashes } from "@/lib/ai/dashes";
-import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
+import { buildFromTemplate, xmlText, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
 import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
 import { AREA, barLabelWidth, barNameWidth, bulletsHeight, chartTitle, layoutPanels, linesInSide, PANEL_BULLETS, planSlide, SIDE, SIDE_LINES, withChart, type Callout, type SlidePlan } from "./layout";
@@ -22,7 +22,12 @@ export interface DeckSlide {
   /** Reads any mock source: the footer says "Mock data". */
   mock: boolean;
   kind?: "cover" | "content" | "sources";
+  /** Claude's speaker notes (Phase 3), already grounded: written into the slide's notes page with Claude's line. */
+  notes?: { text: string; date: string };
 }
+
+/** The last line of every slide's notes from Claude. */
+export const notesLine = (date: string) => `Notes written by Claude${date ? `, ${date}` : ""}. Check before presenting.`;
 
 const BODY = "Arial"; // the template's theme font, headings and body
 const INK = AVNET.ink.slice(1);
@@ -36,7 +41,7 @@ const COLOR: Record<SeriesWho, string> = {
   company: hex(AVNET.grayDark),
   market: hex(VIZ.benchmark),
 };
-const t = (s?: string) => plainDashes(s ?? "");
+const t = (s?: string) => xmlText(plainDashes(s ?? ""));
 
 // The template's body levels: level 0 is a key statement (bold, green on most
 // layouts), level 1 the supporting points with the template's green square
@@ -250,6 +255,13 @@ function addClaude(slide: PptxGenJS.Slide, claude: Preview["claude"], y: number)
   slide.addText(`${t(claude.label)}${claude.date ? `, ${t(claude.date)}` : ""}. Check before quoting.`, { x: LEFT, y, w: 8, h: 0.18, fontFace: BODY, fontSize: 8, italic: true, color: MUTED, margin: 0 });
 }
 
+/** The section title the reader applied (Phase 3): small capitals above the headline, in the template's top margin. */
+export const SECTION_LABEL = { y: 0.1, h: 0.18, size: 8 } as const;
+function addSection(slide: PptxGenJS.Slide, section: string | undefined) {
+  if (!section) return;
+  slide.addText(t(section).toUpperCase(), { x: LEFT, y: SECTION_LABEL.y, w: 7.2, h: SECTION_LABEL.h, fontFace: BODY, fontSize: SECTION_LABEL.size, bold: true, color: MUTED, charSpacing: 1, margin: 0, valign: "bottom" });
+}
+
 /** Rough height of a sentence set at `size` points across `w` inches (Arial averages half an em). */
 const textHeight = (s: string, size: number, w: number) => (Math.ceil((s.length * size * 0.5) / (w * 72)) * size * 1.25) / 72;
 
@@ -284,6 +296,7 @@ function talking(d: DeckSlide): TemplateSlide {
     layout: l.n,
     fill: { title: [t(p.headline)], "10": column(a), ...(b ? { "15": column(b) } : {}) },
     draw: (s) => {
+      addSection(s, p.section);
       addClaude(s, p.claude, FOOT_Y - 0.24);
       addFooter(s, p, d.mock);
     },
@@ -306,6 +319,7 @@ function textSlide(d: DeckSlide): TemplateSlide {
     layout: l.n,
     fill: { title: [t(p.headline)], "10": paras },
     draw: (s) => {
+      addSection(s, p.section);
       addClaude(s, p.claude, FOOT_Y - 0.24);
       addFooter(s, p, d.mock);
     },
@@ -335,6 +349,7 @@ function content(d: DeckSlide): TemplateSlide {
     // The takeaway in black: the layout's subhead style is bold green, which DESIGN.md keeps off white.
     fill: { title: [t(p.headline)], ...(sentence && sub ? { "11": [{ text: sentence, size: 14, bold: false, color: INK }] } : {}) },
     draw: (s, pptx) => {
+      addSection(s, p.section);
       addClaude(s, p.claude, claudeAt);
       if (plan.kind === "panels" && p.panels) {
         // Claude's bullets, when there are any, in a strip under the panels.
@@ -385,7 +400,11 @@ function content(d: DeckSlide): TemplateSlide {
 
 /** The deck as .pptx bytes, on the Avnet template: the slides given, then the template's closing slide. */
 export async function buildDeck(title: string, slides: DeckSlide[]): Promise<Buffer> {
-  const out: TemplateSlide[] = slides.map((d) => (d.kind === "cover" ? cover(d.preview) : d.kind === "sources" ? sources(d.preview) : content(d)));
+  const out: TemplateSlide[] = slides.map((d) => {
+    const slide = d.kind === "cover" ? cover(d.preview) : d.kind === "sources" ? sources(d.preview) : content(d);
+    // The presenter reads the notes, not the footer: a mock slide's notes say it's mock.
+    return d.notes?.text ? { ...slide, notes: [t(d.notes.text), ...(d.mock ? ["This slide is on mock data, not Avnet's real results."] : []), notesLine(t(d.notes.date))] } : slide;
+  });
   out.push({ layout: chooseLayout("closing").n, slideNumber: false });
   return buildFromTemplate(out, { title });
 }
