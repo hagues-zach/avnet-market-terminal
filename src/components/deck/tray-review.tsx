@@ -16,6 +16,7 @@ import {
   isMock,
   sectionOk,
   setOrder,
+  slideNotes,
   slidePreview,
   summaryMatches,
   summaryPreview,
@@ -123,6 +124,8 @@ function Review({ items }: { items: TrayItem[] }) {
   const [printing, setPrinting] = useState(false);
   const [ai, setAi] = useState<AiState>({});
   const [order, setOrderState] = useState<OrderState>({});
+  // Open or closed for every slide: someone checking notes steps through the deck with them open.
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const selected = items.find((x) => x.id === selectedId) ?? items[0];
   const shipped = items.filter((x) => x.included);
@@ -131,6 +134,7 @@ function Review({ items }: { items: TrayItem[] }) {
   const number = selected.included ? shipped.indexOf(selected) + 1 : 0;
   const deckTitle = title.trim() || "Avnet market review";
   const written = shipped.filter((x) => x.commentary).length;
+  const withNotes = shipped.filter((x) => slideNotes(x)).length;
   // What ships after the cover: the summary, checked against the slides as they are now.
   const shippedSummary = summaryMatches(summary, items) ? summaryPreview(summary, items) : undefined;
 
@@ -182,6 +186,7 @@ function Review({ items }: { items: TrayItem[] }) {
           ? `Claude wrote commentary for ${got.length} of ${slides(sent.length)}. ${missing.map((x) => x.title).join(", ")} ${missing.length === 1 ? "keeps" : "keep"} the app's wording${plan.cleared.length ? ", and the earlier commentary there was cleared" : ""}.`
           : `Claude wrote commentary for ${slides(sent.length)}.`,
         plan.summary ? "The executive summary ships after the cover." : "No executive summary held up against the slides.",
+        got.length ? `Speaker notes on ${got.filter((x) => r.slides[x.id]?.notes).length} of ${slides(got.length)}, in the PowerPoint.` : "",
         "Check it before you ship.",
         saved === "unsaved" ? UNSAVED : "",
       ];
@@ -199,7 +204,7 @@ function Review({ items }: { items: TrayItem[] }) {
       if (!c) return setAi(failedWith(r, "Claude couldn't write this slide again just now.", id));
       const saved = setCommentary({ [id]: c });
       if (saved === "refused") return setAi({ slide: id, message: "Claude's commentary didn't fit the slide, so the old one stays. Try again.", tone: "error" });
-      setAi({ slide: id, message: `Written again. Check it before you ship.${saved === "unsaved" ? ` ${UNSAVED}` : ""}`, tone: "info" });
+      setAi({ slide: id, message: `Written again${c.notes ? ", with speaker notes" : ". No speaker notes held up against the slide"}. Check it before you ship.${saved === "unsaved" ? ` ${UNSAVED}` : ""}`, tone: "info" });
     } finally {
       setAi((a) => (a.busy === id ? { ...a, busy: undefined } : a));
     }
@@ -231,6 +236,8 @@ function Review({ items }: { items: TrayItem[] }) {
     setCommentary(ai.undo.byId, ai.undo.summary ?? null);
     if (ai.undo.sections) setSections(ai.undo.sections);
     setAi({ message: ai.undo.sections && Object.keys(ai.undo.sections).length ? "Commentary and section titles put back." : "Commentary put back.", tone: "info" });
+    // The Undo button goes; focus goes back to the deck's Claude actions.
+    requestAnimationFrame(() => writeRef.current?.focus());
   };
 
   const retry = () => (ai.slide ? rewrite(ai.slide) : writeAll());
@@ -467,6 +474,7 @@ function Review({ items }: { items: TrayItem[] }) {
           <figure className="mt-3" aria-busy={ai.busy === selected.id || undefined} aria-label={`Slide preview: ${slidePreview(selected, deckEv).headline}`}>
             <SlideFrame p={slidePreview(selected, deckEv)} mock={isMock(selected)} number={number} />
           </figure>
+          <SpeakerNotes item={selected} busy={ai.busy === selected.id || ai.busy === "deck"} open={notesOpen} onOpen={setNotesOpen} />
           <p className="mt-2 text-body-sm">
             <Link href={selected.from.href} className="text-ink underline underline-offset-2 hover:text-ink-muted">
               Opens on {selected.from.page}
@@ -613,6 +621,11 @@ function Review({ items }: { items: TrayItem[] }) {
               {slides(shipped.length)}, with a cover{shippedSummary ? ", Claude's executive summary" : ""} and the sources
             </li>
             {written > 0 && <li className="py-2">Claude&apos;s commentary on {written} of {slides(shipped.length)}</li>}
+            {withNotes > 0 ? (
+              <li className="py-2">Speaker notes on {withNotes} of {slides(shipped.length)}, in the PowerPoint only</li>
+            ) : (
+              written > 0 && <li className="py-2 text-ink-muted">No speaker notes on the slides yet</li>
+            )}
             <li className="flex items-center justify-between gap-2 py-2">
               <span>{mock ? `${slides(mock)} on mock data` : "Every slide on live data"}</span>
               {mock > 0 && <span className="bg-warning px-1 text-micro font-semibold text-ink">Mock data</span>}
@@ -625,8 +638,8 @@ function Review({ items }: { items: TrayItem[] }) {
             <div className="mt-1 space-y-2">
               {(
                 [
-                  ["pptx", "PowerPoint", "Avnet template, editable native charts"],
-                  ["pdf", "PDF", "One slide to a page. Choose Save as PDF in the print dialog"],
+                  ["pptx", "PowerPoint", `Avnet template, editable native charts${withNotes ? ", with Claude's speaker notes" : ""}`],
+                  ["pdf", "PDF", "One slide to a page. Speaker notes ship in the PowerPoint only. Choose Save as PDF in the print dialog"],
                 ] as const
               ).map(([value, name, about]) => (
                 <label
@@ -673,7 +686,7 @@ function Review({ items }: { items: TrayItem[] }) {
  * the charts are measured, then the print dialog opens, and it goes when the
  * dialog closes.
  */
-function PrintDeck({ items, summary, title, audience, onDone }: { items: TrayItem[]; summary?: DeckSummary; title: string; audience: string; onDone: () => void }) {
+export function PrintDeck({ items, summary, title, audience, onDone }: { items: TrayItem[]; summary?: DeckSummary; title: string; audience: string; onDone: () => void }) {
   const deck = trayDeckSlides(items, { title, audience, date: longDay(), summary });
   // Print once per mount, whatever the page re-renders in the meantime.
   const onDoneRef = useRef(onDone);
@@ -851,6 +864,48 @@ function OrderSkeleton() {
         <Skeleton key={i} className={cn("ml-6 h-4", i === 1 ? "w-2/3" : "w-[calc(100%-1.5rem)]")} />
       ))}
     </div>
+  );
+}
+
+/**
+ * The selected slide's speaker notes, as they ship in the PowerPoint (checked
+ * against the slide again), in a collapsed disclosure under its preview. They
+ * come and go with the slide's commentary: written, written again and cleared with it.
+ */
+function SpeakerNotes({ item, busy, open, onOpen }: { item: TrayItem; busy: boolean; open: boolean; onOpen: (open: boolean) => void }) {
+  const notes = slideNotes(item);
+  if (!item.commentary) return null;
+  const words = notes ? notes.text.split(/\s+/).length : 0;
+  // Commentary from before Phase 3 has no notes key; Phase 3 commentary always has one, empty when none held up.
+  const why =
+    item.commentary.notes === undefined
+      ? "This slide's commentary was written before Claude wrote speaker notes. Choose Write again under this slide in the list to add them."
+      : item.commentary.notes
+        ? "Claude's notes for this slide quote a figure the slide no longer shows, so none ship. Choose Write again under this slide in the list."
+        : "Claude's notes for this slide didn't hold up against its figures, so none ship. Choose Write again under this slide in the list to try again.";
+  return (
+    <details className="group mt-3 border-y border-hairline" open={open} onToggle={(e) => onOpen(e.currentTarget.open)} aria-busy={busy || undefined}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-2 text-body-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        <span>
+          Speaker notes<span className="font-normal text-ink-muted">{notes ? ` by Claude, ${words} words` : ", none for this slide"}</span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" strokeWidth={1.5} aria-hidden />
+      </summary>
+      <div className="pb-3">
+        {busy && <p className="mb-1.5 text-caption text-ink-muted">Claude is writing these notes again…</p>}
+        {notes ? (
+          <>
+            <p className={cn("max-w-prose text-body-sm", busy ? "text-ink-muted" : "text-ink")}>{notes.text}</p>
+            <p className="mt-1.5 text-caption text-ink-muted">
+              Written by Claude{notes.date ? ` on ${notes.date}` : ""}.{" "}
+              {item.included ? "Ships in the PowerPoint's speaker notes, not on the slide or in the PDF." : "This slide is left out of the deck, so these notes don't ship."} Check before presenting.
+            </p>
+          </>
+        ) : (
+          <p className="text-caption text-ink-muted">{why}</p>
+        )}
+      </div>
+    </details>
   );
 }
 

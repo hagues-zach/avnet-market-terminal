@@ -1,6 +1,6 @@
 import type PptxGenJS from "pptxgenjs";
 import { plainDashes } from "@/lib/ai/dashes";
-import { buildFromTemplate, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
+import { buildFromTemplate, xmlText, type Para, type TemplateSlide } from "@/lib/brand/pptx/assemble";
 import { chooseLayout, placeholder } from "@/lib/brand/pptx/layouts";
 import { AVNET, VIZ } from "@/lib/colors";
 import { AREA, barLabelWidth, barNameWidth, bulletsHeight, chartTitle, layoutPanels, linesInSide, PANEL_BULLETS, planSlide, SIDE, SIDE_LINES, withChart, type Callout, type SlidePlan } from "./layout";
@@ -22,7 +22,12 @@ export interface DeckSlide {
   /** Reads any mock source: the footer says "Mock data". */
   mock: boolean;
   kind?: "cover" | "content" | "sources";
+  /** Claude's speaker notes (Phase 3), already grounded: written into the slide's notes page with Claude's line. */
+  notes?: { text: string; date: string };
 }
+
+/** The last line of every slide's notes from Claude. */
+export const notesLine = (date: string) => `Notes written by Claude${date ? `, ${date}` : ""}. Check before presenting.`;
 
 const BODY = "Arial"; // the template's theme font, headings and body
 const INK = AVNET.ink.slice(1);
@@ -36,7 +41,7 @@ const COLOR: Record<SeriesWho, string> = {
   company: hex(AVNET.grayDark),
   market: hex(VIZ.benchmark),
 };
-const t = (s?: string) => plainDashes(s ?? "");
+const t = (s?: string) => xmlText(plainDashes(s ?? ""));
 
 // The template's body levels: level 0 is a key statement (bold, green on most
 // layouts), level 1 the supporting points with the template's green square
@@ -395,7 +400,11 @@ function content(d: DeckSlide): TemplateSlide {
 
 /** The deck as .pptx bytes, on the Avnet template: the slides given, then the template's closing slide. */
 export async function buildDeck(title: string, slides: DeckSlide[]): Promise<Buffer> {
-  const out: TemplateSlide[] = slides.map((d) => (d.kind === "cover" ? cover(d.preview) : d.kind === "sources" ? sources(d.preview) : content(d)));
+  const out: TemplateSlide[] = slides.map((d) => {
+    const slide = d.kind === "cover" ? cover(d.preview) : d.kind === "sources" ? sources(d.preview) : content(d);
+    // The presenter reads the notes, not the footer: a mock slide's notes say it's mock.
+    return d.notes?.text ? { ...slide, notes: [t(d.notes.text), ...(d.mock ? ["This slide is on mock data, not Avnet's real results."] : []), notesLine(t(d.notes.date))] } : slide;
+  });
   out.push({ layout: chooseLayout("closing").n, slideNumber: false });
   return buildFromTemplate(out, { title });
 }

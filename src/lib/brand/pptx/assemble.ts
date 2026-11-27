@@ -44,6 +44,8 @@ export interface TemplateSlide {
   draw?: (slide: PptxGenJS.Slide, pptx: PptxGenJS) => void;
   /** Adds the layout's slide number placeholder. Default true when the layout has one. */
   slideNumber?: boolean;
+  /** Speaker notes, one paragraph each, written to the slide's notes page on the template's notes master. */
+  notes?: string[];
 }
 
 export const layoutByNumber = (n: number): Layout => {
@@ -54,7 +56,9 @@ export const layoutByNumber = (n: number): Layout => {
 
 /* ---------- XML helpers ---------- */
 
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/** XML text: control characters out (XML 1.0 can't hold them, and PowerPoint would ask to repair the file), then escaped. */
+export const xmlText = (s: string) => s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+const esc = (s: string) => xmlText(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const NS =
   'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
 const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -62,7 +66,18 @@ const CT = {
   slide: "application/vnd.openxmlformats-officedocument.presentationml.slide+xml",
   chart: "application/vnd.openxmlformats-officedocument.drawingml.chart+xml",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  notes: "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml",
 };
+
+/**
+ * A slide's notes page: the slide's picture and the notes, placed by the
+ * template's notes master. pptxgenjs's own notes pages stay on its scratch deck,
+ * which isn't shipped, so the notes are written here.
+ */
+function notesXml(paras: string[]): string {
+  const body = paras.map((p) => `<a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>${esc(plainDashes(p))}</a:t></a:r></a:p>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:notes ${NS}><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/><p:sp><p:nvSpPr><p:cNvPr id="2" name="Slide Image Placeholder 1"/><p:cNvSpPr><a:spLocks noGrp="1" noRot="1" noChangeAspect="1"/></p:cNvSpPr><p:nvPr><p:ph type="sldImg" idx="2"/></p:nvPr></p:nvSpPr><p:spPr/></p:sp><p:sp><p:nvSpPr><p:cNvPr id="3" name="Notes Placeholder 2"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="body" sz="quarter" idx="3"/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>${body}</p:txBody></p:sp></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:notes>`;
+}
 
 function runXml(r: Run): string {
   const attrs = [`lang="en-US"`, r.size ? `sz="${Math.round(r.size * 100)}"` : "", r.bold ? `b="1"` : r.bold === false ? `b="0"` : "", r.italic ? `i="1"` : "", `dirty="0"`].filter(Boolean).join(" ");
@@ -278,6 +293,20 @@ export async function buildFromTemplate(slides: TemplateSlide[], meta: { title: 
       // pptxgenjs repeats shape ids; every shape on a slide needs its own.
       shapes = shapes.replace(/<p:cNvPr id="\d+"/g, () => `<p:cNvPr id="${shapeId++}"`);
       parts.push(shapes);
+    }
+
+    const notes = s.notes?.filter((x) => x.trim());
+    // The template's one notes master places the notes; without it (another template) the notes are left off.
+    if (notes?.length && zip.file("ppt/notesMasters/notesMaster1.xml")) {
+      zip.file(`ppt/notesSlides/notesSlide${n}.xml`, notesXml(notes));
+      zip.file(
+        `ppt/notesSlides/_rels/notesSlide${n}.xml.rels`,
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/notesMaster" Target="../notesMasters/notesMaster1.xml"/><Relationship Id="rId2" Type="${REL}/slide" Target="../slides/slide${n}.xml"/></Relationships>`,
+      );
+      types.xml = types.xml.replace("</Types>", `<Override PartName="/ppt/notesSlides/notesSlide${n}.xml" ContentType="${CT.notes}"/></Types>`);
+      // Past the highest id this slide uses: the drawn parts' ids can skip numbers.
+      const free = Math.max(...rels.map((r) => Number(/Id="rId(\d+)"/.exec(r)?.[1] ?? 0))) + 1;
+      rels.push(`<Relationship Id="rId${free}" Type="${REL}/notesSlide" Target="../notesSlides/notesSlide${n}.xml"/>`);
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<p:sld ${NS}><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${parts.join("")}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;

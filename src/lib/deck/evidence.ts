@@ -169,6 +169,9 @@ const minusSigns = (s: string) => s.replace(/(^|[\s(])[–—](?=\$?\d)/g, "$1�
 /** Claude's text tidied: whitespace, leading bullets, dashes (keeping a minus). Pure. */
 export const tidy = (raw: string) => plainDashes(minusSigns(raw.replace(/\s+/g, " ").trim().replace(/^[-•*]\s+/, "")));
 
+/** Text split into sentences, at a stop followed by a capital, a quote or a bracket. Pure. */
+export const sentences = (s: string) => s.split(/(?<=[.!?])\s+(?=[A-Z"“(])/).filter(Boolean);
+
 /** Cut to `n` characters at a word, never through a figure. Pure. */
 export function cutWords(s: string, n: number): string {
   if (s.length <= n) return s;

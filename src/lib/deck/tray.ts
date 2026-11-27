@@ -9,7 +9,8 @@
 // beyond its shape and size.
 import { z } from "zod";
 import { HOOKUPS, type Hookup } from "@/lib/hookups";
-import { evidenceOf, groundPiece } from "./evidence";
+import { evidenceOf, groundPiece, sentences } from "./evidence";
+import { planSlide, withChart } from "./layout";
 import type { Preview, SlideId } from "./outline";
 import type { DeckSlide } from "./pptx";
 
@@ -126,7 +127,54 @@ export const PreviewSchema = z.object({
 }) satisfies z.ZodType<Preview>;
 
 /** The most Claude's commentary on one slide may hold, so saved commentary always passes the schema. */
-export const COMMENTARY = { headline: 240, text: 600, bullet: 240, bullets: 4, summaryLine: 300, summaryLines: 5 } as const;
+export const COMMENTARY = { headline: 240, text: 600, bullet: 240, bullets: 4, summaryLine: 300, summaryLines: 5, notes: 1200, notesWords: 160 } as const;
+
+/**
+ * The most bullets Claude's commentary may put on a slide: three on a chart slide
+ * whose side panel holds two or more key figures (four would crowd the chart into
+ * a strip), otherwise four. linesInSide still decides where they go. Pure.
+ */
+export function bulletsMax(p: Preview): number {
+  const plan = planSlide(withChart(p));
+  return plan.kind === "chart" && plan.side && plan.callouts.length >= 2 ? 3 : COMMENTARY.bullets;
+}
+
+// Quantities written as words: counts past ten, fractions and multiples. Counts up to ten are left out, as the
+// figure check leaves bare digits up to 10 ("the two leaders" counts what the slide shows).
+const NUMBER_WORDS =
+  /\b(?:eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|dozen|half|halved|halves|a\s+third|a\s+quarter|three\s+quarters|twice|double|doubled|doubling|triple|tripled|tripling|\w+fold)\b/gi;
+
+/** The quantities in text written as words, lower case. Pure. */
+export const numberWords = (text: string) => [...new Set([...text.matchAll(NUMBER_WORDS)].map((m) => m[0].toLowerCase().replace(/\s+/g, " ")))];
+
+/**
+ * Speaker notes, grounded sentence by sentence against the slide's evidence: a
+ * sentence with a figure the slide lacks is dropped (noted in `dropped`), the
+ * rest kept in order, whole sentences only, within the notes' limits. "" when
+ * nothing survives. Pure.
+ */
+export function groundNotes(raw: string, evidence: string, dropped?: string[], where = ""): string {
+  const kept: string[] = [];
+  let words = 0;
+  let size = 0;
+  for (const sentence of sentences(raw.replace(/\s+/g, " ").trim())) {
+    const g = groundPiece(sentence, evidence, dropped, where);
+    if (!g) continue;
+    // Spoken notes reach for number words ("a quarter", "doubled", "twelve weeks"): a quantity in words
+    // the slide doesn't state is a converted figure, so the sentence goes.
+    const said = numberWords(g).filter((w) => !new RegExp(`\\b${w.replace(/\s+/g, "\\s+")}\\b`, "i").test(evidence));
+    if (said.length) {
+      dropped?.push(`${where ? `${where}: ` : ""}${g} [${said.join(", ")}]`);
+      continue;
+    }
+    const n = g.split(/\s+/).length;
+    if (words + n > COMMENTARY.notesWords || size + g.length + 1 > COMMENTARY.notes) break;
+    kept.push(g);
+    words += n;
+    size += g.length + 1;
+  }
+  return kept.join(" ");
+}
 
 /**
  * Claude's commentary on one slide (Phase 2): a headline that makes the point, one
@@ -141,6 +189,8 @@ export const CommentarySchema = z.object({
   headline: text(COMMENTARY.headline),
   text: text(COMMENTARY.text).optional(),
   bullets: z.array(text(COMMENTARY.bullet)).max(COMMENTARY.bullets),
+  /** Speaker notes (Phase 3): what to say aloud. Commentary saved before Phase 3 has none. */
+  notes: text(COMMENTARY.notes).optional(),
   writtenAt: Ymd,
   /** The reader's point it was written from, so the page can say when the point has changed since. */
   forNote: text(300).optional(),
@@ -348,7 +398,7 @@ function commentaryPreview(item: Pick<TrayItem, "preview" | "note" | "commentary
     const ev = evidenceOf(p);
     const head = groundPiece(c.headline, ev);
     const text = c.text ? groundPiece(c.text, ev) : "";
-    const bullets = p.groups?.length ? [] : c.bullets.map((b) => groundPiece(b, ev)).filter(Boolean);
+    const bullets = p.groups?.length ? [] : c.bullets.map((b) => groundPiece(b, ev)).filter(Boolean).slice(0, bulletsMax(p));
     // A headline that was the reader's point follows the point as it is now.
     const claudeHead = c.headlineFrom === "note" || c.headlineFrom === "card" ? "" : head;
     if (claudeHead || text || bullets.length)
@@ -361,6 +411,20 @@ function commentaryPreview(item: Pick<TrayItem, "preview" | "note" | "commentary
       };
   }
   return note ? { ...item.preview, headline: note } : item.preview;
+}
+
+export const CLAUDE_NOTES = "Notes written by Claude";
+
+/**
+ * A slide's speaker notes as they ship: Claude's, checked again sentence by
+ * sentence against the slide, with the day they were written; none when there
+ * are none or nothing holds up. Pure.
+ */
+export function slideNotes(item: Pick<TrayItem, "preview" | "commentary">): { text: string; date: string } | undefined {
+  const c = item.commentary;
+  if (!c?.notes) return undefined;
+  const text = groundNotes(c.notes, evidenceOf(item.preview));
+  return text ? { text, date: writtenDate(c.writtenAt) } : undefined;
 }
 
 /** True when the summary was written from exactly these slides, in this order, as added then. */
@@ -445,7 +509,10 @@ export function trayDeckSlides(
   return [
     { kind: "cover", mock: false, preview: { headline: title, text: `${audience}, ${date}`, source: "This deck" } },
     ...(sum ? [{ mock, preview: sum }] : []),
-    ...shipped.map((x) => ({ mock: isMock(x, register), preview: slidePreview(x, deckEv) })),
+    ...shipped.map((x) => {
+      const notes = slideNotes(x);
+      return { mock: isMock(x, register), preview: slidePreview(x, deckEv), ...(notes ? { notes } : {}) };
+    }),
     { kind: "sources", mock: false, preview: traySources(shipped, register) },
   ];
 }

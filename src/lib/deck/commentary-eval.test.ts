@@ -28,7 +28,7 @@ async function main() {
   const answer = goodAnswer(input);
   answer.slides[0].headline = "Distribution's share grew 3.2 points this year";
   answer.slides[1].headline = "Arrow and WPG lead distributor revenue while Avnet sits close behind them and the rest trail far back";
-  answer.slides[2] = { ...answer.slides[2], headline: "Up 44.4%", text: "Down 9.9%.", bullets: ["17.7% better"] };
+  answer.slides[2] = { ...answer.slides[2], headline: "Up 44.4%", text: "Down 9.9%.", bullets: ["17.7% better"], notes: "" };
   answer.slides[3].bullets = ["Both improved each quarter."];
   answer.summary = ["Arrow leads at $28.1B."];
   const r = checkDeck("planted", input, await writeDeckCommentary(input, { client: fakeClient(answer) }));

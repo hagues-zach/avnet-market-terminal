@@ -28,3 +28,28 @@ One line per decision, with the option not taken. Review findings I rejected are
 - The page's Claude block is now headed "Claude", with Write commentary and Suggest an order side by side, and the proposal shows under the buttons with its own live status line.
 - Milestone 1 UI audit: all 15 findings fixed. Worth noting: a move by hand after Apply removes "Undo order", since undoing would also undo the hand moves (not taken: an Undo that says what it resets). Claude being off, learnt by either button, now turns off both. The two Undo buttons are "Undo clear" and "Undo order".
 - Milestone 1 correctness review: all seven findings fixed. Applying an order now always removes the included slides' old section titles, adding Claude's new ones only when ticked (`applyStoryline` in `tray.ts`, tested). `arrange()` refuses a tray that wouldn't pass `TraySchema`. The list says when a saved section title won't ship. Reasons over 20 words are dropped. The SDK's parse errors get a plain message. "Undo order" works only while the included slides are still in Claude's order.
+
+
+## Milestone 2: speaker notes
+
+- Notes pages are written by `assemble.ts` on the template's own notes master (`notesMaster1.xml`, already linked from `presentation.xml`), because the assembler keeps only shapes, charts and images from pptxgenjs's scratch deck: `addNotes` would never reach the shipped file. Checked in Keynote: every content slide's presenter notes read back, with Claude's line last.
+- The commentary call's slide ids are plain strings with the ids as a hint, as in Milestone 1. `toCommentary` already ignored ids it didn't send.
+- Notes are capped at 160 words and 1,200 characters, cut at whole sentences.
+- From Phase 3 on, commentary always has a `notes` key, empty when nothing held up. The page uses that to tell "written before notes existed" (no key) from "Claude's notes didn't hold up" (empty).
+- A slide's commentary holds up only when its headline, sentence or a bullet does. Notes alone don't count (milestone 2 review, finding 1): otherwise a rewrite with only notes surviving would replace good on-slide commentary with the app's wording.
+- Spoken notes reach for number words, so `groundNotes` also drops a sentence with a fraction, a multiple or a count above ten in words ("a quarter", "doubled", "twelve") that the slide doesn't state. Counts up to ten pass, as bare digits up to 10 already do. This applies to notes only. Not taken: the same check on headlines and bullets, which would change Phase 2's grounding (one Phase 2 fixture headline says "a quarter of"). See the report's open questions.
+- A mock slide's notes get a line "This slide is on mock data, not Avnet's real results." before Claude's line, since the presenter reads the notes, not the footer.
+- Control characters and lone surrogates are stripped from all text written into the PowerPoint (`xmlText` in `assemble.ts`, also used by `pptx.ts`), so a hand-edited tray can't make the file unreadable.
+- The three-bullet limit (Milestone 3, item 2) is built here, since it lives in the same call: `bulletsMax()` in `tray.ts` gives three on a chart slide with a side panel and two or more key figures, otherwise four. The prompt marks those slides `bullets_max="3"`, `toCommentary` enforces it, and `slidePreview` enforces it again for trays saved in Phase 2.
+- The speaker-notes disclosure's open state is held by the page, so it stays open while the reader steps through slides.
+- `PrintDeck` is exported so the notes test can render it and check that no notes reach the PDF.
+- Milestone 2 UI audit: all ten findings fixed. Milestone 2 correctness review: all six findings fixed.
+- The browser checks after the first stop ran on this session's own dev server (the other session's server had stopped). The speaker-notes screenshot uses a fixture tray loaded into localStorage, so no Claude call; your tray was backed up first and put back byte for byte.
+
+## Where the run stopped (usage limit, 2026-11-26)
+
+- Milestone 1 is committed and pushed (eaf7c82, `claude/deck-storyline`). No PR yet.
+- Milestone 2 (speaker notes) was built but uncommitted at that point. When the run resumed it was reviewed, fixed and committed.
+- Milestone 2 decisions: notes pages are written by `assemble.ts` on the template's notes master, because the assembler drops pptxgenjs's own notes pages (`addNotes` would never reach the file). The commentary call's slide ids are plain strings with an id hint, the same fix as the storyline. Notes are capped at 160 words or 1,200 characters, cut at whole sentences.
+- Browser check, live, against the dev server another session started on port 3002 (same folder): Suggest an order returned a valid five-slide order, a reason per move and two section titles. Focus went to the proposal. Apply reordered the tray, saved the titles, moved focus back to the button and flagged the summary as stale. The tray in localStorage was backed up first and put back afterwards. Screenshot: `docs/design/deck-tray/phase-3/1-suggested-order.jpg` (uncommitted).
+- Not started: Milestone 3 (filler prompt, the eval's filler, storyline and notes checks, the three live eval runs), security review, the PR, Auto-fix, the report.
