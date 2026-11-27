@@ -46,13 +46,13 @@ One line per decision, with the option not taken. Review findings I rejected are
 - Milestone 2 UI audit: all ten findings fixed. Milestone 2 correctness review: all six findings fixed.
 - The browser checks after the first stop ran on this session's own dev server (the other session's server had stopped). The speaker-notes screenshot uses a fixture tray loaded into localStorage, so no Claude call; your tray was backed up first and put back byte for byte.
 
-## Where the run stopped (usage limit, 2026-11-26)
+## Where the run paused (usage limit, 2026-11-26), and resumed the same day
 
 - Milestone 1 is committed and pushed (eaf7c82, `claude/deck-storyline`). No PR yet.
 - Milestone 2 (speaker notes) was built but uncommitted at that point. When the run resumed it was reviewed, fixed and committed.
 - Milestone 2 decisions: notes pages are written by `assemble.ts` on the template's notes master, because the assembler drops pptxgenjs's own notes pages (`addNotes` would never reach the file). The commentary call's slide ids are plain strings with an id hint, the same fix as the storyline. Notes are capped at 160 words or 1,200 characters, cut at whole sentences.
 - Browser check, live, against the dev server another session started on port 3002 (same folder): Suggest an order returned a valid five-slide order, a reason per move and two section titles. Focus went to the proposal. Apply reordered the tray, saved the titles, moved focus back to the button and flagged the summary as stale. The tray in localStorage was backed up first and put back afterwards. Screenshot: `docs/design/deck-tray/phase-3/1-suggested-order.jpg` (uncommitted).
-- Not started: Milestone 3 (filler prompt, the eval's filler, storyline and notes checks, the three live eval runs), security review, the PR, Auto-fix, the report.
+- At the pause, Milestone 3, the security review, the PR and the report were not started. All were done after the run resumed.
 
 ## Milestone 3: rough edges and the eval
 
@@ -65,3 +65,8 @@ One line per decision, with the option not taken. Review findings I rejected are
 - One known limit of the filler check, kept because it is what the brief specifies: a generic line that happens to use a label word passes ("watch share closely" on a share slide).
 - After run 3's runaway answer, the commentary call's `max_tokens` scales with the deck (`maxTokens(n)` = 1,500 + 900 a slide, at most 16,000). Not taken: a fourth live run to check it, which the brief's limit of three rules out.
 - Run 3's raw answers are committed as `deck-tray-phase-3-eval-run3.json`, so the checks can be re-run on them if they change.
+
+## Security review and PR
+
+- The `security-review` skill found no vulnerabilities. It checked the notes XML escaping, the storyline route's validation, the cache keys, rendering and the auth gate's coverage.
+- PR #71 targets `main`, is bound to this session, and has Auto-fix on.
