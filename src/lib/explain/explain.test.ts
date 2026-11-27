@@ -4,6 +4,22 @@ import { PERFORMANCE } from "@/lib/shells/mock-avnet";
 import { GLOSSARY } from "@/lib/learn/content";
 import { bandOf, quartersAboveOne, readBookToBill, scalePosition } from "./book-to-bill";
 import { EXPLAINERS, explainer } from "./registry";
+import {
+  epsSteps,
+  freeCashFlowSteps,
+  grossMarginSteps,
+  impliedShares,
+  inventoryScale,
+  operatingMarginSteps,
+  readEps,
+  readFreeCashFlow,
+  readGrossMargin,
+  readInventoryDays,
+  readOperatingMargin,
+  readRevenueGrowth,
+  type FinQuarter,
+  type Subject,
+} from "./financials";
 import { count, funnel, position, shareOfFirst, waterfall, weakestStep } from "./diagrams";
 
 // Bands: the flat band is 0.98 to 1.02, inclusive at both ends.
@@ -137,5 +153,85 @@ for (const t of [
   assert.ok(g, t);
   assert.ok(!/[/·—–]/.test(g.definition), g.definition);
 }
+
+// Financial explainers. Amounts are in dollars, as the earnings model keeps them.
+const avnet: Subject = { name: "Avnet", slug: "avnet", group: "distributor" };
+const B = 1e9;
+const M = 1e6;
+const fq: FinQuarter = {
+  label: "FY26 Q4",
+  v: {
+    revenue: 5.9 * B,
+    grossProfit: 0.65 * B,
+    grossMargin: 0.65 / 5.9,
+    operatingIncome: 0.22 * B,
+    operatingMargin: 0.22 / 5.9,
+    netIncome: 0.12 * B,
+    epsDiluted: 1.35,
+    operatingCashFlow: 0.4 * B,
+    capex: 40 * M,
+    freeCashFlow: 0.36 * B,
+    inventoryDays: 98.4,
+    revenueYoY: -0.04,
+  },
+  yearAgo: { label: "FY25 Q4", revenue: 5.9 * B / 0.96, inventoryDays: 86 },
+};
+
+const gm = readGrossMargin(fq, avnet)!;
+assert.equal(gm.lead, "Avnet kept 11 cents of every revenue dollar after the cost of what it sold.");
+assert.equal(gm.sentence, "In FY26 Q4, revenue of $5.90B less cost of sales of $5.25B left gross profit of $650M, a gross margin of 11.0%.");
+assert.ok(gm.note?.startsWith("Distributors"));
+assert.deepEqual(grossMarginSteps(fq)!.map((x) => x.value), [5.9 * B, 0.65 * B - 5.9 * B, 0.65 * B]);
+// Under ten cents is spelled out.
+assert.ok(readGrossMargin({ label: "Q", v: { revenue: 100, grossProfit: 8, grossMargin: 0.08 } }, avnet)!.lead.includes("eight cents"));
+assert.equal(readGrossMargin({ label: "Q", v: { revenue: 100 } }, avnet), null);
+
+const om = readOperatingMargin(fq, avnet)!;
+assert.equal(om.lead, "Avnet kept four cents of every revenue dollar after running the business.");
+assert.ok(om.sentence.includes("operating costs of $430M left operating profit of $220M"));
+assert.equal(operatingMarginSteps(fq)!.at(-1)!.label, "Operating profit");
+const lossQ: FinQuarter = { label: "Q", v: { revenue: 100 * M, grossProfit: 20 * M, operatingIncome: -5 * M, operatingMargin: -0.05 } };
+assert.equal(operatingMarginSteps(lossQ)!.at(-1)!.label, "Operating loss");
+assert.ok(readOperatingMargin(lossQ, avnet)!.lead.includes("ran at a loss"));
+
+const fcf = readFreeCashFlow(fq, avnet)!;
+assert.equal(fcf.lead, "Avnet brought in $360M of cash after paying for its equipment and buildings.");
+assert.equal(fcf.sentence, "In FY26 Q4, cash from operations of $400M less capital spending of $40M left free cash flow of $360M.");
+// The teaching moment: a distributor making cash while revenue falls.
+assert.ok(fcf.note?.includes("releases cash in a downturn"));
+assert.equal(readFreeCashFlow(fq, { ...avnet, group: "chipMaker" })!.note, undefined);
+assert.deepEqual(freeCashFlowSteps(fq)!.map((x) => x.value), [0.4 * B, -40 * M, 0.36 * B]);
+const burn = readFreeCashFlow({ label: "Q", v: { operatingCashFlow: -50 * M, capex: 10 * M, freeCashFlow: -60 * M, revenueYoY: 0.2 } }, avnet)!;
+assert.equal(burn.lead, "Avnet paid out $60M more than its operations brought in.");
+assert.ok(burn.note?.includes("inventory that growth needs"));
+
+const eps = readEps(fq, avnet)!;
+assert.equal(eps.lead, "Avnet earned $1.35 for each share in FY26 Q4.");
+assert.ok(eps.sentence.includes("over about 89 million diluted shares"));
+assert.equal(eps.note, undefined);
+assert.ok(readEps({ ...fq, epsDerived: true }, avnet)!.note?.includes("approximate"));
+assert.equal(impliedShares(100, 0), null);
+assert.equal(impliedShares(-100 * M, 1), null);
+assert.equal(epsSteps(fq)!.at(-1)!.label, "Net income");
+
+const inv = readInventoryDays(fq, avnet)!;
+assert.equal(inv.lead, "Avnet's inventory would last 98 days at its current rate of sales.");
+assert.equal(inv.sentence, "In FY26 Q4, Avnet held 98 days of inventory, up 12 days on FY25 Q4.");
+assert.ok(inv.note?.includes("warning sign"));
+assert.equal(readInventoryDays({ ...fq, yearAgo: { label: "FY25 Q4", inventoryDays: 97 } }, avnet)!.note, undefined);
+assert.deepEqual(inventoryScale([72, 104]), { min: 60, max: 120 });
+assert.deepEqual(inventoryScale([200]), { min: 70, max: 220 });
+
+const rg = readRevenueGrowth(fq, avnet)!;
+assert.equal(rg.lead, "Revenue was down 4.0% on the same quarter a year ago.");
+assert.equal(rg.gapText, "$246M less than a year ago");
+assert.ok(rg.note?.includes("seasons"));
+// A foreign filer's local currency growth differs from the dollar bars.
+assert.ok(readRevenueGrowth({ ...fq, v: { ...fq.v, revenueYoY: 0.03 } }, { name: "WPG", slug: "wpg", group: "distributor" })!.note?.includes("own currency"));
+assert.equal(readRevenueGrowth({ label: "Q", v: { revenue: 1 } }, avnet), null);
+
+// Copy rules hold in every financial sentence.
+const fin = [gm, om, fcf, burn, eps, inv, rg].flatMap((r) => [r.lead, r.sentence, r.note ?? ""]);
+for (const t of fin) assert.ok(!/[/·—–]/.test(t), t);
 
 console.log("explain: all tests passed");

@@ -24,6 +24,8 @@ import { getCarriers } from "@/lib/line-cards/analysis";
 import { isHidden } from "@/lib/visibility";
 import { companyColor } from "@/lib/colors";
 import { Panel, SourceLine } from "@/components/ui/panel";
+import { ExplainFinancial, type FinKind } from "@/components/explain/financials";
+import { finQuarters, subjectOf } from "@/lib/explain/financials-data";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { BetaChip, Chip, DataChip } from "@/components/ui/chip";
 import { HookupMarker } from "@/components/ui/hookup-marker";
@@ -221,6 +223,9 @@ export async function ProfileOverview({ company }: { company: Company }) {
   const color = companyColor(company.slug);
   const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
   const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
+  // Explainers step through quarters, so half-yearly reporters don't get them yet.
+  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings), subject: subjectOf(company), source: sourceOf(company).short };
+  const explain = (kind: FinKind) => (fin ? <ExplainFinancial kind={kind} {...fin} /> : undefined);
   const footer = <SourceLine source={sourceOf(company).filings} asOf={`${company.cadence === "half" ? "half" : "quarter"} ended ${longDate(q.end)}`} />;
 
   return (
@@ -231,18 +236,21 @@ export async function ProfileOverview({ company }: { company: Company }) {
           value={format("usd", v.revenue)}
           caveat={caveat("revenue")}
           delta={v.revenueYoY === undefined ? undefined : { value: v.revenueYoY, period: "YoY" }}
+          explain={explain("revenueGrowth")}
         />
         <KpiTile
           label="Gross margin"
           value={format("pct", v.grossMargin)}
           caveat={caveat("grossMargin")}
+          explain={explain("grossMargin")}
           delta={gmDelta === undefined ? undefined : { value: gmDelta, display: `${(Math.abs(gmDelta) * 100).toFixed(1)} pts`, period: "YoY" }}
         />
-        <KpiTile label="Operating margin" value={format("pct", v.operatingMargin)} caveat={caveat("operatingMargin")} />
+        <KpiTile label="Operating margin" value={format("pct", v.operatingMargin)} caveat={caveat("operatingMargin")} explain={explain("operatingMargin")} />
         <KpiTile
           label="Inventory days"
           value={format("days", v.inventoryDays)}
           caveat={caveat("inventoryDays")}
+          explain={explain("inventoryDays")}
           note={v.inventoryDays === undefined ? "Not reported" : undefined}
           delta={invDelta === undefined || invDelta === 0 ? undefined : { value: invDelta, display: `${Math.abs(invDelta)}`, period: "YoY", invert: true }}
         />

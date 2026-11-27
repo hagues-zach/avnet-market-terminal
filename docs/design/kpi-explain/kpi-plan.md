@@ -41,7 +41,14 @@ Also in Step 0, add the missing glossary terms. They also help the Learning Cent
 
 The glossary already has Book-to-bill, Backlog, Inventory days, Cash conversion cycle, Market share, TAM, SAM, SOM, DRMS, DRMS status 04 and Code map.
 
-## Phase 1: financial KPIs (highest reach: company profiles, earnings, cycle)
+## Phase 1: financial KPIs (built 2026-11-27, branch `claude/kpi-explain-financials`)
+Built as one component, `ExplainFinancial` (`src/components/explain/financials.tsx`), with a `kind` per tile, on the shared `ExplainFrame` (`frame.tsx`). Rules are in `src/lib/explain/financials.ts`; `financials-data.ts` builds the quarters on the server with the tiles' comparability rule, so the explainer never shows a figure the tile hides. Wired into the earnings tiles on US filers' profiles (Revenue growth, Gross margin, Operating margin, Diluted EPS, Free cash flow) and the overview tiles on foreign filers' profiles (Revenue, Gross margin, Operating margin, Inventory days). Not done:
+- Half-yearly reporters (RS Group and other ESEF filers) get no explainers yet, since the copy and stepper speak of quarters.
+- `cycle-view.tsx` uses `Measure`, not `KpiTile`, so its Inventory days has no mark.
+- "Growth a year" on the scenario modeler is a compounded scenario rate, not revenue growth; it belongs with Phase 3's "Against holding share".
+- No peer comparison (open question 1 below); the gross margin note names the group to compare with instead.
+
+### Phase 1 as planned
 These appear for every company, so one explainer covers about 40 profiles.
 
 | KPI tile | Where | Diagram | The one idea it must land |

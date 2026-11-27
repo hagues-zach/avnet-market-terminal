@@ -4,6 +4,8 @@ import { comparability, comparableValue, sourceOf, type CompanyEarnings, type Me
 import { CaveatMark } from "@/components/ui/caveat-mark";
 import { yearAgo } from "@/lib/earnings/season";
 import { KpiTile } from "@/components/ui/kpi-tile";
+import { ExplainFinancial, type FinKind } from "@/components/explain/financials";
+import { finQuarters, subjectOf } from "@/lib/explain/financials-data";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState } from "@/components/ui/states";
 import { ChartButton } from "@/components/chart-view/chart-button";
@@ -50,6 +52,9 @@ export function CompanyResults({ earnings }: { earnings: CompanyEarnings }) {
   const epsChange = change(v.epsDiluted, p.epsDiluted);
   const fcfChange = change(v.freeCashFlow, p.freeCashFlow);
   const revChange = rel(v.revenue, p.revenue);
+  // Explainers step through quarters, so half-yearly reporters don't get them yet.
+  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings), subject: subjectOf(company), source: sourceOf(company).short };
+  const explain = (kind: FinKind) => (fin ? <ExplainFinancial kind={kind} {...fin} /> : undefined);
 
   return (
     <>
@@ -77,27 +82,32 @@ export function CompanyResults({ earnings }: { earnings: CompanyEarnings }) {
         <KpiTile
           label="Revenue growth" caveat={caveat("revenueYoY")}
           value={format("growth", v.revenueYoY)}
+          explain={explain("revenueGrowth")}
           delta={growthChange !== undefined ? { value: growthChange, display: pts(growthChange), period: "YoY" } : undefined}
         />
         <KpiTile
           label="Gross margin" caveat={caveat("grossMargin")}
           value={format("pct", v.grossMargin)}
+          explain={explain("grossMargin")}
           delta={grossChange !== undefined ? { value: grossChange, display: pts(grossChange), period: "YoY" } : undefined}
         />
         <KpiTile
           label="Operating margin" caveat={caveat("operatingMargin")}
           value={format("pct", v.operatingMargin)}
+          explain={explain("operatingMargin")}
           delta={opChange !== undefined ? { value: opChange, display: pts(opChange), period: "YoY" } : undefined}
         />
         <KpiTile
           label="Diluted EPS" caveat={caveat("epsDiluted")}
           value={format("eps", v.epsDiluted)}
+          explain={explain("eps")}
           note={latest.backedOut.includes("epsDiluted") ? "derived" : undefined}
           delta={epsChange !== undefined ? { value: epsChange, display: format("eps", Math.abs(epsChange)), period: "YoY" } : undefined}
         />
         <KpiTile
           label="Free cash flow" caveat={caveat("freeCashFlow")}
           value={format("usd", v.freeCashFlow)}
+          explain={explain("freeCashFlow")}
           delta={fcfChange !== undefined ? { value: fcfChange, display: format("usd", Math.abs(fcfChange)), period: "YoY" } : undefined}
         />
       </div>

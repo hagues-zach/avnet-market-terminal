@@ -15,6 +15,22 @@ export interface Explainer {
 
 const ENTRIES: Omit<Explainer, "definition">[] = [
   { term: "Book-to-bill", name: "Book-to-bill", formula: "Bookings ÷ billings", learnHref: "/learn#glossary" },
+  { term: "Gross margin", name: "Gross margin", formula: "Gross profit ÷ revenue", learnHref: "/learn#glossary" },
+  { term: "Operating margin", name: "Operating margin", formula: "Operating profit ÷ revenue", learnHref: "/learn#glossary" },
+  {
+    term: "Inventory days",
+    name: "Inventory days",
+    formula: "Inventory ÷ cost of sales × days in the quarter",
+    learnHref: "/learn#glossary",
+  },
+  {
+    term: "Revenue growth (year on year)",
+    name: "Revenue growth",
+    formula: "Revenue ÷ revenue a year earlier, less one",
+    learnHref: "/learn#glossary",
+  },
+  { term: "Free cash flow", name: "Free cash flow", formula: "Cash from operations less capital spending", learnHref: "/learn#glossary" },
+  { term: "Diluted EPS", name: "Diluted EPS", formula: "Net income ÷ diluted shares", learnHref: "/learn#glossary" },
 ];
 
 export const EXPLAINERS: Explainer[] = ENTRIES.map((e) => {
