@@ -53,6 +53,19 @@ async function main() {
   assert.equal(one("Avnet reached 10.8% while Arrow reached 11.2%. The gap held.").notes, "Avnet reached 10.8% while Arrow reached 11.2%. The gap held.");
   assert.equal(one("Arrow will reach 15.0%.").notes, "", "a slide whose notes don't hold up has empty notes, not none: the page tells it from v1");
   assert.equal(slideNotes({ ...marginTrend(), commentary: one("Arrow will reach 15.0%.") }), undefined, "and nothing ships");
+  // A runaway tail, as the live eval's run 4 wrote it, is cut off at its first fragment or repeat.
+  const tailDropped: string[] = [];
+  const runaway = groundNotes(
+    "Microchip says lead times are back to 12 weeks. We will confirm timing part by part.  ABC.XYZ.QQ.  ok.  Done.  OK.  Enough.  Thanks.  Thanks.",
+    evidenceOf(talking().preview),
+    tailDropped,
+    "notes",
+  );
+  assert.equal(runaway, "Microchip says lead times are back to 12 weeks. We will confirm timing part by part.");
+  assert.match(tailDropped[0], /runaway text/);
+  assert.equal(groundNotes("The gap held. The gap held. Avnet trails.", ev), "The gap held.", "a repeated sentence ends the notes");
+  assert.equal(groundNotes("Both margins rose. The gap held.", ev), "Both margins rose. The gap held.", "three-word sentences are full sentences");
+
   // Notes alone don't make commentary: nothing on the slide held up, so the slide gets none.
   const notesOnly = toCommentary(deck([marginTrend()]), { slides: [{ id, headline: "Up 66.6%", text: "", bullets: [], notes: "The gap held all year." }], summary: [] }, DAY, []).slides[id];
   assert.equal(notesOnly, undefined);

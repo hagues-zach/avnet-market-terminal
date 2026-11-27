@@ -77,4 +77,10 @@ One line per decision, with the option not taken. Review findings I rejected are
 - Narrowed while moving it, because headlines would hit false positives more than notes did: only real multiples ("twofold" to "tenfold", "hundredfold") count, not every word ending in "-fold" ("scaffold", "unfold"); and "half" and "a quarter" naming a period ("the second half", "half-year", "a quarter ago") are left alone.
 - Counts up to ten in words still pass, as bare digits up to 10 do.
 - Fixtures and tests that used "a quarter of the market" as a grounded headline now quote the slide's 24.0%.
-- Both prompts say a quantity in words counts as a figure. Not checked live: the brief's three live runs were already used.
+- Both prompts say a quantity in words counts as a figure. A fourth live run, at your request, showed no drops from the wider check.
+
+## Run 4 (your request)
+
+- A fourth live eval run (about $0.10), past the brief's limit of three, because you asked for it.
+- Its news-story notes ended in a runaway tail of fragments and repeats. `groundNotes` now stops at the first sentence under three words or the first repeated sentence and drops the rest. Not taken: a lower word cap, which would have cut good notes and still kept junk. Three-word sentences ("The gap held.") still pass.
+- The empty executive summary on a one-slide deck came from Claude, not grounding. Left as it is, and listed in the report's next steps.

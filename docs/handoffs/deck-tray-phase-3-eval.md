@@ -121,6 +121,56 @@ Total: $0.083
 
 The TAM funnel deck failed in run 3: Claude's answer stopped mid-string 16,717 characters in, which for one slide means a runaway string that ran to the 16,000-token limit. The SDK threw before reporting usage, so its cost (at most about $0.16) is not in the $0.083 total. The page shows "Claude's commentary came back incomplete. Try again." After this run, the output budget scales with the deck (1,500 plus 900 tokens a slide; real answers used 550 to 760 tokens for one slide and 2,356 for six), so a runaway stops after about 2,400 tokens on a one-slide deck. That change has not run live.
 
+## Run 4 (2026-11-26), after the number-word check covered everything
+
+Run at your request, past the brief's limit of three. Changes since run 3: the number-word check runs on every piece Claude writes, both prompts say quantities in words count as figures, and the output budget scales with the deck. Raw answers: `deck-tray-phase-3-eval-run4.json`.
+
+```
+Live run
+
+Deck                             Status Slides Dropped Med words Long Empty Filler Note words Notes off Sent. off  Cost
+TAM funnel                       ok        1/1       0        13    0     0      0        100         0         0  $0.011
+Ranked bar chart                 ok        1/1       0        14    0     0      0        104         0         0  $0.010
+Growth against margin scatter    ok        1/1       0        16    1     1      1        110         0         0  $0.010
+News story                       ok        1/1       1        15    1     0      0        160         0         1  $0.013
+Mixed six-slide deck             ok        6/6       0        12    0     0      0         80         0         0  $0.031
+
+TAM funnel  note words: 100
+TAM funnel  note words as written: 100
+Ranked bar chart  note words: 104
+Ranked bar chart  note words as written: 104
+Growth against margin scatter  long headline: card:earnings-growth-against-margin-semis: Avnet trails semiconductor medians on both growth and operating margin, and Arrow sits ahead of it
+Growth against margin scatter  empty: summary: 0 lines
+Growth against margin scatter  filler: card:earnings-growth-against-margin-semis: 2 companies are off the scale, so the medians sit among a wider spread.
+Growth against margin scatter  note words: 110
+Growth against margin scatter  note words as written: 110
+News story  dropped: card:news-story-microchip-lead-times notes: Last. [over the notes' length limit]
+News story  long headline: card:news-story-microchip-lead-times: Microchip says MCU lead times are down to 12 weeks, easing supply for industrial buyers
+News story  note words: 160
+News story  note words as written: 185
+Mixed six-slide deck  note words: 84, 68, 85, 76, 78, 80
+Mixed six-slide deck  note words as written: 84, 68, 85, 76, 78, 80
+
+Storyline                                Status Expect  Moved Reasons Sections Dropped  Pass  Cost
+Storyline: detail before the market      ok     reorder     4       4        2       0  pass  $0.010
+Storyline: already in a good order       ok     keep        2       2        1       0  pass  $0.009
+
+Storyline: detail before the market  order: card:tam-opportunity > view:share > card:earnings-leaderboard-distributors > chart:avnet-vs-arrow-scorecard:gross-margin:trend > card:news-story-microchip-lead-times
+Storyline: detail before the market  sections: Market and Avnet's place in it | Avnet against Arrow and peers
+Storyline: already in a good order  order: card:tam-opportunity > card:earnings-growth-against-margin-semis > card:earnings-leaderboard-distributors > chart:avnet-vs-arrow-scorecard:gross-margin:trend > card:news-story-microchip-lead-times
+Storyline: already in a good order  sections: Avnet against Arrow
+
+Total: $0.095
+```
+
+What it shows:
+
+- **The number-word check dropped nothing.** With the prompt line, Claude wrote no quantity in words on any slide, so the wider check cost no headlines or bullets in this run.
+- **No deck failed.** The one-slide decks that ran away in run 3 finished, within the scaled budget.
+- **A runaway tail in the news story's notes.** The notes as written are 185 words: about 120 good ones, then "ABC.XYZ.QQ. ok. Done. OK. Enough. … Thanks. Thanks. Thanks.". The 160-word cap cut it short, but the shipped notes would still have carried the start of the junk. Fixed after this run: `groundNotes` now stops at the first fragment (under three words) or repeated sentence and drops everything after it. Re-scored offline on this run's saved answer, the notes keep the 128 good words and lose the tail.
+- **The scatter deck's summary came back empty from Claude**, not from grounding: an empty list for a one-slide deck. The same weakness made two-line summaries on one-slide decks in earlier runs. Not fixed; see the report.
+- Filler 1 (the scatter's "off the scale" line again) and two long headlines (15 and 16 words): the same as before, within noise.
+
 ## Before and after, read with care
 
 Each number is one sample per deck, on about 25 bullets and 10 notes, so differences of one are within noise. The filler check changed between runs 2 and 3, so run 3's filler count isn't comparable with runs 1 and 2, and runs 1 and 2 can't be re-scored (their raw answers weren't saved; run 3's are, with `--save`).
@@ -135,6 +185,8 @@ Each number is one sample per deck, on about 25 bullets and 10 notes, so differe
 | Decks that failed | 0 | 0 | 1 (TAM funnel, runaway answer) |
 | Storyline decks passing | 2 of 2, re-scored under the narrowed criterion | 2 of 2 | 2 of 2 |
 | Reported cost | $0.091 | $0.086 | $0.083 (plus up to $0.16 unreported) |
+
+Run 4 (after the table above was written): filler 1, long headlines 2, notes over 120 words 1 as written (a runaway tail, now cut), number-word drops 0, failed decks 0, storyline 2 of 2, $0.095.
 
 What it says:
 

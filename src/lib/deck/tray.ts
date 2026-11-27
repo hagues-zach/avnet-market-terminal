@@ -139,17 +139,29 @@ export function bulletsMax(p: Preview): number {
   return plan.kind === "chart" && plan.side && (plan.callouts.length >= 2 || Boolean(plan.table)) ? 3 : COMMENTARY.bullets;
 }
 
+/** Spoken notes are full sentences; a sentence shorter than this is a fragment ("Next slide.", "Thanks."). */
+const MIN_NOTE_WORDS = 3;
+
 /**
  * Speaker notes, grounded sentence by sentence against the slide's evidence: a
  * sentence with a figure the slide lacks is dropped (noted in `dropped`), the
- * rest kept in order, whole sentences only, within the notes' limits. "" when
- * nothing survives. Pure.
+ * rest kept in order, whole sentences only, within the notes' limits. A runaway
+ * tail (the first fragment or repeated sentence, as the live eval saw once) is cut
+ * off with everything after it. "" when nothing survives. Pure.
  */
 export function groundNotes(raw: string, evidence: string, dropped?: string[], where = ""): string {
   const kept: string[] = [];
+  const seen = new Set<string>();
   let words = 0;
   let size = 0;
   for (const sentence of sentences(raw.replace(/\s+/g, " ").trim())) {
+    // A runaway tail ("Done. OK. Thanks. Thanks.") starts with a fragment or a repeat: everything from there goes.
+    const key = sentence.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+    if (sentence.split(/\s+/).length < MIN_NOTE_WORDS || seen.has(key)) {
+      dropped?.push(`${where ? `${where}: ` : ""}${sentence} [runaway text, dropped from here on]`);
+      break;
+    }
+    seen.add(key);
     // groundPiece checks figures in digits and in words ("a quarter", "doubled", "twelve weeks").
     const g = groundPiece(sentence, evidence, dropped, where);
     if (!g) continue;

@@ -52,7 +52,7 @@ The key came from `.env.local` with the shell's key unset. Total spend was about
 1. **Number words in headlines and bullets. Answered: yes, done after the PR opened.**
    - The number-word check is now part of `groundPiece`, so it runs on everything Claude writes: headlines, sentences, bullets, summary lines, storyline reasons, section titles and notes. It runs when the answer comes back and again whenever a slide is built.
    - Saved commentary from Phase 2 with "a quarter" in a headline now falls back to the reader's point or the card's headline when built.
-   - The two prompts now say quantities in words count as figures. That hasn't run live: the three live eval runs were already used.
+   - The two prompts now say quantities in words count as figures. A fourth live run, at your request, showed no drops from the wider check.
 2. **The filler check counts any label word.** A generic line that uses one passes, such as "watch share closely" on a share slide. Is that strict enough for the eval, or do you want it to look for advice phrasing too?
 3. **Section titles go with Clear.** Clear on a slide also removes its section title, because the brief says a section is dropped when the item is cleared. Would you rather titles stay until removed on their own (there is a Remove for that)?
 4. **Undo order.** It disappears once you move a slide by hand, so it can't silently undo your own moves. Is that right, or should it stay and say what it resets?
@@ -78,5 +78,6 @@ The key came from `.env.local` with the shell's key unset. Total spend was about
 1. Open an exported deck in PowerPoint and check the notes pages and section labels.
 2. Write commentary once on a tray that includes the Performance Tracker's region slide, to see whether the "call each row what the slide calls it" rule fixed Farnell.
 3. Add that region slide as an eval fixture, and save raw answers (`--save`) on every live run so the checks can be re-scored.
-4. Run the live eval once more to see how often the number-word check drops headlines and bullets now that it covers them, and whether the new prompt line keeps that rare.
+4. Done (run 4): the wider number-word check dropped nothing, and no deck failed. It found a runaway tail in one slide's notes, now cut off by `groundNotes`.
+5. One-slide decks sometimes get an empty or two-line executive summary. Consider skipping the summary for a one-slide deck, or asking for one line there.
 5. When SSO lands, build the server-side tray and per-user cap from the design note.
