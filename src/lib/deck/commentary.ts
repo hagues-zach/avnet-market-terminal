@@ -91,7 +91,7 @@ Audiences:
 - Internal: Avnet's own team. Plain, candid, focused on what to do next. A next step names the row, company or figure it follows from.
 
 Rules:
-- Every figure you write, in the notes too, must appear in that slide's evidence, written exactly as the evidence writes it ("$1.62B", "22.5%"). Do not round, convert, add up, subtract or work out changes the evidence doesn't state. A slide's figures belong to that slide; the summary may use any slide's.
+- Every figure you write, in the notes too, must appear in that slide's evidence, written exactly as the evidence writes it ("$1.62B", "22.5%"). Do not round, convert, add up, subtract or work out changes the evidence doesn't state. A quantity in words counts as a figure too: don't write "a quarter", "half", "doubled", "twice" or "twelve" unless the evidence says it in those words; write the figure as the evidence does. A slide's figures belong to that slide; the summary may use any slide's.
 - Use only names and facts in the evidence. No outside knowledge.
 - Call each row, series and panel what the slide calls it, and keep different kinds apart: a company listed beside regions is a company, not a region; a forecast is a forecast, not a result.
 - A slide marked mock="true" is on mock data until Avnet's sources are connected. Don't present its figures as Avnet's real results; say "mock" if you cite one.

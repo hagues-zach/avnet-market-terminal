@@ -139,14 +139,6 @@ export function bulletsMax(p: Preview): number {
   return plan.kind === "chart" && plan.side && (plan.callouts.length >= 2 || Boolean(plan.table)) ? 3 : COMMENTARY.bullets;
 }
 
-// Quantities written as words: counts past ten, fractions and multiples. Counts up to ten are left out, as the
-// figure check leaves bare digits up to 10 ("the two leaders" counts what the slide shows).
-const NUMBER_WORDS =
-  /\b(?:eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|dozen|half|halved|halves|a\s+third|a\s+quarter|three\s+quarters|twice|double|doubled|doubling|triple|tripled|tripling|\w+fold)\b/gi;
-
-/** The quantities in text written as words, lower case. Pure. */
-export const numberWords = (text: string) => [...new Set([...text.matchAll(NUMBER_WORDS)].map((m) => m[0].toLowerCase().replace(/\s+/g, " ")))];
-
 /**
  * Speaker notes, grounded sentence by sentence against the slide's evidence: a
  * sentence with a figure the slide lacks is dropped (noted in `dropped`), the
@@ -158,15 +150,9 @@ export function groundNotes(raw: string, evidence: string, dropped?: string[], w
   let words = 0;
   let size = 0;
   for (const sentence of sentences(raw.replace(/\s+/g, " ").trim())) {
+    // groundPiece checks figures in digits and in words ("a quarter", "doubled", "twelve weeks").
     const g = groundPiece(sentence, evidence, dropped, where);
     if (!g) continue;
-    // Spoken notes reach for number words ("a quarter", "doubled", "twelve weeks"): a quantity in words
-    // the slide doesn't state is a converted figure, so the sentence goes.
-    const said = numberWords(g).filter((w) => !new RegExp(`\\b${w.replace(/\s+/g, "\\s+")}\\b`, "i").test(evidence));
-    if (said.length) {
-      dropped?.push(`${where ? `${where}: ` : ""}${g} [${said.join(", ")}]`);
-      continue;
-    }
     const n = g.split(/\s+/).length;
     if (words + n > COMMENTARY.notesWords || size + g.length + 1 > COMMENTARY.notes) {
       dropped?.push(`${where ? `${where}: ` : ""}${g} [over the notes' length limit]`);

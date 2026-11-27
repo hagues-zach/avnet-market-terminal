@@ -170,6 +170,11 @@ async function main() {
   assert.equal(maxTokens(1), 2400);
   assert.equal(maxTokens(25), 16000, "never past 16,000");
 
+  // A Phase 2 tray saved with a number word in its headline: checked again as the slide is built, it falls back.
+  const quarter = slidePreview({ ...tamFunnel(), commentary: { headline: "Distribution serves a quarter of a fast-growing chip market", bullets: ["Avnet bills 8.9% of SAM."], writtenAt: "2026-11-25" } });
+  assert.equal(quarter.headline, tamFunnel().preview.headline, "a saved headline with \"a quarter\" doesn't ship");
+  assert.deepEqual(quarter.lines, ["Avnet bills 8.9% of SAM."], "the rest of the commentary still does");
+
   /* ---------- The PDF has no notes ---------- */
 
   // The PDF is PrintDeck on the review page: rendered here, with notes on every slide, none of them in it.

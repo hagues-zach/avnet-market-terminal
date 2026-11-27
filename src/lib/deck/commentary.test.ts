@@ -341,7 +341,7 @@ async function main() {
     assert.match(text(read(parts[1])), /Summary written by Claude, November 25, 2026\. Check before quoting\./);
     const funnelXml = text(read(parts[2]));
     assert.match(funnelXml, /Commentary written by Claude, November 25, 2026\. Check before quoting\./);
-    assert.match(funnelXml, /Distribution serves a quarter of a fast-growing chip market/);
+    assert.match(funnelXml, /Distribution serves 24\.0% of a fast-growing chip market/);
     assert.match(funnelXml, /Distributors serve 24\.0% of TAM, a mock estimate\./, "bullets drawn under the panels");
     assert.match(funnelXml, /\$772\.2B/, "the panels' figures stay");
     const trendXml = text(read(parts[5]));

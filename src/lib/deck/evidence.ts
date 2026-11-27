@@ -163,6 +163,28 @@ export function ungroundedFigures(text: string, evidence: string): string[] {
     .map((f) => f.text);
 }
 
+/* ---------- Quantities in words ---------- */
+
+// Quantities written as words: counts past ten, fractions and multiples. Counts up to ten are left out, as the
+// figure check leaves bare digits up to 10 ("the two leaders" counts what the slide shows).
+const NUMBER_WORDS =
+  /\b(?:eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|dozen|half|halved|halves|a\s+third|a\s+quarter|three\s+quarters|twice|double|doubled|doubling|triple|tripled|tripling|(?:two|three|four|five|six|seven|eight|nine|ten|hundred)fold)\b/gi;
+// The same words naming a period, not a quantity: "the second half", "half-year results", "a quarter earlier".
+const PERIODS = /\b(?:first|second|1st|2nd|back|front)\s+half\b|\bhalf[-\s]year(?:ly)?\b|\ba\s+quarter\s+(?:ago|earlier|later|before|after|on)\b/gi;
+
+/** The quantities in text written as words, lower case, periods aside. Pure. */
+export const numberWords = (text: string) =>
+  [...new Set([...text.replace(PERIODS, " ").matchAll(NUMBER_WORDS)].map((m) => m[0].toLowerCase().replace(/\s+/g, " ")))];
+
+/**
+ * The quantities in text written as words that the evidence doesn't say in the
+ * same words. A quantity in words the slide doesn't state ("a quarter" for 24.0%,
+ * "doubled" for a rise) is a converted figure, which Claude may not write. Pure.
+ */
+export function ungroundedWords(text: string, evidence: string): string[] {
+  return numberWords(text).filter((w) => !new RegExp(`\\b${w.replace(/\s+/g, "\\s+")}\\b`, "i").test(evidence));
+}
+
 /** An en or em dash right before a figure is a minus: kept as one, so the dash rewrite can't drop the sign. */
 const minusSigns = (s: string) => s.replace(/(^|[\s(])[–—](?=\$?\d)/g, "$1−");
 
@@ -180,11 +202,11 @@ export function cutWords(s: string, n: number): string {
   return `${(at > n / 2 ? head.slice(0, at) : head).replace(/[\s,;:]*[+\-−$]?[\d.,]*$/, "").trimEnd()}…`;
 }
 
-/** The text tidied, or "" when a figure in it isn't on the slide (noted in dropped). Pure. */
+/** The text tidied, or "" when a figure in it, in digits or in words, isn't on the slide (noted in dropped). Pure. */
 export function groundPiece(raw: string, evidence: string, dropped?: string[], where = ""): string {
   const s = tidy(raw);
   if (!s) return "";
-  const bad = ungroundedFigures(s, evidence);
+  const bad = [...ungroundedFigures(s, evidence), ...ungroundedWords(s, evidence)];
   if (bad.length) {
     dropped?.push(`${where ? `${where}: ` : ""}${s} [${bad.join(", ")}]`);
     return "";

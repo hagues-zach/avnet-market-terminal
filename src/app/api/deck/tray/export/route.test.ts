@@ -11,7 +11,7 @@ import { POST } from "./route";
 
 const DAY = "2026-11-25";
 const items = [
-  { ...tamFunnel(), commentary: { headline: "Distribution serves a quarter of the market", text: "World semiconductor sales reached $772.2B.", bullets: ["Distributors serve 24.0% of TAM, a mock estimate.", "Avnet bills 8.9% of SAM."], writtenAt: DAY } },
+  { ...tamFunnel(), commentary: { headline: "Distribution serves 24.0% of the market", text: "World semiconductor sales reached $772.2B.", bullets: ["Distributors serve 24.0% of TAM, a mock estimate.", "Avnet bills 8.9% of SAM."], writtenAt: DAY } },
   marginTrend(),
 ];
 const summary = { lines: ["The chip market reached $772.2B.", "Arrow's margin still leads."], writtenAt: DAY, slideIds: items.map((x) => x.id) };
@@ -39,7 +39,7 @@ async function main() {
   const text = await slidesText(res);
   assert.match(text[1], /Executive summary/, "the summary after the cover");
   assert.match(text[1], /Summary written by Claude/);
-  assert.match(text[2], /Distribution serves a quarter of the market/);
+  assert.match(text[2], /Distribution serves 24\.0% of the market/);
   assert.match(text[2], /Commentary written by Claude, November 25, 2026\. Check before quoting\./);
   assert.match(text[3], /Margins recovered, but Arrow still leads/, "a slide without commentary keeps the reader's point");
   assert.doesNotMatch(text[3], /written by Claude/);

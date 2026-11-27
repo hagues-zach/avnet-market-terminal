@@ -200,7 +200,7 @@ export function evalDecks(): { name: string; input: DeckInput }[] {
 export function goodAnswer(input: DeckInput): DeckOutput {
   const canned: Record<string, { headline: string; text: string; bullets: string[]; notes: string }> = {
     "card:tam-opportunity": {
-      headline: "Distribution serves a quarter of a fast-growing chip market",
+      headline: "Distribution serves 24.0% of a fast-growing chip market",
       text: "World semiconductor sales reached $772.2B, up +22.5% on 2025, with $860.4B forecast for 2027.",
       bullets: ["Distributors serve 24.0% of TAM, a mock estimate.", "Avnet bills 8.9% of SAM on the mock model.", "Growth leaves room to take share."],
       notes: "Start with the size of the prize. World semiconductor sales reached $772.2B this year, and the forecast for 2027 is $860.4B. Distribution serves 24.0% of that, and on the mock model Avnet bills 8.9% of what distributors serve. The point to land is room to grow: the market is rising quickly, and a small gain in share is worth a lot. Ask the room where they see the next design wins.",

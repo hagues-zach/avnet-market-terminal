@@ -70,3 +70,11 @@ One line per decision, with the option not taken. Review findings I rejected are
 
 - The `security-review` skill found no vulnerabilities. It checked the notes XML escaping, the storyline route's validation, the cache keys, rendering and the auth gate's coverage.
 - PR #71 targets `main`, is bound to this session, and has Auto-fix on.
+
+## After the PR opened: the number-word check everywhere (your request)
+
+- The check moved from `groundNotes` into `groundPiece` (`numberWords` and `ungroundedWords` in `evidence.ts`), so every piece of Claude's text gets it, at write time and at build time.
+- Narrowed while moving it, because headlines would hit false positives more than notes did: only real multiples ("twofold" to "tenfold", "hundredfold") count, not every word ending in "-fold" ("scaffold", "unfold"); and "half" and "a quarter" naming a period ("the second half", "half-year", "a quarter ago") are left alone.
+- Counts up to ten in words still pass, as bare digits up to 10 do.
+- Fixtures and tests that used "a quarter of the market" as a grounded headline now quote the slide's 24.0%.
+- Both prompts say a quantity in words counts as a figure. Not checked live: the brief's three live runs were already used.
