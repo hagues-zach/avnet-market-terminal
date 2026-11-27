@@ -2,12 +2,15 @@
 // company or name it is about. Pure, so the page and the test read the same
 // rules. Claude (step 3.2) will call the same answerers as tools.
 import { COMPANIES, type Company } from "@/lib/data/live/earnings-model";
+import { GLOSSARY } from "@/lib/learn/content";
 import { isHidden } from "@/lib/visibility";
 
-export type Intent = "company" | "arrow" | "cycle" | "economy" | "supply" | "earnings" | "news" | "linecard" | "avnet";
+export type Intent = "company" | "arrow" | "cycle" | "economy" | "supply" | "earnings" | "news" | "linecard" | "avnet" | "define";
 
 export interface Routed {
   intent: Intent;
+  /** The glossary term a "what is X" question asks about. */
+  term?: string;
   company?: Company;
   /** A supplier name for line cards, when it isn't one of the app's companies. */
   name?: string;
@@ -51,6 +54,13 @@ const ALL_ANSWERERS: Answerer[] = [
   { intent: "news", title: "News", what: "The latest stories on a company or topic", example: "What's the latest on onsemi?", status: "live" },
   { intent: "linecard", title: "Line cards", what: "Which collected distributors carry a supplier", example: "Who carries Lattice?", status: "live" },
   { intent: "avnet", title: "Avnet's business", what: "Billings, book-to-bill and backlog", example: "How is Avnet's business?", status: "mock" },
+  {
+    intent: "define",
+    title: "What a term means",
+    what: "The glossary definition and formula, with a link that opens the KPI's explainer",
+    example: "What is book-to-bill?",
+    status: "live",
+  },
 ];
 
 /** What can be asked, in the order the page lists it. Every example routes to its own intent (the test checks). */
@@ -174,9 +184,28 @@ export function route(question: string): Routed | null {
   return r && intentShown(r.intent) ? r : null;
 }
 
+// Glossary terms by every name they go by: "TAM (total addressable market)" is also
+// "tam" and "total addressable market". Longest first, so "gross margin" beats "margin".
+const TERMS = GLOSSARY.flatMap((g) => {
+  const inner = g.term.match(/\(([^)]+)\)/)?.[1];
+  const outer = g.term.replace(/\s*\([^)]*\)/, "");
+  return [...new Set([g.term, outer, ...(inner ? [inner] : [])].map(clean))].filter((a) => a.length >= 2).map((a) => ({ a, term: g.term }));
+}).sort((x, y) => y.a.length - x.a.length);
+
+const ASKS_MEANING = /^(?:what is|what's|whats|what are|what does|what do|define|definition of|meaning of|explain|tell me what)\s+(?:an?\s+|the\s+)?(.+?)(?:\s+(?:mean|means|stand for|stands for|is|are))?$/;
+
+/** The glossary term a question asks the meaning of, when the question is only that: "What does DRMS mean?" */
+export function definedTerm(question: string): string | undefined {
+  const rest = clean(question).match(ASKS_MEANING)?.[1];
+  return rest ? TERMS.find((t) => t.a === rest)?.term : undefined;
+}
+
 function rules(question: string): Routed | null {
   const q = clean(question);
   if (!q) return null;
+  // A definition first: "what does backlog mean" would otherwise read as a figure or as analysis.
+  const term = definedTerm(question);
+  if (term) return { intent: "define", term };
   const company = findCompany(question);
 
   // The rules answer one topic with facts. Judgement, or two topics in one question

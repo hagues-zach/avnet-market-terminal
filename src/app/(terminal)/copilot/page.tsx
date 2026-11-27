@@ -41,7 +41,7 @@ export default async function AskPage({ searchParams }: { searchParams: Promise<
       <PageTitle title="Ask the Terminal" subtitle="Straight answers from the app's data, each with its source and the page it came from" />
 
       <p className="text-pretty text-xl leading-snug text-ink">
-        Ask about a company, Avnet against Arrow, the cycle, the economy, supply, the earnings season, news or line cards.
+        Ask about a company, Avnet against Arrow, the cycle, the economy, supply, the earnings season, news or line cards, or what a term means.
       </p>
 
       <form action="/copilot" method="get" role="search" className="rounded-sm border border-hairline bg-surface px-4 py-3">

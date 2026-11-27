@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { COMPANIES } from "@/lib/data/live/earnings-model";
 import { cacheKey, compose } from "./compose";
-import { ANSWERERS, aliases, depth, findCompany, route, suggest } from "./route";
+import { ANSWERERS, aliases, definedTerm, depth, findCompany, route, suggest } from "./route";
 import {
   type Answer,
   CANT,
@@ -28,6 +28,18 @@ const intent = (q: string) => route(q)?.intent;
 // Every example on the page routes to its own answerer.
 for (const a of ANSWERERS) assert.equal(intent(a.example), a.intent, a.example);
 assert.equal(new Set(ANSWERERS.map((a) => a.intent)).size, ANSWERERS.length);
+
+// Definitions: only when the question is the term alone, by any of its names.
+assert.equal(route("What is book-to-bill?")?.term, "Book-to-bill");
+assert.equal(route("what's the code map")?.term, "Code map");
+assert.equal(route("What does DRMS mean?")?.term, "Design registration (DRMS)");
+assert.equal(route("define TAM")?.term, "TAM (total addressable market)");
+assert.equal(route("What is a line card?")?.term, "Line card");
+assert.equal(route("Explain gross margin")?.term, "Gross margin");
+assert.equal(definedTerm("What is Avnet's book-to-bill?"), undefined, "a figure, not a definition");
+assert.equal(intent("What is Avnet's book-to-bill?"), "avnet");
+assert.equal(definedTerm("What does backlog mean for Avnet?"), undefined, "a question about Avnet goes on to the other rules");
+assert.equal(definedTerm("What is margin?"), undefined, "not a glossary term");
 
 // Companies by name, short name and the extra aliases; longest name wins.
 assert.equal(slug("How is Microchip doing?"), "microchip");

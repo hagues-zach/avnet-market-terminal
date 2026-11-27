@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { CircleHelp, X } from "lucide-react";
+import { explainSlug } from "@/lib/explain/registry";
 import { cn } from "@/lib/utils";
 
 // A "what does this mean?" mark beside a KPI label that opens a small explainer
@@ -65,6 +66,17 @@ export function ExplainPopover({
     // would scroll the page sideways to reach the unshifted panel.
     (panel.current.querySelector<HTMLElement>("[data-explain-focus]") ?? panel.current).focus({ preventScroll: true });
   }, [open]);
+
+  // A link with ?explain=<slug> (Ask the Terminal's glossary answer) opens the matching
+  // explainer once the page loads: the first mark on the page whose name matches.
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get("explain");
+    const w = window as Window & { __explainOpened?: string };
+    if (!want || w.__explainOpened === window.location.href || explainSlug(label.replace(/^Explain /, "")) !== want) return;
+    w.__explainOpened = window.location.href;
+    trigger.current?.scrollIntoView({ block: "center" });
+    setOpen(true);
+  }, [label]);
 
   useEffect(() => {
     if (!open) return;
