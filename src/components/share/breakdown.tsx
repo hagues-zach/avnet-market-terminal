@@ -1,5 +1,6 @@
 "use client";
 
+import { ExplainColumn } from "@/components/explain/column";
 import { useCallback, useState } from "react";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { Sparkline } from "@/components/charts/sparkline";
@@ -88,10 +89,11 @@ export function ShareBreakdown({
 
   const columns: Column<ShareRow>[] = [
     { key: "name", header: v.name, sortValue: (r) => r.name, className: "w-full" },
-    { key: "tam", header: v.size, numeric: true, sortValue: (r) => r.tam, render: (r) => `$${r.tam.toFixed(r.tam < 10 ? 1 : 0)}B` },
+    { key: "tam", header: v.size, numeric: true, explain: v.size === "Market size" ? <ExplainColumn column="marketSize" /> : undefined, sortValue: (r) => r.tam, render: (r) => `$${r.tam.toFixed(r.tam < 10 ? 1 : 0)}B` },
     {
       key: "share",
       header: "Avnet share",
+      explain: <ExplainColumn column="share" />,
       sortValue: (r) => r.share,
       render: (r) => (
         <span className="flex items-center gap-2">
@@ -130,11 +132,12 @@ export function ShareBreakdown({
     {
       key: "change",
       header: "Change YoY",
+      explain: <ExplainColumn column="shareChange" />,
       numeric: true,
       sortValue: (r) => r.shareChange,
       render: (r) => <Delta value={r.shareChange} display={pts(r.shareChange)} />,
     },
-    { key: "confidence", header: "Mapping confidence", sortValue: (r) => ["Low", "Medium", "High"].indexOf(r.confidence), render: (r) => r.confidence },
+    { key: "confidence", header: "Mapping confidence", explain: <ExplainColumn column="confidence" />, sortValue: (r) => ["Low", "Medium", "High"].indexOf(r.confidence), render: (r) => r.confidence },
   ];
 
   return (

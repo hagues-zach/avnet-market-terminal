@@ -64,6 +64,7 @@ import {
   readMedianGrowth,
   readSupplyRevenue,
 } from "./cycle";
+import { COLUMN_HELP, columnHelp, type ColumnKey } from "./columns";
 import { summarise, coverage as mapCoverage, weakest } from "@/lib/mapping/read";
 import { getAvnet } from "@/lib/avnet";
 import {
@@ -694,6 +695,14 @@ assert.equal(readPeer("grossMargin", { ...peerQ, peer: undefined }, avnetSub), n
 { const ps = peerScale(0.1, 0.12, 0.01); assert.ok(Math.abs(ps.min - 0.08) < 1e-9 && Math.abs(ps.max - 0.16) < 1e-9); }
 assert.deepEqual(peerScale(80, 80, 5), { min: 60, max: 100 });
 cycleReads.push({ lead: "", sentence: readPeer("grossMargin", peerQ, avnetSub)! });
+
+// Column help: every column reads from a glossary term, and its copy keeps the rules.
+for (const k of Object.keys(COLUMN_HELP) as ColumnKey[]) {
+  const h = columnHelp(k);
+  for (const t of [h.name, h.read, h.definition, h.formula ?? ""]) assert.ok(!/[/·—–]/.test(t), t);
+}
+assert.equal(columnHelp("grossMargin").formula, "Gross profit ÷ revenue");
+assert.equal(columnHelp("confidence").formula, undefined);
 
 const shareReads = [ms, readMappedBillings(mf, "share"), vc, readPeerShare(pq), readScenarioShare(sc), readAgainstHold(sc), readScenarioGrowth(sc)];
 
