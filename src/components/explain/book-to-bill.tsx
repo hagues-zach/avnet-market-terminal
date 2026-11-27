@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { isHidden } from "@/lib/visibility";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { FLAT, SCALE, readBookToBill, type BookToBillQuarter } from "@/lib/explain/book-to-bill";
@@ -103,9 +104,12 @@ function BookToBillBody({ quarters, status, subject }: { quarters: BookToBillQua
         <div className="flex items-center justify-between gap-3">
           <span className="text-caption text-ink">{e.formula}</span>
           <span className="flex items-center gap-3">
-            <Link href={e.learnHref} className="text-caption text-ink underline underline-offset-2 hover:no-underline">
-              More in the glossary
-            </Link>
+            {/* The Learning Center is hidden for the MVP; a link there would bounce to Market News. */}
+            {!isHidden(e.learnHref) && (
+              <Link href={e.learnHref} className="text-caption text-ink underline underline-offset-2 hover:no-underline">
+                More in the glossary
+              </Link>
+            )}
             <DataChip status={status} />
           </span>
         </div>

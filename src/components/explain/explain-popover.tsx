@@ -51,7 +51,9 @@ export function ExplainPopover({
     const above = below > window.innerHeight - EDGE && t.top - GAP - p.height > EDGE;
     setPlace({ shift, above });
     // Focus the body when it asks for it (it owns the arrow keys), else the panel.
-    (panel.current.querySelector<HTMLElement>("[data-explain-focus]") ?? panel.current).focus();
+    // preventScroll: the shift above is applied on the next render, and focusing first
+    // would scroll the page sideways to reach the unshifted panel.
+    (panel.current.querySelector<HTMLElement>("[data-explain-focus]") ?? panel.current).focus({ preventScroll: true });
   }, [open]);
 
   useEffect(() => {

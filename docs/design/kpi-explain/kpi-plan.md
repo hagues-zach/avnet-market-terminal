@@ -60,7 +60,16 @@ These appear for every company, so one explainer covers about 40 profiles.
 | Free cash flow | `company-profile.tsx` | Waterfall: operating cash flow, capex, free cash flow | **Distributors make cash in downturns** by releasing inventory. Counter-intuitive, and the best teaching moment in the set |
 | Diluted EPS | `company-profile.tsx`, `company-view.tsx` | A small waterfall (net income) over a shares count | Q4 EPS comes from annual reports and is approximate (METHODS: "Fourth quarters from annual reports") |
 
-## Phase 2: Avnet operations (Performance hub)
+## Phase 2: Avnet operations (built 2026-11-27, branch `claude/kpi-explain-operations`)
+Built in `src/components/explain/operations.tsx`, rules in `src/lib/explain/operations.ts`, plus a new `ShareBar` diagram. Differences from the plan below:
+- **Backlog** is a waterfall, not a flow: opening backlog, plus bookings, less billings, a "Cancellations and other changes" row when the reported backlog differs by 0.5% or more, to the reported closing backlog. Coverage (quarters of shipments on order) is the lead.
+- **Design-approved billings** uses pair bars (all billings against billings on approved parts). Its figure is a share of billings, which the registration funnel can't show.
+- **Billings, last 12 months** shows the four quarters that make it up, with no stepper.
+- New glossary terms: Billings (last 12 months), Design-approved billings, Approved pipeline, Active customers. Approval rate now matches how it's calculated (approved ÷ submitted, last 12 months).
+- `/design-pipeline` and `/customers` are hidden for the MVP (`src/lib/visibility.ts`), so their explainers show only when those pages return. They were checked by un-hiding them locally.
+- `/learn` is hidden too, so "More in the glossary" now shows only while the Learning Center is visible (it was redirecting to Market News).
+
+### Phase 2 as planned
 
 | KPI tile | Where | Diagram | The one idea |
 |---|---|---|---|

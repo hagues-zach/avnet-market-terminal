@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { isHidden } from "@/lib/visibility";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Explainer } from "@/lib/explain/registry";
 
@@ -23,7 +24,8 @@ export function ExplainFrame({
 }: {
   explainer: Explainer;
   lead: string;
-  figure: React.ReactNode;
+  /** The diagram; leave it out for a text-only explainer. */
+  figure?: React.ReactNode;
   /** Period labels, oldest first. The stepper shows when there is more than one. */
   periods: string[];
   index: number;
@@ -48,7 +50,7 @@ export function ExplainFrame({
     >
       <p className="text-pretty text-body font-semibold text-ink">{lead}</p>
 
-      <figure className="space-y-3">{figure}</figure>
+      {figure && <figure className="space-y-3">{figure}</figure>}
 
       {periods.length > 1 && (
         <div className="flex items-center justify-between border border-hairline">
@@ -72,9 +74,12 @@ export function ExplainFrame({
         <p className="text-caption text-ink">{explainer.formula}</p>
         <div className="flex items-center justify-between gap-3">
           <span className="flex items-center gap-3">
-            <Link href={explainer.learnHref} className="text-caption text-ink underline underline-offset-2 hover:no-underline">
-              More in the glossary
-            </Link>
+            {/* The Learning Center is hidden for the MVP; a link there would bounce to Market News. */}
+            {!isHidden(explainer.learnHref) && (
+              <Link href={explainer.learnHref} className="text-caption text-ink underline underline-offset-2 hover:no-underline">
+                More in the glossary
+              </Link>
+            )}
             {source}
           </span>
         </div>

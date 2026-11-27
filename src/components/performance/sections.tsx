@@ -7,6 +7,7 @@ import { fmtM } from "@/lib/avnet/format";
 import { fullQuarter } from "@/lib/share/peers";
 import { KpiTile } from "@/components/ui/kpi-tile";
 import { ExplainBookToBill } from "@/components/explain/book-to-bill";
+import { ExplainBacklog, ExplainDesignApproved, ExplainTtmBillings } from "@/components/explain/operations";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { DataChip } from "@/components/ui/chip";
 import { Delta } from "@/components/ui/delta";
@@ -37,7 +38,13 @@ export async function PerformanceKpis() {
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <KpiTile label="Billings, last 12 months" value={fmtM(m.ttmBillings)} delta={{ value: ttmGrowth, period: "YoY" }} source={{ status: m.status }} />
+        <KpiTile
+          label="Billings, last 12 months"
+          value={fmtM(m.ttmBillings)}
+          delta={{ value: ttmGrowth, period: "YoY" }}
+          source={{ status: m.status }}
+          explain={<ExplainTtmBillings quarters={m.performance} ttm={m.ttmBillings} ttmYearAgo={m.ttmBillingsYearAgo} status={m.status} />}
+        />
         <KpiTile
           label="Book-to-bill"
           value={latest.bookToBill.toFixed(2)}
@@ -45,8 +52,20 @@ export async function PerformanceKpis() {
           source={{ status: m.status }}
           explain={<ExplainBookToBill quarters={m.performance.slice(-8)} status={m.status} />}
         />
-        <KpiTile label="Backlog" value={fmtM(latest.backlog)} delta={{ value: backlogGrowth, period: "YoY" }} source={{ status: m.status }} />
-        <KpiTile label="Design-approved billings" value={`${Math.round(m.designApprovedShare * 100)}%`} note="share of billings" source={{ status: m.status }} />
+        <KpiTile
+          label="Backlog"
+          value={fmtM(latest.backlog)}
+          delta={{ value: backlogGrowth, period: "YoY" }}
+          source={{ status: m.status }}
+          explain={<ExplainBacklog quarters={m.performance.slice(-9)} status={m.status} />}
+        />
+        <KpiTile
+          label="Design-approved billings"
+          value={`${Math.round(m.designApprovedShare * 100)}%`}
+          note="share of billings"
+          source={{ status: m.status }}
+          explain={<ExplainDesignApproved share={m.designApprovedShare} ttm={m.ttmBillings} status={m.status} />}
+        />
       </div>
       <HookupMarker ids={["billings", "bookings", "backlog", "drms"]} />
     </div>
