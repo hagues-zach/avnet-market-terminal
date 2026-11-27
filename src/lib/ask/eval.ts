@@ -1,4 +1,4 @@
-// Ask the Terminal: grade Claude models on 20 questions over the app's live data.
+// Ask the Terminal: grade Claude models on 22 questions over the app's live data.
 // Needs the dev server (npm run dev) and a funded ANTHROPIC_API_KEY; each answer
 // comes from the dev-only /api/ask-eval route, uncached. Costs well under a dollar.
 //
@@ -31,6 +31,8 @@ const CASES: Case[] = [
   { kind: "single", q: "Anything new on Nvidia this week?", needs: [["news"]] },
   { kind: "single", q: "Can I buy Lattice parts from other distributors?", needs: [["line_cards"]] },
   { kind: "single", q: "What is our backlog looking like?", needs: [["avnet_business"]] },
+  { kind: "single", q: "What's the difference between TAM and SAM, and why does it matter for share?", needs: [["glossary"]] },
+  { kind: "multi", q: "Explain what book-to-bill means and whether ours is good right now", needs: [["glossary"], ["avnet_business"]] },
   { kind: "multi", q: "Is supply tightening and how is Microchip doing?", needs: [["supply"], ["company_figures"]] },
   { kind: "multi", q: "Where is the cycle and how are we doing against Arrow?", needs: [["cycle"], ["avnet_vs_arrow"]] },
   { kind: "multi", q: "What should I tell a customer worried about chip prices and lead times?", needs: [["supply"]] },
