@@ -4,6 +4,7 @@
 //
 //   npx tsx src/lib/ask/eval.ts                                   as the page runs: Haiku for recall, Sonnet for analysis
 //   npx tsx src/lib/ask/eval.ts claude-haiku-5-5 claude-sonnet-5-5   one model for every question, side by side
+//   ASK_EVAL_ONLY="TAM and SAM|book-to-bill" npx tsx src/lib/ask/eval.ts   only the questions that match
 //
 // Checks per answer, all automatic: the tools it needed ran; every number in
 // Claude's text appears in the answerers' results; unanswerable questions are
@@ -105,12 +106,16 @@ const cost = (u: Usage) => {
   return (u.input * i + u.output * o + u.cacheRead * cr + u.cacheWrite * cw) / 1e6;
 };
 
+// ASK_EVAL_ONLY="term|book-to-bill" runs only the questions that match, to spend less on a narrow change.
+const ONLY = process.env.ASK_EVAL_ONLY ? new RegExp(process.env.ASK_EVAL_ONLY, "i") : null;
+const RUN = ONLY ? CASES.filter((c) => ONLY.test(c.q)) : CASES;
+
 async function run(model: string) {
   console.log(`\n=== ${model} ===`);
   let passed = 0;
   let dollars = 0;
   let ms = 0;
-  for (const c of CASES) {
+  for (const c of RUN) {
     const res = await fetch(`${BASE}/api/ask-eval`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -130,7 +135,7 @@ async function run(model: string) {
     console.log(`  ${r.answer.text.replace(/\n+/g, " ¶ ")}`);
     for (const f of fails) console.log(`  ! ${f}`);
   }
-  const n = CASES.length;
+  const n = RUN.length;
   console.log(`\n${model}: ${passed} of ${n} passed; ${((dollars / n) * 100).toFixed(3)}¢ a question on average; ${(ms / n / 1000).toFixed(1)}s on average`);
   return { model, passed, perQuestion: dollars / n, seconds: ms / n / 1000 };
 }
@@ -144,7 +149,7 @@ async function main() {
   }
   console.log("\nSummary");
   for (const s of summary)
-    console.log(`  ${s.model}: ${s.passed} of ${CASES.length}, ${(s.perQuestion * 100).toFixed(3)}¢ a question, ${s.seconds.toFixed(1)}s a question`);
+    console.log(`  ${s.model}: ${s.passed} of ${RUN.length}, ${(s.perQuestion * 100).toFixed(3)}¢ a question, ${s.seconds.toFixed(1)}s a question`);
 }
 
 main().catch((e) => {
