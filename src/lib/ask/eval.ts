@@ -1,9 +1,10 @@
-// Ask the Terminal: grade Claude models on 20 questions over the app's live data.
+// Ask the Terminal: grade Claude models on 22 questions over the app's live data.
 // Needs the dev server (npm run dev) and a funded ANTHROPIC_API_KEY; each answer
 // comes from the dev-only /api/ask-eval route, uncached. Costs well under a dollar.
 //
 //   npx tsx src/lib/ask/eval.ts                                   as the page runs: Haiku for recall, Sonnet for analysis
 //   npx tsx src/lib/ask/eval.ts claude-haiku-5-5 claude-sonnet-5-5   one model for every question, side by side
+//   ASK_EVAL_ONLY="TAM and SAM|book-to-bill" npx tsx src/lib/ask/eval.ts   only the questions that match
 //
 // Checks per answer, all automatic: the tools it needed ran; every number in
 // Claude's text appears in the answerers' results; unanswerable questions are
@@ -31,6 +32,8 @@ const CASES: Case[] = [
   { kind: "single", q: "Anything new on Nvidia this week?", needs: [["news"]] },
   { kind: "single", q: "Can I buy Lattice parts from other distributors?", needs: [["line_cards"]] },
   { kind: "single", q: "What is our backlog looking like?", needs: [["avnet_business"]] },
+  { kind: "single", q: "What's the difference between TAM and SAM, and why does it matter for share?", needs: [["glossary"]] },
+  { kind: "multi", q: "Explain what book-to-bill means and whether ours is good right now", needs: [["glossary"], ["avnet_business"]] },
   { kind: "multi", q: "Is supply tightening and how is Microchip doing?", needs: [["supply"], ["company_figures"]] },
   { kind: "multi", q: "Where is the cycle and how are we doing against Arrow?", needs: [["cycle"], ["avnet_vs_arrow"]] },
   { kind: "multi", q: "What should I tell a customer worried about chip prices and lead times?", needs: [["supply"]] },
@@ -103,12 +106,16 @@ const cost = (u: Usage) => {
   return (u.input * i + u.output * o + u.cacheRead * cr + u.cacheWrite * cw) / 1e6;
 };
 
+// ASK_EVAL_ONLY="term|book-to-bill" runs only the questions that match, to spend less on a narrow change.
+const ONLY = process.env.ASK_EVAL_ONLY ? new RegExp(process.env.ASK_EVAL_ONLY, "i") : null;
+const RUN = ONLY ? CASES.filter((c) => ONLY.test(c.q)) : CASES;
+
 async function run(model: string) {
   console.log(`\n=== ${model} ===`);
   let passed = 0;
   let dollars = 0;
   let ms = 0;
-  for (const c of CASES) {
+  for (const c of RUN) {
     const res = await fetch(`${BASE}/api/ask-eval`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -128,7 +135,7 @@ async function run(model: string) {
     console.log(`  ${r.answer.text.replace(/\n+/g, " ¶ ")}`);
     for (const f of fails) console.log(`  ! ${f}`);
   }
-  const n = CASES.length;
+  const n = RUN.length;
   console.log(`\n${model}: ${passed} of ${n} passed; ${((dollars / n) * 100).toFixed(3)}¢ a question on average; ${(ms / n / 1000).toFixed(1)}s on average`);
   return { model, passed, perQuestion: dollars / n, seconds: ms / n / 1000 };
 }
@@ -142,7 +149,7 @@ async function main() {
   }
   console.log("\nSummary");
   for (const s of summary)
-    console.log(`  ${s.model}: ${s.passed} of ${CASES.length}, ${(s.perQuestion * 100).toFixed(3)}¢ a question, ${s.seconds.toFixed(1)}s a question`);
+    console.log(`  ${s.model}: ${s.passed} of ${RUN.length}, ${(s.perQuestion * 100).toFixed(3)}¢ a question, ${s.seconds.toFixed(1)}s a question`);
 }
 
 main().catch((e) => {
