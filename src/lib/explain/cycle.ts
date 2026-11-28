@@ -118,6 +118,42 @@ export function readDistributorInventory(qs: DaysQuarter[], i: number, distribut
   };
 }
 
+// Inventory days by stage (the chain on Market Cycle) -----------------------
+
+/** What rising days mean at each stage of the chain. */
+const STAGE_NOTE: Record<string, string> = {
+  customers: "When customers' days climb, they have bought ahead of their sales and will order less from the chain behind them.",
+  ems: "Contract manufacturers hold the parts for their customers' builds. Rising days mean parts are arriving faster than builds ship.",
+  distributors: "Distributor inventory turns before chip makers' revenue does. When days climb, distributors cut orders, and the makers feel it a quarter or two later.",
+  manufacturers: "Rising days mean chip makers are making more than they sell. Read a stage against its own past: days differ a lot between stages.",
+  equipment: "Equipment takes many months to build, so these days run high. Read them against the stage's own past, not the other stages.",
+};
+
+/** The median company in one stage of the chain, quarter by quarter. */
+export interface StageDays {
+  label: string;
+  days: number;
+  /** How many of the stage's companies had reported the quarter: the median is theirs. */
+  reporting?: number;
+}
+
+export function readStageInventory(qs: StageDays[], i: number, stage: { id: string; name: string; companies: number }): FinReading {
+  const q = qs[i];
+  const n = Math.round(q.days);
+  const d = (k: number) => `${count(k)} ${k === 1 ? "day" : "days"}`;
+  const ago = qs.find((x) => x.label === yearBefore(q.label));
+  const change = ago ? n - Math.round(ago.days) : undefined;
+  const vs = change === undefined ? "" : change === 0 ? ", level with a year ago" : `, ${change > 0 ? "up" : "down"} ${d(Math.abs(change))} on a year ago`;
+  return {
+    lead: `The median company in ${lower(stage.name)} holds ${d(n)} of inventory${vs}.`,
+    sentence: `In ${shortQuarter(q.label)}, across the ${count(q.reporting ?? stage.companies)} companies in ${lower(stage.name)} that had reported, the middle one would run out in ${d(n)} at its rate of sales.`,
+    note: STAGE_NOTE[stage.id],
+  };
+}
+
+/** "CY25 Q3" from "CY26 Q3". */
+const yearBefore = (label: string) => label.replace(/^CY(\d{2})/, (_, y: string) => `CY${String(Number(y) - 1).padStart(2, "0")}`);
+
 // Hyperscaler capex --------------------------------------------------------
 
 export interface CapexQuarter {

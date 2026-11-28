@@ -44,7 +44,7 @@ The glossary already has Book-to-bill, Backlog, Inventory days, Cash conversion 
 ## Phase 1: financial KPIs (built 2026-11-27, branch `claude/kpi-explain-financials`)
 Built as one component, `ExplainFinancial` (`src/components/explain/financials.tsx`), with a `kind` per tile, on the shared `ExplainFrame` (`frame.tsx`). Rules are in `src/lib/explain/financials.ts`; `financials-data.ts` builds the quarters on the server with the tiles' comparability rule, so the explainer never shows a figure the tile hides. Wired into the earnings tiles on US filers' profiles (Revenue growth, Gross margin, Operating margin, Diluted EPS, Free cash flow) and the overview tiles on foreign filers' profiles (Revenue, Gross margin, Operating margin, Inventory days). Not done:
 - Half-yearly reporters (RS Group) were left out at first. Added 2026-11-28 on branch `claude/kpi-explain-halves`: the same explainers step through halves. `Subject.period` comes from the company's cadence, and the copy, stepper buttons, title and captions say half where they said quarter. `forPeriod()` swaps the glossary text that speaks of quarters (Inventory days, Revenue growth, Diluted EPS). Halves have no peer median, since the rollups are by calendar quarter.
-- `cycle-view.tsx` uses `Measure`, not `KpiTile`, so its Inventory days has no mark.
+- `cycle-view.tsx` uses `Measure`, not `KpiTile`, so its Inventory days had no mark. Added 2026-11-28 (branch `claude/kpi-explain-stage-inventory`): `Measure` takes an `explain` node, and each stage of the chain opens `ExplainStageInventory`, the stage's median on the ratio scale, counting only the companies that had reported, with a note on what rising days mean at that stage.
 - "Growth a year" on the scenario modeler is a compounded scenario rate, not revenue growth; it belongs with Phase 3's "Against holding share".
 - No peer comparison (open question 1 below); the gross margin note names the group to compare with instead.
 
@@ -108,7 +108,7 @@ Built in `src/components/explain/cycle.tsx`, rules in `src/lib/explain/cycle.ts`
 - **Companies growing** and **Median revenue growth** use the dot strip: one dot per company, stacked where they would overlap, the median marked, Avnet green and Arrow dark blue among grey dots. The strip stops at 100% either way and says how many companies sit beyond it. `getCycle` now returns `supplyGrowth`, each supply-chain company's growth on the rollup's pairing rule, so the count matches the tile.
 - **Distributor inventory** is the ratio scale in days with the 90-day reference from Phase 1, in grey (a group, not Avnet). The sentence gives chip makers' growth in the same quarter.
 - **Hyperscaler capex** is pair bars of a quarter against the same quarter a year earlier, stepping through the quarters where both are complete (four of the eight), with chip makers' growth beside it for the AI gap.
-- `cycle-view.tsx`'s per-company Inventory days still uses `Measure`, so it has no mark.
+- The chain's Inventory days (one per stage) got its mark later; see the Phase 1 note.
 - The Supply-chain revenue, Companies growing and Median revenue growth glossary terms are new.
 - Fixed in passing: `PairBars` drew its dashed gap outline with a negative width when the two bars were within a pixel (Avnet and Arrow revenue on Market Share).
 - The real-data reads aren't in `explain.test.ts`: these figures are live SEC data, which the tests don't fetch. They were checked in the browser instead.

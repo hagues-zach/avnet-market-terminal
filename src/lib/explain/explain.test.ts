@@ -63,6 +63,7 @@ import {
   readCapex,
   readCompaniesGrowing,
   readDistributorInventory,
+  readStageInventory,
   readMedianGrowth,
   readSupplyRevenue,
 } from "./cycle";
@@ -693,6 +694,25 @@ const di = readDistributorInventory(dq, 4, 4);
 assert.equal(di.lead, "The median distributor holds 101 days of inventory, up 11 days on a year ago.");
 assert.ok(di.sentence.includes("across four distributors"));
 assert.equal(readDistributorInventory(dq, 0, 4).lead, "The median distributor holds 90 days of inventory.");
+
+// Inventory days for one stage of the chain: the year-ago quarter is found by label, not by position.
+const ems = { id: "ems", name: "Contract manufacturers", companies: 6 };
+const sq = [
+  { label: "CY25 Q3", days: 60 },
+  { label: "CY26 Q2", days: 66 },
+  { label: "CY26 Q3", days: 68, reporting: 5 },
+];
+const si = readStageInventory(sq, 2, ems);
+assert.equal(si.lead, "The median company in contract manufacturers holds 68 days of inventory, up eight days on a year ago.");
+assert.ok(si.sentence.includes("across the five companies in contract manufacturers that had reported"), si.sentence);
+assert.ok(readStageInventory(sq, 1, ems).sentence.includes("across the six companies"));
+assert.ok(si.note?.startsWith("Contract manufacturers hold"));
+assert.equal(readStageInventory(sq, 1, ems).lead, "The median company in contract manufacturers holds 66 days of inventory.");
+assert.ok(readStageInventory([{ label: "CY26 Q3", days: 1 }], 0, ems).lead.includes("one day of inventory"));
+for (const id of ["customers", "ems", "distributors", "manufacturers", "equipment"]) {
+  const n = readStageInventory(sq, 2, { ...ems, id }).note;
+  assert.ok(n && !/[/·—–]/.test(n), id);
+}
 
 const usd = (v: number) => `$${(v / 1e9).toFixed(1)}B`;
 const cx = readCapex({ label: "CY26 Q2", total: 90e9, yearAgo: 60e9, chipGrowth: 0.2 }, 5, usd);
