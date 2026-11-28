@@ -10,12 +10,14 @@ import {
   readCompaniesGrowing,
   readDistributorInventory,
   readMedianGrowth,
+  readStageInventory,
   readSupplyRevenue,
   shortQuarter,
   type CapexQuarter,
   type CompanyGrowth,
   type DaysQuarter,
   type GrowthQuarter,
+  type StageDays,
 } from "@/lib/explain/cycle";
 import { explainer, type Explainer } from "@/lib/explain/registry";
 import { DataChip } from "@/components/ui/chip";
@@ -46,15 +48,18 @@ function Stepped({
   title,
   periods,
   body,
+  label,
 }: {
   e: Explainer;
   title: string;
+  /** The mark's accessible name, when several of the same KPI share a page. */
+  label?: string;
   periods: string[];
   body: (i: number, setI: (i: number) => void) => Omit<Parameters<typeof ExplainFrame>[0], "explainer" | "periods" | "index" | "onIndex">;
 }) {
   if (!periods.length) return null;
   return (
-    <ExplainPopover label={`Explain ${lower(e.name)}`} title={title}>
+    <ExplainPopover label={label ?? `Explain ${lower(e.name)}`} title={title}>
       <SteppedBody e={e} periods={periods} body={body} />
     </ExplainPopover>
   );
@@ -192,6 +197,43 @@ export function ExplainDistributorInventory({ quarters, distributors }: { quarte
               words={["Leaner", "Three months", "Heavier"]}
               color={VIZ.benchmark}
               caption="Median distributor inventory days, by quarter"
+            />
+          ),
+          sentence: r.sentence,
+          note: r.note,
+          source: SEC,
+        };
+      }}
+    />
+  );
+}
+
+/* ---------- Inventory days by stage ---------- */
+
+export function ExplainStageInventory({ quarters, stage }: { quarters: StageDays[]; stage: { id: string; name: string; companies: number } }) {
+  const e = explainer("Inventory days");
+  const points = quarters.map((q) => ({ label: shortQuarter(q.label), value: q.days }));
+  return (
+    <Stepped
+      e={e}
+      label={`Explain inventory days for ${lower(stage.name)}`}
+      title={`${stage.name}: inventory days, last ${count(quarters.length)} quarters`}
+      periods={points.map((p) => p.label)}
+      body={(i, setI) => {
+        const r = readStageInventory(quarters, i, stage);
+        return {
+          lead: r.lead,
+          figure: (
+            <RatioScale
+              points={points}
+              selected={i}
+              onSelect={setI}
+              scale={inventoryScale(points.map((p) => p.value))}
+              reference={INVENTORY_REFERENCE}
+              format={(v) => `${Math.round(v)} days`}
+              words={["Leaner", "Three months", "Heavier"]}
+              color={VIZ.benchmark}
+              caption={`Median inventory days in ${lower(stage.name)}, by quarter`}
             />
           ),
           sentence: r.sentence,

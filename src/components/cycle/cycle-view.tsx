@@ -4,7 +4,7 @@ import { COHORT_LABELS, isDemand } from "@/lib/data/live/earnings-model";
 import { NA, format, leaderboardHref } from "@/components/earnings/format";
 import { Delta } from "@/components/ui/delta";
 import { KpiTile } from "@/components/ui/kpi-tile";
-import { ExplainCapex, ExplainCompaniesGrowing, ExplainDistributorInventory, ExplainSupplyRevenue } from "@/components/explain/cycle";
+import { ExplainCapex, ExplainCompaniesGrowing, ExplainDistributorInventory, ExplainStageInventory, ExplainSupplyRevenue } from "@/components/explain/cycle";
 import { Panel, SourceLine } from "@/components/ui/panel";
 import { ErrorState, LoadingBlock, Skeleton } from "@/components/ui/states";
 import { CapexBars, GrowthBars, InventoryLines } from "./charts";
@@ -214,10 +214,13 @@ export async function CycleView() {
 
 /* ---------- The chain ---------- */
 
-function Measure({ label, children }: { label: string; children: React.ReactNode }) {
+function Measure({ label, explain, children }: { label: string; explain?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="border-t border-hairline py-2.5">
-      <p className="font-display text-label uppercase text-ink-muted">{label}</p>
+      <div className="flex items-center gap-1">
+        <p className="font-display text-label uppercase text-ink-muted">{label}</p>
+        {explain}
+      </div>
       <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">{children}</div>
     </div>
   );
@@ -328,7 +331,15 @@ function Chain({
                 <span className="font-display text-figure tabular-nums text-ink">{growthText(now?.growth)}</span>
                 {growthChange !== undefined && <Delta value={growthChange} display={pts(growthChange)} period="on prior qtr" />}
               </Measure>
-              <Measure label="Inventory days">
+              <Measure
+                label="Inventory days"
+                explain={
+                  <ExplainStageInventory
+                    stage={{ id: s.id, name: s.name, companies: s.companies }}
+                    quarters={s.points.flatMap((p) => (p.inventoryDays === undefined ? [] : [{ label: p.label, days: p.inventoryDays, reporting: p.reporting }]))}
+                  />
+                }
+              >
                 <span className="text-body-strong tabular-nums text-ink">
                   {now?.inventoryDays === undefined ? NA : Math.round(now.inventoryDays)}
                 </span>
