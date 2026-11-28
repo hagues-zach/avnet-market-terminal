@@ -19,6 +19,8 @@ import {
   readInventoryDays,
   readOperatingMargin,
   readRevenueGrowth,
+  forPeriod,
+  periods,
   usd,
   type FinQuarter,
   type FinReading,
@@ -35,8 +37,9 @@ import { Waterfall } from "./diagrams/waterfall";
 // The financial KPI explainers on company profiles and the earnings view: gross
 // margin, operating margin, free cash flow and diluted EPS as waterfalls,
 // inventory days on a scale with a trail, revenue growth as pair bars. One
-// component, a `kind` per tile. It renders nothing when the tile's own quarter
-// can't be read, so a mark never opens onto a gap.
+// component, a `kind` per tile. It renders nothing when the tile's own period
+// can't be read, so a mark never opens onto a gap. Half-yearly reporters step
+// through halves, and the copy says so.
 
 /** "Diluted EPS" to "diluted EPS": only the first letter drops to lower case. */
 const lower = (name: string) => name.charAt(0).toLowerCase() + name.slice(1);
@@ -75,7 +78,7 @@ export function ExplainFinancial({
   source,
 }: {
   kind: FinKind;
-  /** Oldest first; the last is the quarter the tile shows. */
+  /** Oldest first; the last is the period the tile shows. */
   quarters: FinQuarter[];
   subject: Subject;
   /** Where the figures come from, e.g. "SEC filings". */
@@ -84,14 +87,14 @@ export function ExplainFinancial({
   const read = READ[kind];
   const latest = quarters.at(-1);
   if (!latest || !read(latest, subject)) return null;
-  // Step only through quarters that can be read in full.
+  // Step only through periods that can be read in full.
   const usable = quarters.filter((q) => read(q, subject) !== null);
   const e = explainer(TERM[kind]);
   const n = usable.length;
   return (
     <ExplainPopover
       label={`Explain ${lower(e.name)}`}
-      title={n === 1 ? e.name : `${e.name}, last ${count(n)} quarters`}
+      title={n === 1 ? e.name : `${e.name}, last ${count(n)} ${periods(subject.period ?? "quarter")}`}
     >
       <Body kind={kind} quarters={usable} subject={subject} source={source} />
     </ExplainPopover>
@@ -102,7 +105,8 @@ function Body({ kind, quarters, subject, source }: { kind: FinKind; quarters: Fi
   const [i, setI] = useState(quarters.length - 1);
   const q = quarters[i];
   const r = READ[kind](q, subject)!;
-  const e = explainer(TERM[kind]);
+  const unit = subject.period ?? "quarter";
+  const e = forPeriod(explainer(TERM[kind]), unit);
   const color = companyColor(subject.slug);
 
   let figure: React.ReactNode;
@@ -117,7 +121,7 @@ function Body({ kind, quarters, subject, source }: { kind: FinKind; quarters: Fi
         reference={INVENTORY_REFERENCE}
         format={(v) => `${Math.round(v)}`}
         color={color}
-        caption={`${subject.name} inventory days by quarter, against a ${INVENTORY_REFERENCE} day reference`}
+        caption={`${subject.name} inventory days by ${unit}, against a ${INVENTORY_REFERENCE} day reference`}
       />
     );
   } else if (kind === "revenueGrowth") {
@@ -183,6 +187,7 @@ function Body({ kind, quarters, subject, source }: { kind: FinKind; quarters: Fi
       onIndex={setI}
       sentence={peerLine ? `${r.sentence} ${peerLine}` : r.sentence}
       note={r.note}
+      unit={unit}
       source={<span className="text-caption text-ink-muted">{source}</span>}
     />
   );

@@ -9,10 +9,12 @@ import {
   ROLE_SINGULAR,
   comparability,
   comparableValue,
+  basisOf,
   currencyName,
   isUsFiler,
   roleOf,
   sourceOf,
+  type Basis,
   type Company,
   type CompanyEarnings,
   type Metric,
@@ -42,6 +44,15 @@ export function yearAgo(quarters: Quarter[], q: Quarter): Quarter | undefined {
 }
 
 const points = (v: number) => `${(Math.abs(v) * 100).toFixed(1)} points`;
+
+/** How the operating line is drawn, for companies whose operating margin carries a caveat. */
+const OPERATING_DEFINED: Record<Basis, string> = {
+  "us-gaap": "as US GAAP defines it",
+  kifrs: "as Korean accounting defines it",
+  "kifrs-segment": "as Korean accounting defines it",
+  tifrs: "as Taiwanese accounting defines it",
+  "ifrs-half": "where the company draws the line under IFRS",
+};
 
 /**
  * Plain-language facts a seller can open a conversation with. Every line is a
@@ -81,7 +92,7 @@ export function glance(earnings: CompanyEarnings, mix: RevenueMix): string[] {
       `Gross margin is ${format("pct", v.grossMargin)}${d === undefined || Math.abs(d) < 0.0005 ? "" : `, ${d > 0 ? "up" : "down"} ${points(d)} on the year`}${
         v.operatingMargin === undefined
           ? ""
-          : `; operating margin is ${format("pct", v.operatingMargin)}${comparability(earnings.company, "operatingMargin") ? ", as Korean accounting defines it" : ""}`
+          : `; operating margin is ${format("pct", v.operatingMargin)}${comparability(earnings.company, "operatingMargin") ? `, ${OPERATING_DEFINED[basisOf(earnings.company)]}` : ""}`
       }.`,
     );
   }
@@ -223,9 +234,9 @@ export async function ProfileOverview({ company }: { company: Company }) {
   const color = companyColor(company.slug);
   const gmDelta = v.grossMargin !== undefined && p?.values.grossMargin !== undefined ? v.grossMargin - p.values.grossMargin : undefined;
   const invDelta = v.inventoryDays !== undefined && p?.values.inventoryDays !== undefined ? Math.round(v.inventoryDays - p.values.inventoryDays) : undefined;
-  // Explainers step through quarters, so half-yearly reporters don't get them yet.
-  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings, 8, peers), subject: subjectOf(company), source: sourceOf(company).short };
-  const explain = (kind: FinKind) => (fin ? <ExplainFinancial kind={kind} {...fin} /> : undefined);
+  // Half-yearly reporters step through halves.
+  const fin = { quarters: finQuarters(earnings, 8, peers), subject: subjectOf(company), source: sourceOf(company).short };
+  const explain = (kind: FinKind) => <ExplainFinancial kind={kind} {...fin} />;
   const footer = <SourceLine source={sourceOf(company).filings} asOf={`${company.cadence === "half" ? "half" : "quarter"} ended ${longDate(q.end)}`} />;
 
   return (
