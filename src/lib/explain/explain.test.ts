@@ -24,6 +24,8 @@ import {
   readInventoryDays,
   readOperatingMargin,
   readRevenueGrowth,
+  forPeriod,
+  periods,
   type FinQuarter,
   type Subject,
 } from "./financials";
@@ -400,6 +402,29 @@ assert.ok(
   )!.note?.includes("own currency"),
 );
 assert.equal(readRevenueGrowth({ label: "Q", v: { revenue: 1 } }, avnet), null);
+
+// Half-yearly reporters (RS Group) read in halves: the copy, the footer and the title say so.
+const rs: Subject = { name: "RS Group", slug: "rs-group", group: "distributor", period: "half" };
+const half: FinQuarter = { ...fq, label: "FY26 H1", yearAgo: { ...fq.yearAgo!, label: "FY25 H1" } };
+const rsGrowth = readRevenueGrowth(half, { ...rs, slug: "rs-x" })!;
+assert.equal(rsGrowth.lead, "Revenue was down 4.0% on the same half a year ago.");
+assert.ok(rsGrowth.note?.includes("same half a year earlier") && rsGrowth.note.includes("half on half"), rsGrowth.note);
+assert.ok(readEps({ ...half, epsDerived: true }, rs)!.note?.startsWith("This half's figure"));
+assert.ok(readGrossMargin(half, rs)!.sentence.startsWith("In FY26 H1,"));
+// A distributor far above the usual 10 to 12% (RS Group, near 44%) gets a note that doesn't contradict it.
+const highMargin = readGrossMargin({ ...half, v: { ...half.v, grossProfit: 0.44 * half.v.revenue!, grossMargin: 0.44 } }, rs)!;
+assert.ok(highMargin.note?.includes("far above"), highMargin.note);
+assert.ok(readGrossMargin(fq, avnet)!.note?.startsWith("Distributors resell parts"));
+assert.equal(periods("half"), "halves");
+assert.equal(periods("quarter"), "quarters");
+const invTerm = explainer("Inventory days");
+assert.equal(forPeriod(invTerm, "quarter"), invTerm);
+assert.equal(forPeriod(invTerm, "half").formula, "Inventory ÷ cost of sales × days in the half");
+for (const term of ["Inventory days", "Revenue growth (year on year)", "Diluted EPS", "Gross margin", "Operating margin", "Free cash flow"]) {
+  const e = forPeriod(explainer(term), "half");
+  assert.ok(!/quarter/i.test(`${e.definition} ${e.formula}`), `${term}: ${e.definition} ${e.formula}`);
+  assert.ok(!/[/·—–]/.test(`${e.definition} ${e.formula}`), term);
+}
 
 // Copy rules hold in every financial sentence.
 const fin = [gm, om, fcf, burn, eps, inv, rg].flatMap((r) => [

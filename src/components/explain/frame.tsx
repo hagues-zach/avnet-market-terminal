@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Explainer } from "@/lib/explain/registry";
 
 // The body every stepped explainer shares: the answer first, the diagram, a
-// quarter stepper (buttons and the arrow keys), the figures in an aria-live
+// period stepper (buttons and the arrow keys), the figures in an aria-live
 // sentence, an optional line of context, and the definition, formula, glossary
 // link and source. The body takes focus when the explainer opens, so the arrow
 // keys work at once.
@@ -21,6 +21,7 @@ export function ExplainFrame({
   sentence,
   note,
   source,
+  unit = "quarter",
 }: {
   explainer: Explainer;
   lead: string;
@@ -34,6 +35,8 @@ export function ExplainFrame({
   note?: string;
   /** The source: a DataChip, or a line of text. */
   source: React.ReactNode;
+  /** What one period is, for the stepper's buttons. */
+  unit?: "quarter" | "half";
 }) {
   const last = periods.length - 1;
   const step = (d: number) => onIndex(Math.min(last, Math.max(0, index + d)));
@@ -54,11 +57,11 @@ export function ExplainFrame({
 
       {periods.length > 1 && (
         <div className="flex items-center justify-between border border-hairline">
-          <StepButton label="Previous quarter" disabled={index === 0} onClick={() => step(-1)}>
+          <StepButton label={`Previous ${unit}`} disabled={index === 0} onClick={() => step(-1)}>
             <ChevronLeft className="h-4 w-4" strokeWidth={1.5} aria-hidden />
           </StepButton>
           <span className="font-display text-card-title tabular-nums text-ink">{periods[index]}</span>
-          <StepButton label="Next quarter" disabled={index === last} onClick={() => step(1)}>
+          <StepButton label={`Next ${unit}`} disabled={index === last} onClick={() => step(1)}>
             <ChevronRight className="h-4 w-4" strokeWidth={1.5} aria-hidden />
           </StepButton>
         </div>
