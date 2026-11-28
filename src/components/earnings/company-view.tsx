@@ -52,9 +52,9 @@ export function CompanyResults({ earnings, peers }: { earnings: CompanyEarnings;
   const epsChange = change(v.epsDiluted, p.epsDiluted);
   const fcfChange = change(v.freeCashFlow, p.freeCashFlow);
   const revChange = rel(v.revenue, p.revenue);
-  // Explainers step through quarters, so half-yearly reporters don't get them yet.
-  const fin = company.cadence === "half" ? null : { quarters: finQuarters(earnings, 8, peers), subject: subjectOf(company), source: sourceOf(company).short };
-  const explain = (kind: FinKind) => (fin ? <ExplainFinancial kind={kind} {...fin} /> : undefined);
+  // Half-yearly reporters step through halves.
+  const fin = { quarters: finQuarters(earnings, 8, peers), subject: subjectOf(company), source: sourceOf(company).short };
+  const explain = (kind: FinKind) => <ExplainFinancial kind={kind} {...fin} />;
 
   return (
     <>

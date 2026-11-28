@@ -27,7 +27,7 @@ const CHIP_MAKERS = new Set(["manufacturer", "platform", "connectivity", "memory
 
 export function subjectOf(c: Company): Subject {
   const group: Group = c.cohort === "distributor" ? "distributor" : CHIP_MAKERS.has(c.cohort) ? "chipMaker" : "other";
-  return { name: c.slug === "avnet" ? "Avnet" : c.name, slug: c.slug, group };
+  return { name: c.slug === "avnet" ? "Avnet" : c.name, slug: c.slug, group, period: c.cadence === "half" ? "half" : "quarter" };
 }
 
 /** A company's peer group medians by calendar quarter, from the Market Cycle rollups (US filers). */
@@ -46,7 +46,11 @@ export async function peerSeries(c: Company): Promise<PeerSeries | undefined> {
   );
 }
 
-/** The last `n` quarters, oldest first, ready for an explainer. */
+/**
+ * The last `n` periods, oldest first, ready for an explainer: quarters, or
+ * halves for a half-yearly reporter. Halves carry no peer medians, since the
+ * rollups are by calendar quarter and a half matches none.
+ */
 export function finQuarters(e: CompanyEarnings, n = 8, peers?: PeerSeries): FinQuarter[] {
   const c = e.company;
   const shown = (m: Metric, v: number | undefined) => comparableValue(c, m, v);

@@ -1,5 +1,6 @@
 import { formatUsdMillions } from "@/lib/format";
 import { count, type WaterfallStep } from "./diagrams";
+import type { Explainer } from "./registry";
 
 // What a company's financial KPIs say, in words and diagram steps, for the
 // explainers on company profiles and the earnings view. Pure: the server builds
@@ -20,13 +21,14 @@ export type FinMetric =
   | "inventoryDays"
   | "revenueYoY";
 
+/** One reporting period: a quarter, or a half for half-yearly reporters (RS Group). */
 export interface FinQuarter {
-  /** The company's own fiscal label, e.g. "FY26 Q4". */
+  /** The company's own fiscal label, e.g. "FY26 Q4" or "FY26 H1". */
   label: string;
   v: Partial<Record<FinMetric, number>>;
-  /** The same quarter a year earlier, when there is one. */
+  /** The same period a year earlier, when there is one. */
   yearAgo?: { label: string; revenue?: number; inventoryDays?: number };
-  /** EPS backed out of the annual report (fourth quarters), so approximate. */
+  /** EPS backed out of the annual report (fourth quarters, second halves), so approximate. */
   epsDerived?: boolean;
   /** The company's peer group medians for the same calendar quarter, when the group reported enough. */
   peer?: PeerFigures;
@@ -50,6 +52,34 @@ export interface Subject {
   name: string;
   slug: string;
   group: Group;
+  /** How often the company reports; quarters unless it reports every six months. */
+  period?: Period;
+}
+
+export type Period = "quarter" | "half";
+const unit = (s: Subject): Period => s.period ?? "quarter";
+/** "quarters" or "halves". */
+export const periods = (p: Period) => (p === "half" ? "halves" : "quarters");
+
+// The glossary speaks of quarters. For a half-yearly reporter, these terms say
+// "half" instead, so the footer matches the figures above it.
+const HALF_TEXT: Record<string, Partial<Pick<Explainer, "definition" | "formula">>> = {
+  "Inventory days": {
+    definition: "Inventory at the end of the half against one half of cost of sales, expressed in days.",
+    formula: "Inventory ÷ cost of sales × days in the half",
+  },
+  "Revenue growth (year on year)": {
+    definition: "Revenue in a half against the same half a year earlier, so seasonal swings cancel out.",
+  },
+  "Diluted EPS": {
+    definition:
+      "Net income divided by the average share count, including options and convertible stock that could become shares. Second halves come from annual reports.",
+  },
+};
+
+/** The explainer as a half-yearly reporter reads it: the same, with "half" where the glossary says "quarter". */
+export function forPeriod(e: Explainer, p: Period): Explainer {
+  return p === "half" ? { ...e, ...HALF_TEXT[e.term] } : e;
 }
 
 export interface FinReading {
@@ -95,8 +125,17 @@ export function readGrossMargin(q: FinQuarter, s: Subject): FinReading | null {
   return {
     lead: `${s.name} kept ${cents(grossMargin)} of every revenue dollar after the cost of what it sold.`,
     sentence: `In ${q.label}, revenue of ${usd(revenue)} less cost of sales of ${usd(revenue - grossProfit)} left gross profit of ${usd(grossProfit)}, a gross margin of ${pct(grossMargin)}.`,
-    note: GROUP_NOTE[s.group],
+    note: groupNote(s.group, grossMargin),
   };
+}
+
+/** Above this, a distributor's margin is far from the usual 10 to 12%, so the group note would contradict the figure. */
+const DISTRIBUTOR_HIGH = 0.2;
+
+function groupNote(group: Group, grossMargin: number): string {
+  if (group === "distributor" && grossMargin > DISTRIBUTOR_HIGH)
+    return "Most electronics distributors run near 10 to 12%. A margin this far above that usually means many small orders sold at a higher markup, so compare with the company's own past figures as well as other distributors.";
+  return GROUP_NOTE[group];
 }
 
 // Operating margin ----------------------------------------------------------
@@ -188,7 +227,7 @@ export function readEps(q: FinQuarter, s: Subject): FinReading | null {
   return {
     lead: epsDiluted >= 0 ? `${s.name} earned ${per} for each share in ${q.label}.` : `${s.name} lost ${per} for each share in ${q.label}.`,
     sentence: `In ${q.label}, ${netIncome >= 0 ? "net income" : "a net loss"} of ${usd(netIncome)}${sharesText} came to ${epsDiluted < 0 ? "a loss of " : ""}${per} a share.`,
-    note: q.epsDerived ? "This quarter's figure is backed out of the annual report, so treat it as approximate." : undefined,
+    note: q.epsDerived ? `This ${unit(s)}'s figure is backed out of the annual report, so treat it as approximate.` : undefined,
   };
 }
 
@@ -242,11 +281,11 @@ export function readRevenueGrowth(q: FinQuarter, s: Subject): (FinReading & { ga
   const fx = Math.abs(g - inUsd) > 0.005;
   const move = Math.abs(g) < 0.0005 ? "level with" : `${g > 0 ? "up" : "down"} ${pct(Math.abs(g))} on`;
   return {
-    lead: `Revenue was ${move} the same quarter a year ago.`,
+    lead: `Revenue was ${move} the same ${unit(s)} a year ago.`,
     sentence: `${s.name} took in ${usd(revenue)} in ${q.label}, against ${usd(prev)} in ${q.yearAgo.label}.`,
     note: fx
       ? `Growth is measured in ${s.name}'s own currency. The bars are in dollars, so the exchange rate moves them apart.`
-      : "Comparing with the same quarter a year earlier cancels out the seasons, which a quarter on quarter change would not.",
+      : `Comparing with the same ${unit(s)} a year earlier cancels out the seasons, which a ${unit(s)} on ${unit(s)} change would not.`,
     gapText: Math.round(gap / 1e6) === 0 ? "Level with a year ago" : `${usd(gap)} ${gap > 0 ? "more" : "less"} than a year ago`,
   };
 }
